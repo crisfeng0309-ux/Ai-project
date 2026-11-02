@@ -259,17 +259,19 @@
     .app-shell.home-mode { display: block; }
     .app-shell.home-mode .sidebar, .app-shell.home-mode .topbar, .app-shell.home-mode .progress-wrap, .app-shell.home-mode .footer-bar { display: none; }
     .app-shell.home-mode .main { min-height: 100vh; padding: 0; }
-    .home-view { min-height: 100vh; display: grid; place-items: center; padding: 44px 24px; position: relative; overflow: hidden; background: #fbfbfc; }
-    .home-view:before { content: ""; position: absolute; width: 1px; height: 120px; background: #dcdfe5; left: 50%; top: 0; }
-    .home-content { width: min(720px, 100%); text-align: center; position: relative; z-index: 1; }
-    .home-kicker { color: var(--blue); font-size: 10px; letter-spacing: .15em; text-transform: uppercase; font-weight: 750; margin-bottom: 24px; }
-    .home-brand { margin: 0; color: #131313; font-family: Georgia, "Times New Roman", serif; font-size: clamp(76px, 13vw, 172px); font-weight: 400; letter-spacing: -.095em; line-height: .88; }
+    .home-view { min-height: 100vh; display: grid; place-items: center; padding: 44px 24px; position: relative; overflow: hidden; isolation: isolate; background: #dbe8ea url("./assets/adlab-mountain.jpg") center center / cover no-repeat; }
+    .home-view:after { content: ""; position: absolute; inset: 0; z-index: 0; background: rgba(255,255,255,.62); pointer-events: none; }
+    .home-view:before { content: ""; position: absolute; width: 1px; height: 120px; background: rgba(40,49,58,.18); left: 50%; top: 0; z-index: 1; }
+    .home-content { width: min(720px, 100%); text-align: center; position: relative; z-index: 2; }
+    .home-kicker { color: #125fc0; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; font-weight: 750; margin-bottom: 24px; text-shadow: 0 1px 10px rgba(255,255,255,.7); }
+    .home-brand { margin: 0; color: #101214; font-family: Georgia, "Times New Roman", serif; font-size: clamp(76px, 13vw, 172px); font-weight: 400; letter-spacing: -.095em; line-height: .88; text-shadow: 0 2px 18px rgba(255,255,255,.48); }
     .home-brand span { font-style: italic; }
-    .home-tagline { margin: 27px auto 0; color: #62656d; font-size: 15px; letter-spacing: .05em; }
+    .home-tagline { margin: 27px auto 0; color: #2d343a; font-size: 15px; letter-spacing: .05em; text-shadow: 0 1px 12px rgba(255,255,255,.8); }
     .home-actions { display: flex; justify-content: center; gap: 10px; margin-top: 55px; }
     .home-actions button { min-width: 142px; padding: 13px 18px; border-radius: 10px; font-size: 12px; }
     .home-actions .primary-btn { border-radius: 10px; }
-    .home-footnote { color: #a1a4ab; font-size: 10px; margin-top: 30px; }
+    .home-actions .ghost-btn { background: rgba(255,255,255,.84); border-color: rgba(26,35,43,.18); }
+    .home-footnote { color: #4f5961; font-size: 10px; margin-top: 30px; text-shadow: 0 1px 10px rgba(255,255,255,.75); }
     .history-view { min-height: 100vh; display: none; padding: 48px max(24px, 5vw) 60px; background: #fbfbfc; }
     .app-shell.home-mode .history-view { display: block; }
     .history-view.active { display: block; }
