@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AdLab · 跨境广告实验室</title>
+  <style>
+    :root {
+      --ink: #141414;
+      --muted: #777a82;
+      --line: #e6e7eb;
+      --soft: #f6f6f8;
+      --panel: rgba(255,255,255,.82);
+      --blue: #1677ff;
+      --blue-soft: #eaf2ff;
+      --orange: #ff7b4d;
+      --green: #2e9f72;
+      --shadow: 0 18px 60px rgba(33, 38, 52, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #fbfbfc;
+      letter-spacing: 0;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
+    .app-shell { min-height: 100vh; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
+    .sidebar { padding: 28px 18px 20px; border-right: 1px solid var(--line); background: rgba(255,255,255,.76); display: flex; flex-direction: column; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 12px 30px; }
+    .brand-mark { width: 26px; height: 26px; border-radius: 8px; background: #161616; color: white; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+    .brand-name { font-size: 16px; font-weight: 700; letter-spacing: -.03em; }
+    .brand-sub { color: var(--muted); font-size: 11px; margin-left: auto; }
+    .nav-label { color: #a0a1a8; font-size: 11px; font-weight: 700; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: .08em; }
+    .nav { display: grid; gap: 4px; }
+    .nav-item { border: 0; text-align: left; display: flex; align-items: center; gap: 11px; background: transparent; color: #6f7178; padding: 11px 12px; border-radius: 10px; font-size: 13px; transition: .2s ease; }
+    .nav-item:hover { background: #f4f5f7; color: var(--ink); }
+    .nav-item.active { background: #f0f4fb; color: #145fcb; font-weight: 650; }
+    .nav-icon { width: 18px; text-align: center; font-size: 14px; }
+    .sidebar-bottom { margin-top: auto; border-top: 1px solid var(--line); padding: 18px 12px 0; }
+    .user-row { display: flex; align-items: center; gap: 10px; }
+    .avatar { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; color: #874e3b; background: #ffe4d9; font-size: 12px; font-weight: 700; }
+    .user-name { font-size: 12px; font-weight: 650; }
+    .user-note { color: var(--muted); font-size: 11px; margin-top: 2px; }
+    .main { min-width: 0; padding: 32px 42px 60px; }
+    .topbar { max-width: 1240px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+    .eyebrow { color: var(--blue); font-size: 11px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 8px 0 0; font-size: clamp(28px, 3vw, 46px); letter-spacing: -.06em; line-height: 1.03; font-weight: 730; }
+    .top-actions { display: flex; gap: 10px; align-items: center; }
+    .workspace-back { border: 0; background: transparent; color: #70737b; padding: 0; margin-bottom: 12px; font-size: 11px; }
+    .workspace-back:hover { color: var(--ink); }
+    .ghost-btn, .primary-btn { border-radius: 9px; padding: 10px 14px; font-size: 12px; border: 1px solid var(--line); transition: .2s ease; }
+    .ghost-btn { color: #44464b; background: rgba(255,255,255,.7); }
+    .ghost-btn:hover { border-color: #c7c9ce; background: white; }
+    .primary-btn { border-color: #151515; background: #151515; color: white; box-shadow: 0 7px 18px rgba(0,0,0,.12); }
+    .primary-btn:hover { transform: translateY(-1px); background: #2a2a2a; }
+    .progress-wrap { max-width: 1240px; margin: 36px auto 30px; display: flex; align-items: center; gap: 18px; }
+    .steps { display: flex; flex: 1; align-items: center; }
+    .step { display: flex; align-items: center; gap: 9px; white-space: nowrap; color: #999ba3; font-size: 12px; cursor: pointer; }
+    .step.done, .step.current { color: var(--ink); }
+    .step.current { font-weight: 700; }
+    .step-dot { width: 22px; height: 22px; border-radius: 50%; border: 1px solid #dcdde2; display: grid; place-items: center; font-size: 10px; background: white; }
+    .step.done .step-dot { color: white; background: var(--green); border-color: var(--green); }
+    .step.current .step-dot { color: white; background: var(--blue); border-color: var(--blue); }
+    .step-line { flex: 1; height: 1px; background: var(--line); margin: 0 13px; }
+    .project-chip { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .workspace { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(310px, .75fr); gap: 26px; align-items: start; }
+    .panel { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(14px); }
+    .panel-main { padding: 28px; }
+    .panel-side { padding: 22px; position: sticky; top: 22px; }
+    .panel-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 24px; }
+    .panel-heading h2 { font-size: 20px; line-height: 1.2; letter-spacing: -.04em; margin: 0 0 7px; }
+    .panel-heading p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .status-pill { color: #196b4d; background: #eaf7f1; border-radius: 999px; padding: 6px 9px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .form-grid { display: grid; gap: 16px; }
+    .two-col { grid-template-columns: 1fr 1fr; }
+    .field { display: grid; gap: 7px; }
+    label { font-size: 11px; color: #5c5e65; font-weight: 650; }
+    input, textarea, select { width: 100%; border: 1px solid #dedfe4; background: rgba(255,255,255,.86); border-radius: 9px; color: var(--ink); padding: 11px 12px; outline: none; font-size: 13px; transition: .2s ease; }
+    textarea { resize: vertical; min-height: 110px; line-height: 1.65; }
+    input:focus, textarea:focus, select:focus { border-color: #72a9ff; box-shadow: 0 0 0 3px rgba(22,119,255,.1); }
+    .upload { border: 1px dashed #cfd1d8; border-radius: 11px; min-height: 118px; display: grid; place-items: center; text-align: center; background: #fafafc; color: var(--muted); padding: 20px; }
+    .upload strong { display: block; color: #474950; font-size: 13px; margin-bottom: 5px; }
+    .upload span { font-size: 11px; }
+    .section-break { border: 0; border-top: 1px solid var(--line); margin: 26px 0; }
+    .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .section-title h3 { margin: 0; font-size: 14px; letter-spacing: -.02em; }
+    .section-title span { color: var(--muted); font-size: 11px; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tag { border: 1px solid #dedfe4; background: white; border-radius: 999px; padding: 8px 12px; font-size: 11px; color: #61636a; }
+    .tag.selected { border-color: #84b4ff; color: #145fcb; background: var(--blue-soft); }
+    .analysis-card { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 15px; }
+    .analysis-card + .analysis-card { margin-top: 10px; }
+    .analysis-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .analysis-name { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+    .dot.warn { background: var(--orange); }
+    .confidence { color: var(--green); font-size: 10px; font-weight: 700; }
+    .confidence.warn { color: #ca714a; }
+    .analysis-card p { margin: 10px 0 0 15px; color: #666870; font-size: 11px; line-height: 1.65; }
+    .side-section + .side-section { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 22px; }
+    .side-title { font-size: 12px; font-weight: 700; margin-bottom: 13px; }
+    .mini-stat { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 11px 10px; }
+    .stat-value { font-size: 17px; font-weight: 720; letter-spacing: -.04em; }
+    .stat-label { color: var(--muted); font-size: 10px; margin-top: 5px; }
+    .notice { border-radius: 11px; background: #f8f8fa; padding: 13px; color: #6d6f77; font-size: 11px; line-height: 1.7; }
+    .notice strong { display: block; color: #33353a; margin-bottom: 4px; }
+    .side-list { display: grid; gap: 11px; }
+    .side-list-item { display: flex; gap: 9px; align-items: flex-start; color: #64666d; font-size: 11px; line-height: 1.55; }
+    .side-list-item b { color: var(--ink); font-weight: 650; }
+    .number { flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: #f1f2f4; color: #74767e; font-size: 10px; }
+    .footer-bar { max-width: 1240px; margin: 18px auto 0; display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11px; }
+    .flow-note { display: flex; align-items: center; gap: 7px; }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #33a779; }
+    .toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; color: white; background: #1a1a1a; padding: 11px 15px; border-radius: 9px; font-size: 12px; transition: .25s ease; box-shadow: 0 14px 30px rgba(0,0,0,.2); }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .view { display: none; }
+    .view.active { display: block; }
+    .creative-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+    .creative-card { border: 1px solid var(--line); border-radius: 11px; background: #fff; padding: 14px; text-align: left; }
+    .creative-card.selected { border-color: #83b2ff; background: var(--blue-soft); }
+    .creative-card h4 { margin: 0 0 6px; font-size: 12px; }
+    .creative-card p { color: var(--muted); margin: 0; font-size: 11px; line-height: 1.55; }
+    .template-preview { border-radius: 13px; min-height: 250px; background: #e9f1eb; position: relative; overflow: hidden; display: grid; place-items: center; }
+    .template-preview:before { content: ""; position: absolute; width: 180px; height: 180px; border-radius: 50%; background: #b8dcc9; right: 25px; top: 28px; }
+    .template-product { position: relative; width: 90px; height: 128px; border-radius: 24px 24px 31px 31px; background: #f4faf4; border: 5px solid #b2c8ba; box-shadow: 0 18px 20px rgba(39,82,57,.15); transform: rotate(8deg); }
+    .template-product:before { content: ""; position: absolute; width: 33px; height: 19px; background: #d9e8dc; border: 4px solid #a9c1b1; border-bottom: 0; border-radius: 12px 12px 0 0; top: -20px; left: 23px; }
+    .template-product:after { content: "ADLAB"; position: absolute; left: 17px; top: 58px; color: #69917a; font-size: 10px; font-weight: 800; letter-spacing: .08em; transform: rotate(-8deg); }
+    .preview-copy { position: absolute; left: 22px; bottom: 23px; color: #24412d; }
+    .preview-copy small { font-size: 9px; letter-spacing: .12em; font-weight: 700; }
+    .preview-copy strong { display: block; font-size: 22px; letter-spacing: -.06em; margin-top: 4px; }
+    .mode-tabs { display: flex; gap: 5px; padding: 4px; border-radius: 9px; background: #f1f2f4; margin-bottom: 16px; }
+    .mode-tab { flex: 1; border: 0; background: transparent; color: var(--muted); border-radius: 7px; padding: 9px; font-size: 11px; }
+    .mode-tab.active { background: white; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.07); font-weight: 700; }
+    .prompt-box { min-height: 175px; background: #171819; color: #e9eaee; border-radius: 11px; padding: 15px; font-size: 11px; line-height: 1.8; white-space: pre-wrap; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .data-table th, .data-table td { padding: 11px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+    .data-table th { color: var(--muted); font-weight: 600; }
+    .data-entry { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px; }
+    .entry-card { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 16px; text-align: left; }
+    .entry-card.active { border-color: #83b2ff; background: var(--blue-soft); }
+    .entry-card strong { display: block; font-size: 13px; margin-bottom: 5px; }
+    .entry-card span { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .data-meta { display: flex; gap: 8px; flex-wrap: wrap; margin: 15px 0 18px; }
+    .meta-chip { border: 1px solid var(--line); border-radius: 8px; background: #fafafa; padding: 8px 10px; color: #666870; font-size: 11px; }
+    .meta-chip b { color: var(--ink); margin-right: 4px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 9px; margin: 16px 0 4px; }
+    .metric-card { border: 1px solid var(--line); border-radius: 11px; padding: 13px; background: #fff; }
+    .metric-card .stat-value { font-size: 20px; }
+    .metric-card .metric-note { color: var(--green); font-size: 10px; margin-top: 6px; }
+    .evidence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .evidence { border: 1px solid var(--line); border-radius: 11px; padding: 14px; background: #fff; }
+    .evidence h4 { margin: 0 0 7px; font-size: 12px; }
+    .evidence p { margin: 0; color: #666870; font-size: 11px; line-height: 1.7; }
+    .evidence.supported { border-left: 3px solid var(--green); }
+    .evidence.limit { border-left: 3px solid var(--orange); }
+    .mapping-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: center; margin-top: 9px; }
+    .mapping-row span { color: #5f6168; font-size: 11px; }
+    .mapping-row select { padding: 8px 9px; font-size: 11px; }
+    .analysis-label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 9px; }
+    .main.data-mode .progress-wrap { display: none; }
+    .main.entry-mode .progress-wrap { display: none; }
+    .path-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .path-card { border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 22px; text-align: left; transition: .2s ease; }
+    .path-card:hover { border-color: #8db9ff; box-shadow: 0 12px 30px rgba(33, 38, 52, .07); transform: translateY(-1px); }
+    .path-card .path-number { color: var(--blue); font-size: 10px; font-weight: 750; letter-spacing: .08em; }
+    .path-card h3 { margin: 17px 0 7px; font-size: 16px; letter-spacing: -.03em; }
+    .path-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .path-card .path-flow { display: block; color: #4c4f56; margin-top: 17px; font-size: 11px; line-height: 1.75; }
+    .setup-note { border: 1px solid #e3e8f2; border-radius: 11px; background: #f8fbff; padding: 12px 14px; color: #647087; font-size: 11px; line-height: 1.65; }
+    .review-panel { border: 1px solid #dfe8f8; border-radius: 12px; background: #f8fbff; padding: 17px; }
+    .review-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 15px; }
+    .review-header h3 { margin: 0 0 5px; font-size: 13px; }
+    .review-header p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .review-badge { color: #1662c4; background: #e5f0ff; border-radius: 999px; padding: 6px 9px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    .review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+    .review-item { border-bottom: 1px solid #e6edf8; padding-bottom: 9px; }
+    .review-item label { display: block; color: var(--muted); font-size: 10px; margin-bottom: 4px; }
+    .review-item div { color: #303238; font-size: 12px; line-height: 1.5; }
+    .review-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 17px; }
+    .edit-panel { border: 1px solid var(--line); border-radius: 12px; padding: 17px; background: #fff; }
+    .edit-panel h3 { margin: 0 0 5px; font-size: 13px; }
+    .edit-panel p { margin: 0 0 16px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .confirm-state { display: none; border: 1px solid #cdebdc; border-radius: 12px; background: #f4fbf7; padding: 17px; }
+    .confirm-state.show { display: block; }
+    .confirm-state strong { display: block; color: #237552; font-size: 13px; margin-bottom: 5px; }
+    .confirm-state span { color: #5e7568; font-size: 11px; line-height: 1.6; }
+    .legacy-overview { display: none !important; }
+    .overview-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); gap: 16px; }
+    .overview-card { border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 20px; }
+    .overview-card.primary { background: #171819; color: white; border-color: #171819; }
+    .overview-card.primary .muted, .overview-card.primary .project-meta { color: #aeb2bb; }
+    .overview-card h2 { margin: 0 0 7px; font-size: 20px; letter-spacing: -.04em; }
+    .overview-card h3 { margin: 0 0 5px; font-size: 13px; letter-spacing: -.02em; }
+    .overview-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
+    .overview-card.primary p { color: #c9ccd3; }
+    .project-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; color: #8f949e; font-size: 11px; }
+    .project-meta span { border: 1px solid rgba(255,255,255,.16); border-radius: 999px; padding: 6px 9px; }
+    .overview-card.primary .primary-btn { background: white; color: #171819; border-color: white; box-shadow: none; margin-top: 20px; }
+    .overview-card.primary .primary-btn:hover { background: #edf0f4; }
+    .overview-kicker { color: #83b6ff; font-size: 10px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 12px; }
+    .mini-progress { display: grid; gap: 13px; margin-top: 17px; }
+    .progress-row { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 9px; font-size: 11px; }
+    .progress-number { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #f2f3f5; color: #73757d; font-size: 10px; }
+    .progress-row.current .progress-number { color: white; background: var(--blue); }
+    .progress-row.done .progress-number { color: white; background: var(--green); }
+    .progress-row strong { display: block; font-size: 11px; }
+    .progress-row small { color: var(--muted); font-size: 10px; }
+    .progress-status { color: var(--muted); font-size: 10px; }
+    .progress-row.current .progress-status { color: var(--blue); font-weight: 700; }
+    .overview-section { margin-top: 16px; }
+    .overview-section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .overview-section-head h3 { margin: 0; font-size: 13px; }
+    .overview-section-head span { color: var(--muted); font-size: 10px; }
+    .quick-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .quick-card { border: 1px solid var(--line); border-radius: 11px; background: #fff; padding: 14px; text-align: left; }
+    .quick-card:hover { border-color: #9abfff; background: #fbfdff; }
+    .quick-card strong { display: block; font-size: 12px; margin-bottom: 5px; }
+    .quick-card span { color: var(--muted); font-size: 10px; line-height: 1.55; }
+    .workflow-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+    .workflow-item { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 12px 10px; min-height: 82px; }
+    .workflow-item.current { border-color: #9abfff; background: var(--blue-soft); }
+    .workflow-item .workflow-index { color: #a0a2aa; font-size: 10px; }
+    .workflow-item strong { display: block; font-size: 11px; margin: 8px 0 4px; }
+    .workflow-item span { color: var(--muted); font-size: 10px; }
+    .overview-empty { display: none; }
+    .progress-dashboard { max-width: 960px; margin: 0 auto; }
+    .progress-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 28px; }
+    .progress-head h2 { margin: 8px 0 7px; font-size: clamp(26px, 4vw, 42px); letter-spacing: -.06em; }
+    .progress-head p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
+    .path-label { color: var(--blue); font-size: 11px; font-weight: 750; letter-spacing: .08em; }
+    .progress-percent { text-align: right; color: #555860; font-size: 12px; white-space: nowrap; }
+    .progress-percent strong { display: block; color: var(--ink); font-size: 27px; letter-spacing: -.05em; }
+    .progress-rail { height: 4px; background: #e9eaee; border-radius: 999px; overflow: hidden; margin-bottom: 25px; }
+    .progress-rail-fill { height: 100%; width: 0; background: var(--blue); border-radius: inherit; transition: width .3s ease; }
+    .progress-list { display: grid; gap: 9px; }
+    .progress-step { width: 100%; display: grid; grid-template-columns: 36px minmax(0,1fr) auto; align-items: center; gap: 14px; padding: 15px 16px; border: 1px solid var(--line); border-radius: 11px; background: white; text-align: left; transition: .2s ease; }
+    .progress-step.current { border-color: #9abfff; background: #f6faff; box-shadow: 0 7px 20px rgba(22,119,255,.06); }
+    .progress-step.complete { border-color: #d7eadf; }
+    .progress-step.locked { color: #92959d; background: #fafafa; }
+    .progress-step:not(.locked):hover { border-color: #9abfff; transform: translateY(-1px); }
+    .progress-icon { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #f0f1f4; color: #858891; font-size: 11px; }
+    .progress-step.current .progress-icon { background: var(--blue); color: white; }
+    .progress-step.complete .progress-icon { background: var(--green); color: white; }
+    .progress-step-title { color: var(--ink); font-size: 13px; font-weight: 700; }
+    .progress-step.locked .progress-step-title { color: #8d9097; }
+    .progress-step-detail { display: block; color: var(--muted); font-size: 10px; margin-top: 4px; }
+    .progress-step-status { color: var(--muted); font-size: 10px; white-space: nowrap; }
+    .progress-step.current .progress-step-status { color: var(--blue); font-weight: 700; }
+    .progress-step.complete .progress-step-status { color: var(--green); }
+    .progress-next { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+    .progress-next p { margin: 0; color: var(--muted); font-size: 11px; }
+    .progress-next strong { display: block; color: var(--ink); font-size: 13px; margin-bottom: 4px; }
+    @media (max-width: 620px) { .progress-head { flex-direction: column; } .progress-percent { text-align: left; } .progress-next { align-items: flex-start; flex-direction: column; } .progress-next .primary-btn { width: 100%; } }
+    .app-shell.home-mode { display: block; }
+    .app-shell.home-mode .sidebar, .app-shell.home-mode .topbar, .app-shell.home-mode .progress-wrap, .app-shell.home-mode .footer-bar { display: none; }
+    .app-shell.home-mode .main { min-height: 100vh; padding: 0; }
+    .home-view { min-height: 100vh; display: grid; place-items: center; padding: 44px 24px; position: relative; overflow: hidden; background: #fbfbfc; }
+    .home-view:before { content: ""; position: absolute; width: 1px; height: 120px; background: #dcdfe5; left: 50%; top: 0; }
+    .home-content { width: min(720px, 100%); text-align: center; position: relative; z-index: 1; }
+    .home-kicker { color: var(--blue); font-size: 10px; letter-spacing: .15em; text-transform: uppercase; font-weight: 750; margin-bottom: 24px; }
+    .home-brand { margin: 0; color: #131313; font-family: Georgia, "Times New Roman", serif; font-size: clamp(76px, 13vw, 172px); font-weight: 400; letter-spacing: -.095em; line-height: .88; }
+    .home-brand span { font-style: italic; }
+    .home-tagline { margin: 27px auto 0; color: #62656d; font-size: 15px; letter-spacing: .05em; }
+    .home-actions { display: flex; justify-content: center; gap: 10px; margin-top: 55px; }
+    .home-actions button { min-width: 142px; padding: 13px 18px; border-radius: 10px; font-size: 12px; }
+    .home-actions .primary-btn { border-radius: 10px; }
+    .home-footnote { color: #a1a4ab; font-size: 10px; margin-top: 30px; }
+    .history-view { min-height: 100vh; display: none; padding: 48px max(24px, 5vw) 60px; background: #fbfbfc; }
+    .app-shell.home-mode .history-view { display: block; }
+    .history-view.active { display: block; }
+    .history-inner { max-width: 1060px; margin: 0 auto; }
+    .history-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 34px; }
+    .history-top h1 { font-size: clamp(30px, 5vw, 54px); margin-top: 9px; }
+    .back-link { border: 0; background: transparent; color: #6d7078; font-size: 12px; padding: 0; }
+    .back-link:hover { color: var(--ink); }
+    .history-list { display: grid; gap: 10px; }
+    .history-item { width: 100%; border: 1px solid var(--line); border-radius: 13px; background: white; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; text-align: left; transition: .2s ease; }
+    .history-item:hover { border-color: #a4c3f7; box-shadow: 0 10px 28px rgba(33, 38, 52, .06); transform: translateY(-1px); }
+    .history-item h3 { margin: 0 0 7px; font-size: 14px; letter-spacing: -.02em; }
+    .history-item p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .history-item-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+    .history-item-meta span { border: 1px solid var(--line); color: #71747c; border-radius: 999px; padding: 5px 8px; font-size: 10px; }
+    .history-item-action { color: var(--blue); font-size: 11px; white-space: nowrap; font-weight: 700; }
+    .history-empty { border: 1px dashed #d4d6dc; border-radius: 15px; padding: 70px 24px; text-align: center; color: var(--muted); }
+    .history-empty strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 8px; }
+    .history-empty p { margin: 0 0 20px; font-size: 12px; }
+    .home-mode .view:not(.active) { display: none; }
+    @media (max-width: 620px) { .home-actions { flex-direction: column; align-items: stretch; margin-top: 42px; } .home-actions button { width: 100%; } .history-top { flex-direction: column; } .history-item { align-items: flex-start; flex-direction: column; gap: 14px; } }
+    @media (max-width: 980px) { .overview-grid { grid-template-columns: 1fr; } .workflow-strip { overflow-x: auto; grid-template-columns: repeat(5, minmax(130px,1fr)); } }
+    @media (max-width: 620px) { .quick-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 620px) { .data-entry, .evidence-grid { grid-template-columns: 1fr; } .metric-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 620px) { .path-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 980px) { .app-shell { grid-template-columns: 1fr; } .sidebar { display: none; } .main { padding: 24px 18px 42px; } .workspace { grid-template-columns: 1fr; } .panel-side { position: static; } .progress-wrap { overflow-x: auto; padding-bottom: 5px; } .step-line { min-width: 20px; } }
+    @media (max-width: 620px) { .topbar { align-items: flex-start; flex-direction: column; } .top-actions { width: 100%; } .top-actions button { flex: 1; } .two-col, .creative-grid { grid-template-columns: 1fr; } .panel-main { padding: 20px; } .panel-side { padding: 18px; } .footer-bar { align-items: flex-start; gap: 10px; flex-direction: column; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">A</div><div class="brand-name">AdLab</div><div class="brand-sub">BETA</div></div>
+      <div class="nav-label">工作台</div>
+      <nav class="nav">
+        <button class="nav-item active" data-view="overview"><span class="nav-icon">⌂</span>项目总览</button>
+        <button class="nav-item" data-view="product"><span class="nav-icon">◌</span>商品理解</button>
+        <button class="nav-item" data-view="strategy"><span class="nav-icon">✦</span>创意策略</button>
+        <button class="nav-item" data-view="assets"><span class="nav-icon">▣</span>广告素材</button>
+        <button class="nav-item" data-view="data"><span class="nav-icon">▥</span>数据分析</button>
+      </nav>
+      <div class="sidebar-bottom"><div class="user-row"><div class="avatar">林</div><div><div class="user-name">林小满</div><div class="user-note">跨境商家工作区</div></div></div></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div><div class="eyebrow" id="eyebrow">广告实验室 / 新项目</div><h1 id="pageTitle">把商品，变成更好的广告。</h1></div>
+        <div class="top-actions"><button class="ghost-btn" id="demoBtn">加载演示案例</button><button class="primary-btn" id="saveBtn">保存项目</button></div>
+      </header>
+
+      <div class="progress-wrap">
+        <div class="steps">
+          <div class="step current" data-step="product"><span class="step-dot">1</span>商品理解</div><div class="step-line"></div>
+          <div class="step" data-step="strategy"><span class="step-dot">2</span>创意策略</div><div class="step-line"></div>
+          <div class="step" data-step="assets"><span class="step-dot">3</span>广告素材</div><div class="step-line"></div>
+          <div class="step" data-step="data"><span class="step-dot">4</span>数据分析</div>
+        </div>
+        <div class="project-chip">项目 / 泰国榨汁杯</div>
+      </div>
+
+      <section class="view" id="setup-view"><div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>建立项目背景</h2><p>先填写这一次广告实验的基础信息，保存后再选择工作方向。</p></div><span class="status-pill">第 1 步</span></div><div class="setup-note" style="margin-bottom:18px">这是一个新的空白项目。请填写你自己的商品资料，系统不会自动带入其他项目的信息。</div><div class="form-grid two-col"><div class="field"><label for="setupProjectName">项目名称</label><input id="setupProjectName" placeholder="例如：泰国榨汁杯广告实验" /></div><div class="field"><label for="setupMarket">目标市场</label><select id="setupMarket"><option value="">请选择目标市场</option><option>泰国</option><option>越南</option><option>马来西亚</option><option>新加坡</option></select></div><div class="field"><label for="setupProductName">商品名称</label><input id="setupProductName" placeholder="例如：便携式榨汁杯" /></div><div class="field"><label for="setupCategory">商品类别</label><input id="setupCategory" placeholder="例如：厨房小家电" /></div><div class="field"><label for="setupPrice">人民币售价（元）</label><input id="setupPrice" inputmode="decimal" placeholder="例如：129" /></div><div class="field"><label for="setupSpecs">关键规格</label><input id="setupSpecs" placeholder="例如：350ml、USB 充电" /></div></div><div class="form-grid" style="margin-top:16px"><div class="field"><label for="setupDescription">商品描述</label><textarea id="setupDescription" placeholder="介绍商品是什么、解决什么问题，以及商家已经确认的功能。"></textarea></div><div class="field"><label for="setupFeatures">已知功能</label><textarea id="setupFeatures" placeholder="例如：制作果汁、便于携带、使用后容易清洗。"></textarea></div><div class="field"><label for="setupImage">商品图片</label><div class="upload" id="setupImage"><div><strong>添加商品图片</strong><span>演示版先保存图片名称，后续接入真实图片上传</span></div></div></div><div class="field"><label for="setupNotes">项目备注（可选）</label><textarea id="setupNotes" style="min-height:90px" placeholder="补充你希望 AdLab 记住的背景信息。"></textarea></div></div><div style="display:flex;justify-content:flex-end;gap:9px;margin-top:22px"><button class="ghost-btn" id="setupBack">返回主页面</button><button class="primary-btn" id="saveBackground">保存项目背景 →</button></div></div><aside class="panel panel-side"><div class="side-title">本页完成后</div><div class="side-list"><div class="side-list-item"><span class="number">1</span><span>保存项目和商品的基础资料。</span></div><div class="side-list-item"><span class="number">2</span><span>选择“广告数据分析”或“获取广告创意”。</span></div><div class="side-list-item"><span class="number">3</span><span>项目总览会记录你当前进行到的步骤。</span></div></div></aside></div></section>
+      <section class="view" id="path-view"><div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>选择这次项目的方向</h2><p>两条路径使用同一份项目背景，但服务不同的目标。</p></div><span class="status-pill">第 2 步</span></div><div class="path-grid"><button class="path-card" id="chooseDataPath"><span class="path-number">PATH 01</span><h3>广告数据分析</h3><p>适合已经有历史广告投放数据，希望找出问题并获得专业改进建议的用户。</p><span class="path-flow">上传或粘贴数据 → 字段确认 → 指标计算 → 专业复盘</span></button><button class="path-card" id="chooseCreativePath"><span class="path-number">PATH 02</span><h3>获取广告创意</h3><p>适合还没有投放广告，希望从商品信息开始获得广告策略和素材的用户。</p><span class="path-flow">商品理解 → 市场策略 → 广告图或专业提示词</span></button></div><div style="display:flex;justify-content:flex-start;margin-top:22px"><button class="ghost-btn" id="pathBack">← 返回项目背景</button></div></div><aside class="panel panel-side"><div class="side-title">已保存的项目背景</div><div class="notice" id="pathSummary"><strong>等待加载</strong>保存后会在这里显示商品名称、目标市场和售价。</div></aside></div></section>
+      <section class="view active" id="home-view"><div class="home-view"><div class="home-content"><div class="home-kicker">AI advertising laboratory</div><h1 class="home-brand">Ad<span>Lab</span></h1><p class="home-tagline">把商品，变成更好的广告。</p><div class="home-actions"><button class="primary-btn" id="newProjectBtn">新建项目</button><button class="ghost-btn" id="historyBtn">查看历史项目</button></div><div class="home-footnote">从商品理解开始，完成一次完整的广告实验</div></div></div></section>
+      <section class="view" id="history-view"><div class="history-view"><div class="history-inner"><div class="history-top"><div><button class="back-link" id="historyBack">← 返回 AdLab</button><div class="eyebrow" style="margin-top:25px">项目空间 / 历史项目</div><h1>继续你的广告实验。</h1></div><button class="primary-btn" id="historyNewProject">新建项目</button></div><div class="history-list" id="historyList"></div><div class="history-empty" id="historyEmpty" style="display:none"><strong>还没有广告项目</strong><p>创建你的第一个广告项目，开始一次完整的广告实验。</p><button class="primary-btn" id="emptyNewProject">新建项目</button></div></div></div></section>
+      <section class="view" id="overview-view"><div class="progress-dashboard"><div class="progress-head"><div><div class="path-label" id="overviewPathLabel">项目进度</div><h2 id="overviewProjectName">项目总览</h2><p id="overviewProjectMeta">当前项目正在读取进度。</p></div><div class="progress-percent"><strong id="overviewPercent">0%</strong><span>完成进度</span></div></div><div class="progress-rail"><div class="progress-rail-fill" id="overviewProgressFill"></div></div><div class="progress-list" id="overviewProgressList"></div><div class="progress-next"><p><strong id="overviewNextTitle">下一步</strong><span id="overviewNextDetail">完成当前步骤后继续。</span></p><button class="primary-btn" id="overviewContinue">继续 →</button></div></div></section>
+      <section class="view legacy-overview" id="overview-legacy2"><div class="overview-grid"><div><div class="overview-card primary"><div class="overview-kicker">当前项目 / 进行中</div><h2>泰国榨汁杯广告实验</h2><p>从确认商品信息开始，逐步生成广告创意、素材和下一轮优化任务。</p><div class="project-meta"><span>目标市场：泰国</span><span>商品售价：129 元</span><span>最近更新：刚刚</span></div><button class="primary-btn" data-go="product">继续当前项目 →</button></div><div class="overview-section"><div class="overview-section-head"><h3>工作流进度</h3><span>当前停在第 1 步</span></div><div class="workflow-strip"><button class="workflow-item current" data-go="product"><span class="workflow-index">01</span><strong>商品理解</strong><span>等待确认</span></button><button class="workflow-item" data-go="strategy"><span class="workflow-index">02</span><strong>创意策略</strong><span>未开始</span></button><button class="workflow-item" data-go="assets"><span class="workflow-index">03</span><strong>广告素材</strong><span>未开始</span></button><button class="workflow-item" data-go="data"><span class="workflow-index">04</span><strong>数据分析</strong><span>可独立使用</span></button><button class="workflow-item"><span class="workflow-index">05</span><strong>创意迭代</strong><span>待数据复盘</span></button></div></div></div><div><div class="overview-card"><h3>项目状态</h3><p>当前需要你确认 AdLab 对商品基本信息的理解。</p><div class="mini-progress"><button class="progress-row current" data-go="product"><span class="progress-number">1</span><span><strong>商品理解</strong><small>确认商品名称、售价、规格和功能</small></span><span class="progress-status">继续</span></button><button class="progress-row" data-go="strategy"><span class="progress-number">2</span><span><strong>创意策略</strong><small>选择一个或多个广告方向</small></span><span class="progress-status">未开始</span></button><button class="progress-row" data-go="assets"><span class="progress-number">3</span><span><strong>广告素材</strong><small>制作广告图或专业提示词</small></span><span class="progress-status">未开始</span></button></div></div><div class="overview-section"><div class="overview-card"><h3>独立入口</h3><p>没有使用过 AdLab，也可以直接上传历史投放数据。</p><button class="ghost-btn" style="margin-top:14px;width:100%" data-go="data">进入数据分析 →</button></div></div></div></div><div class="overview-section"><div class="overview-section-head"><h3>快捷操作</h3><span>从你需要的地方开始</span></div><div class="quick-grid"><button class="quick-card" data-go="product"><strong>新建广告项目</strong><span>填写商品资料，建立第一版商品理解。</span></button><button class="quick-card" data-go="data"><strong>独立分析投放数据</strong><span>上传已有广告数据，获得专业复盘报告。</span></button><button class="quick-card" data-go="assets"><strong>查看广告素材</strong><span>继续制作广告图片或专业提示词。</span></button></div></div></section>
+      <section class="view legacy-overview" id="overview-legacy">
+        <div class="workspace">
+          <div class="panel panel-main">
+            <div class="panel-heading"><div><h2>创建一个广告项目</h2><p>先把商品资料交给 AdLab，我们会将信息整理成可用于广告的卖点。</p></div><span class="status-pill">进行中</span></div>
+            <div class="form-grid two-col">
+              <div class="field"><label for="productName">商品名称</label><input id="productName" value="便携式榨汁杯" /></div>
+              <div class="field"><label for="market">目标市场</label><select id="market"><option>泰国</option><option>越南</option><option>马来西亚</option><option>新加坡</option></select></div>
+            </div>
+            <div class="form-grid" style="margin-top:16px"><div class="field"><label for="description">商品描述</label><textarea id="description">一款轻便的无线榨汁杯，适合制作果汁和奶昔。杯体小巧，方便携带，支持 USB 充电，使用后容易清洗。</textarea></div><div class="field"><label>商品图片</label><div class="upload" id="upload"><div><strong>拖入商品图片，或点击上传</strong><span>支持 JPG、PNG，建议使用清晰的商品主图</span></div></div></div></div>
+            <hr class="section-break" />
+            <div class="section-title"><h3>已提炼的核心卖点</h3><span>可编辑 · 2–4 个为宜</span></div>
+            <div class="tag-row" id="sellingPoints"><button class="tag selected">便携无线</button><button class="tag selected">快速制作果汁</button><button class="tag selected">易于清洗</button><button class="tag">适合通勤携带</button><button class="tag">USB 充电</button></div>
+            <div style="display:flex;justify-content:flex-end;margin-top:22px"><button class="primary-btn" id="continueBtn">确认信息，进入创意策略 →</button></div>
+          </div>
+          <aside class="panel panel-side">
+            <div class="side-section"><div class="side-title">信息可信度核查</div><div class="analysis-card"><div class="analysis-top"><div class="analysis-name"><span class="dot"></span>已确认信息</div><span class="confidence">可信</span></div><p>商品名称、无线使用、USB 充电和易于携带均来自商家描述。</p></div><div class="analysis-card"><div class="analysis-top"><div class="analysis-name"><span class="dot"></span>图片可观察信息</div><span class="confidence">可识别</span></div><p>图片中可以识别出杯体、杯盖和便携尺寸，建议保持产品外观一致。</p></div><div class="analysis-card"><div class="analysis-top"><div class="analysis-name"><span class="dot warn"></span>待确认项</div><span class="confidence warn">需要确认</span></div><p>“快速制作”是相对表达，实际速度和容量尚未提供，建议补充具体参数。</p></div></div>
+            <div class="side-section"><div class="side-title">当前工作流</div><div class="side-list"><div class="side-list-item"><span class="number">1</span><span><b>确认商品信息</b><br/>确保广告只使用可信卖点。</span></div><div class="side-list-item"><span class="number">2</span><span>进入目标市场分析，生成 2–3 个创意方向。</span></div><div class="side-list-item"><span class="number">3</span><span>选择一个或多个方向，制作广告图或提示词。</span></div></div></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="product-view"><div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>商品理解与卖点提炼</h2><p>先确认我们对商品的理解，再进入卖点和广告创意。</p></div><span class="status-pill">等待确认</span></div><div id="productReview" class="review-panel"><div class="review-header"><div><h3>这是我们对商品的理解</h3><p>请核对下面的信息。只有确认后，AdLab 才会将它用于后续广告。</p></div><span class="review-badge">第 1 版理解</span></div><div class="review-grid"><div class="review-item"><label>商品名称</label><div id="reviewName">便携式榨汁杯</div></div><div class="review-item"><label>商品类别</label><div id="reviewCategory">厨房小家电 / 饮品工具</div></div><div class="review-item"><label>商品售价</label><div id="reviewPrice">129 THB</div></div><div class="review-item"><label>关键规格</label><div id="reviewSpecs">350ml，USB 充电，无线使用</div></div><div class="review-item"><label>已确认功能</label><div id="reviewFeatures">制作果汁和奶昔、便于携带、使用后容易清洗</div></div><div class="review-item"><label>当前适用场景</label><div>通勤早餐、健身后、办公室</div></div></div><div class="review-actions"><button class="ghost-btn" id="editProduct">我想修改</button><button class="primary-btn" id="confirmProduct">确认无误，继续分析 →</button></div></div><div id="productEdit" class="edit-panel" style="display:none"><h3>修改商品信息</h3><p>请修改你认为不准确的内容。修改后，AdLab 会重新整理一版商品理解。</p><div class="form-grid two-col"><div class="field"><label for="editName">商品名称</label><input id="editName" value="便携式榨汁杯" /></div><div class="field"><label for="editCategory">商品类别</label><input id="editCategory" value="厨房小家电 / 饮品工具" /></div><div class="field"><label for="editPrice">商品售价</label><input id="editPrice" value="129" /></div><div class="field"><label for="editCurrency">货币单位</label><select id="editCurrency"><option>THB</option><option>CNY</option><option>VND</option><option>MYR</option></select></div></div><div class="form-grid" style="margin-top:16px"><div class="field"><label for="editSpecs">关键规格</label><input id="editSpecs" value="350ml，USB 充电，无线使用" /></div><div class="field"><label for="editFeatures">已知功能</label><textarea id="editFeatures" style="min-height:86px">制作果汁和奶昔、便于携带、使用后容易清洗</textarea></div></div><div class="review-actions"><button class="ghost-btn" id="cancelEdit">返回查看</button><button class="primary-btn" id="recheckProduct">重新整理商品信息</button></div></div><div id="confirmedProduct" class="confirm-state"><strong>商品基本信息已确认</strong><span>接下来可以提炼 2–4 个核心卖点，并检查哪些内容可以安全地用于广告表达。</span></div><div class="section-break"></div><div class="section-title"><h3>卖点核查清单</h3><span>确认商品信息后再使用</span></div><div class="tag-row" id="productTags"><button class="tag selected">便携无线</button><button class="tag selected">USB 充电</button><button class="tag selected">易于清洗</button><button class="tag">适合通勤携带</button></div><div style="margin-top:22px"><div class="notice"><strong>待确认项提示</strong>“350ml”和“无线使用”当前来自演示资料。如果你的实际商品规格不同，请先点击“我想修改”进行调整。</div></div><div style="display:flex;justify-content:flex-end;margin-top:22px"><button class="primary-btn" id="productContinue" data-go="strategy" disabled>进入创意策略 →</button></div></div><aside class="panel panel-side"><div class="side-title">模块一输入</div><div class="side-list"><div class="side-list-item"><span class="number">1</span><span><b>商品名称、描述和图片</b><br/>用于建立初步商品理解。</span></div><div class="side-list-item"><span class="number">2</span><span><b>售价和货币单位</b><br/>帮助判断价格表达是否合适。</span></div><div class="side-list-item"><span class="number">3</span><span><b>类别、规格和已知功能</b><br/>让卖点更有具体依据。</span></div></div><div class="side-section"><div class="side-title">信息可信度</div><div class="analysis-card"><div class="analysis-top"><div class="analysis-name"><span class="dot"></span>已提供信息</div><span class="confidence">可使用</span></div><p>商品名称、价格和功能来自商家填写内容。</p></div><div class="analysis-card"><div class="analysis-top"><div class="analysis-name"><span class="dot warn"></span>待确认项</div><span class="confidence warn">请核对</span></div><p>系统从描述中整理出的规格和使用场景，需要商家确认后再进入广告生成。</p></div></div></aside></div></section>
+
+      <section class="view" id="strategy-view"><div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>目标市场与创意策略</h2><p>用目标市场的语言和生活场景，决定广告应该从哪里切入。</p></div><span class="status-pill">可多选组合</span></div><div class="form-grid two-col"><div class="field"><label>目标市场</label><select><option>泰国</option><option>越南</option></select></div><div class="field"><label>广告平台</label><select><option>TikTok Shop</option><option>Facebook Ads</option><option>Shopee</option></select></div></div><div class="section-break"></div><div class="section-title"><h3>广告创意方向</h3><span>选择一个或多个方向</span></div><div class="creative-grid"><button class="creative-card selected"><h4>通勤早餐场景</h4><p>抓住早晨时间紧张的痛点，展示轻便、快速和随身携带。</p></button><button class="creative-card"><h4>健身后补充</h4><p>强调运动后的快速补充，用清爽果汁建立健康生活联想。</p></button><button class="creative-card"><h4>产品功能展示</h4><p>聚焦无线、USB 充电和易清洗，用清晰画面降低理解成本。</p></button><button class="creative-card"><h4>性价比利益</h4><p>突出一杯多用和长期便利，适合促销或价格沟通。</p></button></div><div class="section-break"></div><div class="section-title"><h3>组合后的创意简报</h3><span>AI 已自动融合</span></div><div class="notice"><strong>通勤早餐场景 + 产品功能展示</strong>以“早上没有时间准备饮品”为切入口，展示用户在出门前快速制作果汁的画面，同时突出无线、便携和易清洗三个卖点。画面预留右侧文案区域，适合社交媒体广告。</div><div style="display:flex;justify-content:flex-end;margin-top:22px"><button class="primary-btn" data-go="assets">使用这个创意，制作广告 →</button></div></div><aside class="panel panel-side"><div class="side-title">语言与表达建议</div><div class="notice"><strong>泰国市场</strong>广告可以使用泰语主文案，搭配简短英文功能词。整体表达建议更生活化、直接，减少复杂的技术描述。</div><div class="side-section"><div class="side-title">核心受众</div><div class="tag-row"><span class="tag selected">城市上班族</span><span class="tag selected">健身人群</span><span class="tag">年轻家庭</span></div></div><div class="side-section"><div class="side-title">本次已选</div><div class="side-list"><div class="side-list-item"><span class="number">+</span><span>通勤早餐场景</span></div><div class="side-list-item"><span class="number">+</span><span>产品功能展示</span></div></div></div></aside></div></section>
+
+      <section class="view" id="assets-view"><div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>广告素材工作台</h2><p>选择模板生成广告图，或者带走一份专业提示词。</p></div><span class="status-pill">创意已就绪</span></div><div class="mode-tabs"><button class="mode-tab active" data-mode="template">模板生成广告图</button><button class="mode-tab" data-mode="prompt">生成专业提示词</button></div><div id="templateMode"><div class="form-grid two-col"><div><div class="section-title"><h3>选择模板</h3><span>可替换</span></div><div class="tag-row"><button class="tag selected">生活场景</button><button class="tag">卖点海报</button><button class="tag">产品主图</button></div><div class="form-grid" style="margin-top:18px"><div class="field"><label>广告标题</label><input value="随时随地，鲜榨一杯好状态" /></div><div class="field"><label>广告正文</label><textarea style="min-height:90px">早晨出门前，带上你的新鲜果汁。无线便携，轻松清洗，让每一天都从一杯好状态开始。</textarea></div></div></div><div class="template-preview"><div class="template-product"></div><div class="preview-copy"><small>FRESH EVERYWHERE</small><strong>一杯好状态</strong></div></div></div><div style="display:flex;justify-content:flex-end;margin-top:22px"><button class="primary-btn" id="exportBtn">导出广告图片</button></div></div><div id="promptMode" style="display:none"><div class="prompt-box" id="promptText">广告图片提示词：以便携式无线榨汁杯为主体，展示泰国城市年轻上班族在清晨出门前制作果汁的生活场景。画面明亮自然，突出产品小巧、无线、易清洗的特点，产品外观保持与参考图一致。采用干净的社交媒体广告构图，左侧展示人物和场景，右侧预留泰语广告文案空间，画面简洁、高级、有真实生活感。\n\n画幅建议：1:1 或 4:5\n负面提示词：产品变形、错误文字、模糊、过度复杂背景、畸形手指、额外配件、改变商品颜色。</div><div style="display:flex;justify-content:flex-end;gap:9px;margin-top:14px"><button class="ghost-btn" id="copyPrompt">复制提示词</button><button class="primary-btn" id="promptDone">保存到项目</button></div></div></div><aside class="panel panel-side"><div class="side-title">本次创意组合</div><div class="tag-row"><span class="tag selected">通勤早餐场景</span><span class="tag selected">产品功能展示</span></div><div class="side-section"><div class="side-title">素材输出检查</div><div class="side-list"><div class="side-list-item"><span class="number">✓</span><span>已包含商品核心卖点</span></div><div class="side-list-item"><span class="number">✓</span><span>已保留目标市场生活场景</span></div><div class="side-list-item"><span class="number">✓</span><span>已预留广告文案区域</span></div></div></div></aside></div></section>
+
+      <section class="view" id="data-view"><div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>广告数据分析与复盘</h2><p>无论数据是否来自 AdLab，都可以直接上传历史投放结果。</p></div><span class="status-pill">独立工具</span></div><div class="data-entry"><button class="entry-card active" id="uploadData"><strong>上传数据文件</strong><span>支持 CSV、Excel，系统会先识别字段并让你确认。</span></button><button class="entry-card" id="pasteData"><strong>粘贴表格数据</strong><span>适合快速分析一小段历史数据，也可以直接加载演示案例。</span></button></div><div class="notice" style="margin-bottom:18px"><strong>演示数据已加载</strong>以下数据用于展示分析方法，不代表真实投放结果。你可以替换成自己的表格。</div><div class="analysis-label">字段识别与确认</div><div class="mapping-row"><span>广告版本</span><select><option>广告版本</option><option>Campaign name</option></select></div><div class="mapping-row"><span>展示次数</span><select><option>展示次数</option><option>Impressions</option></select></div><div class="mapping-row"><span>点击次数</span><select><option>点击次数</option><option>Link clicks</option></select></div><div class="mapping-row"><span>广告花费</span><select><option>广告花费</option><option>Spend</option></select></div><div class="mapping-row"><span>购买次数</span><select><option>购买次数</option><option>Purchases</option></select></div><div class="data-meta"><span class="meta-chip"><b>已识别</b>5 个字段</span><span class="meta-chip"><b>版本数</b>3</span><span class="meta-chip"><b>可计算</b>CTR · CPC · CVR · CPA</span></div><div class="analysis-label">核心指标总览</div><div class="metric-grid"><div class="metric-card"><div class="stat-value">2.17%</div><div class="stat-label">整体 CTR</div><div class="metric-note">点击效率</div></div><div class="metric-card"><div class="stat-value">¥0.53</div><div class="stat-label">整体 CPC</div><div class="metric-note">获客成本</div></div><div class="metric-card"><div class="stat-value">7.38%</div><div class="stat-label">整体 CVR</div><div class="metric-note">点击后购买</div></div><div class="metric-card"><div class="stat-value">¥6.96</div><div class="stat-label">整体 CPA</div><div class="metric-note">单次购买</div></div></div><div class="section-break"></div><div class="analysis-label">广告版本对比</div><table class="data-table"><thead><tr><th>广告版本</th><th>展示</th><th>点击</th><th>花费</th><th>购买</th><th>CTR</th><th>CPC</th><th>CVR</th><th>CPA</th></tr></thead><tbody><tr><td>A-通勤场景</td><td>10,000</td><td>250</td><td>¥125</td><td>20</td><td>2.50%</td><td>¥0.50</td><td>8.00%</td><td>¥6.25</td></tr><tr><td>B-健身场景</td><td>10,000</td><td>180</td><td>¥108</td><td>12</td><td>1.80%</td><td>¥0.60</td><td>6.67%</td><td>¥9.00</td></tr><tr><td>C-产品功能</td><td>10,000</td><td>220</td><td>¥110</td><td>16</td><td>2.20%</td><td>¥0.50</td><td>7.27%</td><td>¥6.88</td></tr></tbody></table><div class="section-break"></div><div class="analysis-label">分析结论与证据边界</div><div class="evidence-grid"><div class="evidence supported"><h4>数据直接支持</h4><p>A-通勤场景 CTR 为 2.50%，CVR 为 8.00%，CPA 为 ¥6.25。在当前三个版本中，它的点击效率和购买效率均较好。</p></div><div class="evidence limit"><h4>当前无法判断</h4><p>数据没有包含受众、投放时段、落地页和预算分配，因此不能证明优势完全来自创意主题。</p></div></div><div class="section-break"></div><div class="analysis-label">下一轮实验建议</div><div class="notice"><strong>保留通勤场景，单独测试创意组合</strong>固定受众、预算和落地页，只比较“通勤场景”和“通勤场景 + 产品功能展示”，验证功能信息是否能在保持 CTR 的同时继续降低 CPA。</div><div style="display:flex;justify-content:flex-end;gap:9px;margin-top:22px"><button class="ghost-btn" id="saveAnalysis">保存分析报告</button><button class="primary-btn" data-go="assets">交给素材模块继续制作 →</button></div></div><aside class="panel panel-side"><div class="side-title">独立分析模式</div><div class="notice"><strong>适合新用户</strong>不需要先创建商品项目。上传已有广告数据，就能获得指标、版本对比和可执行的复盘建议。</div><div class="side-section"><div class="side-title">数据质量检查</div><div class="side-list"><div class="side-list-item"><span class="number">✓</span><span><b>字段完整</b><br/>可以计算 CTR、CPC、CVR 和 CPA。</span></div><div class="side-list-item"><span class="number">✓</span><span><b>口径一致</b><br/>三个版本的展示量相同，便于横向比较。</span></div><div class="side-list-item"><span class="number">!</span><span><b>仍需补充</b><br/>建议补充受众、时段和落地页信息。</span></div></div></div><div class="side-section"><div class="side-title">报告可以继续做什么</div><div class="side-list"><div class="side-list-item"><span class="number">1</span><span>只保存和查看分析报告。</span></div><div class="side-list-item"><span class="number">2</span><span>补充商品和创意信息。</span></div><div class="side-list-item"><span class="number">3</span><span>把结论交回素材模块，生成下一版广告。</span></div></div></div></aside></div></section>
+
+      <div class="footer-bar"><div class="flow-note"><span class="live-dot"></span>本地演示模式 · 数据不会上传</div><div>AdLab / 为下一轮广告实验准备</div></div>
+    </main>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script>
+    const toast = (message) => { const el = document.getElementById('toast'); el.textContent = message; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2200); };
+    const views = ['home','setup','path','history','overview','product','strategy','assets','data'];
+    const projectStorageKey = 'adlab-projects-v1';
+    let returnView = 'home';
+    let currentProjectId = null;
+    const blankProduct = { name: '', category: '', price: '', specs: '', features: '', description: '', imageName: '', notes: '' };
+    const productFingerprint = product => JSON.stringify({ name: product?.name || '', category: product?.category || '', price: product?.price || '', specs: product?.specs || '', features: product?.features || '', description: product?.description || '', notes: product?.notes || '' });
+    const strategyFingerprint = () => `${productFingerprint(projectState.product)}|${projectState.market || ''}`;
+    function readProjects() {
+      try { return JSON.parse(localStorage.getItem(projectStorageKey) || '[]'); } catch { return []; }
+    }
+    function writeProjects(projects) { localStorage.setItem(projectStorageKey, JSON.stringify(projects)); }
+    function makeProject(name = '新广告项目') {
+      return { id: `project-${Date.now()}`, name, product: { ...blankProduct }, market: '', path: '', stage: '项目背景', currentStep: 'background', completedSteps: [], stepStatus: {}, updatedAt: '', status: '进行中', updated: '刚刚', backgroundSaved: false, confirmed: false, strategyComplete: false, productUnderstanding: null, strategy: null, assets: null };
+    }
+    function ensureDemoProject() {
+      const projects = readProjects();
+      if (projects.length) return projects;
+      const demo = makeProject();
+      return projects;
+    }
+    function renderHistory() {
+      const list = document.getElementById('historyList');
+      const empty = document.getElementById('historyEmpty');
+      const projects = readProjects();
+      list.innerHTML = '';
+      empty.style.display = projects.length ? 'none' : 'block';
+      projects.forEach(project => {
+        const item = document.createElement('button');
+        item.className = 'history-item';
+        item.dataset.projectId = project.id;
+        const info = document.createElement('span');
+        const title = document.createElement('h3');
+        title.textContent = project.name;
+        const description = document.createElement('p');
+        description.textContent = `商品：${project.product?.name || '尚未填写'} · 当前阶段：${project.stage}`;
+        const meta = document.createElement('span');
+        meta.className = 'history-item-meta';
+        meta.innerHTML = `<span>目标市场：${project.market}</span><span>${project.status}</span><span>更新：${project.updated}</span>`;
+        info.append(title, description, meta);
+        const action = document.createElement('span');
+        action.className = 'history-item-action';
+        action.textContent = '继续编辑 →';
+        item.append(info, action);
+        list.appendChild(item);
+      });
+    }
+    function saveCurrentProject() {
+      if (!currentProjectId) return;
+      const projects = readProjects();
+      const project = projects.find(item => item.id === currentProjectId);
+      if (!project) return;
+      project.product = { ...projectState.product };
+      project.name = projectState.projectName || project.name;
+      project.market = projectState.market || '';
+      project.path = projectState.path;
+      project.backgroundSaved = projectState.backgroundSaved;
+      project.confirmed = projectState.confirmed;
+      project.strategyComplete = projectState.strategyComplete;
+      project.productUnderstanding = projectState.productUnderstanding;
+      project.strategy = projectState.strategy;
+      project.assets = projectState.assets;
+      project.stage = projectState.stage;
+      project.currentStep = projectState.currentStep;
+      project.completedSteps = [...projectState.completedSteps];
+      project.stepStatus = { ...projectState.stepStatus };
+      project.updatedAt = projectState.updatedAt;
+      project.updated = '刚刚';
+      writeProjects(projects);
+      renderHistory();
+    }
+    function startNewProject() {
+      const project = makeProject('新广告项目');
+      const projects = readProjects();
+      projects.unshift(project);
+      writeProjects(projects);
+      currentProjectId = project.id;
+      returnView = 'home';
+      projectState.product = { ...project.product };
+      projectState.projectName = project.name;
+      projectState.market = project.market;
+      projectState.path = '';
+      projectState.stage = '项目背景';
+      projectState.currentStep = 'background';
+      projectState.completedSteps = [];
+      projectState.stepStatus = {};
+      projectState.updatedAt = '';
+      projectState.backgroundSaved = false;
+      projectState.confirmed = false;
+      projectState.strategyComplete = false;
+      projectState.productUnderstanding = null;
+      projectState.strategy = null;
+      projectState.assets = null;
+      resetSetupForm();
+      navigate('setup', { projectId: currentProjectId });
+      toast('已创建新项目');
+    }
+    function openProject(projectId, options = {}) {
+      const project = readProjects().find(item => item.id === projectId);
+      if (!project) return;
+      currentProjectId = project.id;
+      returnView = 'history';
+      projectState.product = { ...blankProduct, ...(project.product || {}) };
+      projectState.projectName = project.name;
+      projectState.market = project.market || '';
+      projectState.path = project.path || '';
+      projectState.stage = project.stage || (project.path ? '商品理解' : '项目背景');
+      projectState.backgroundSaved = Boolean(project.backgroundSaved);
+      projectState.confirmed = Boolean(project.confirmed);
+      projectState.strategyComplete = Boolean(project.strategyComplete);
+      const productKey = productFingerprint(projectState.product);
+      projectState.productUnderstanding = project.productUnderstanding?._sourceFingerprint === productKey ? project.productUnderstanding : null;
+      projectState.strategy = project.strategy?._sourceFingerprint === `${productKey}|${projectState.market || ''}` ? project.strategy : null;
+      projectState.assets = project.assets?._sourceFingerprint === `${productKey}|${projectState.market || ''}|${project.strategy?.selectedDirections?.join(',') || ''}` ? project.assets : null;
+      projectState.currentStep = project.currentStep || 'background';
+      projectState.completedSteps = [...(project.completedSteps || [])];
+      projectState.stepStatus = { ...(project.stepStatus || {}) };
+      projectState.updatedAt = project.updatedAt || '';
+      loadProductIntoReview();
+      const resumeMap = { background: 'setup', path: 'path', product: 'product', strategy: 'strategy', assets: 'assets', upload: 'data', fields: 'data', metrics: 'data', recommendations: 'data', complete: 'overview' };
+      const destination = !projectState.backgroundSaved ? 'setup' : !projectState.path ? 'path' : resumeMap[projectState.currentStep] || 'overview';
+      syncProjectState();
+      if (options.fromHistory) showView(options.view || destination, { fromHistory: true });
+      else navigate(destination, { projectId });
+    }
+    const projectState = {
+      projectName: '', market: '', path: '', stage: '项目背景', currentStep: 'background', completedSteps: [], stepStatus: {}, updatedAt: '', backgroundSaved: false, confirmed: false, strategyComplete: false, productUnderstanding: null, strategy: null, assets: null,
+      product: { ...blankProduct }
+    };
+    function completeStep(stepKey, nextKey, nextStage) {
+      if (!projectState.completedSteps.includes(stepKey)) projectState.completedSteps.push(stepKey);
+      projectState.stepStatus[stepKey] = { status: 'complete', completedAt: new Date().toLocaleString('zh-CN', { hour12: false }) };
+      projectState.currentStep = nextKey;
+      projectState.stage = nextStage || stepLabel(nextKey);
+      projectState.updatedAt = new Date().toLocaleString('zh-CN', { hour12: false });
+      if (nextKey === 'complete') {
+        if (!projectState.completedSteps.includes('complete')) projectState.completedSteps.push('complete');
+        projectState.stepStatus.complete = { status: 'complete', completedAt: projectState.updatedAt };
+      }
+      saveCurrentProject();
+      renderOverview();
+    }
+    function installDataProgressControls() {
+      const panel = document.querySelector('#data-view .panel-main');
+      const table = panel?.querySelector('.data-table');
+      if (!panel || !table || document.getElementById('dataProgressActions')) return;
+      const actions = document.createElement('div');
+      actions.id = 'dataProgressActions';
+      actions.style = 'display:flex;justify-content:flex-end;gap:9px;margin:16px 0 0;';
+      actions.innerHTML = '<button class="ghost-btn" id="confirmDataFields" disabled>确认字段</button><button class="primary-btn" id="calculateDataMetrics" disabled>确认指标并生成复盘</button>';
+      table.insertAdjacentElement('afterend', actions);
+      document.getElementById('confirmDataFields').addEventListener('click', () => { completeStep('fields', 'metrics', '数据指标计算'); document.getElementById('calculateDataMetrics').disabled = false; toast('字段已确认'); });
+      document.getElementById('calculateDataMetrics').addEventListener('click', () => { completeStep('metrics', 'recommendations', '专业复盘与改进建议'); toast('指标已计算，可以生成专业复盘'); });
+    }
+    function resetSetupForm() {
+      ['setupProjectName','setupProductName','setupCategory','setupPrice','setupSpecs','setupDescription','setupFeatures','setupNotes'].forEach(id => { document.getElementById(id).value = ''; });
+      document.getElementById('setupMarket').value = '';
+    }
+    function loadProductIntoReview() {
+      const product = projectState.product;
+      document.getElementById('reviewName').textContent = product.name || '未填写';
+      document.getElementById('reviewCategory').textContent = product.category || '未填写';
+      document.getElementById('reviewPrice').textContent = product.price || '未填写';
+      document.getElementById('reviewSpecs').textContent = product.specs || '未填写';
+      document.getElementById('reviewFeatures').textContent = product.features || '未填写';
+      document.getElementById('editName').value = product.name || '';
+      document.getElementById('editCategory').value = product.category || '';
+      document.getElementById('editPrice').value = String(product.price || '').replace(' 元', '');
+      document.getElementById('editSpecs').value = product.specs || '';
+      document.getElementById('editFeatures').value = product.features || '';
+      document.getElementById('productContinue').disabled = !projectState.confirmed;
+      document.querySelector('#product-view .status-pill').textContent = projectState.confirmed ? '已确认' : '等待确认';
+      const confirmedState = document.getElementById('confirmedProduct');
+      if (confirmedState) confirmedState.classList.toggle('show', projectState.confirmed);
+    }
+    function loadSetupForm() {
+      const product = projectState.product;
+      document.getElementById('setupProjectName').value = projectState.projectName || '';
+      document.getElementById('setupProductName').value = product.name || '';
+      document.getElementById('setupCategory').value = product.category || '';
+      document.getElementById('setupPrice').value = String(product.price || '').replace(' 元', '');
+      document.getElementById('setupSpecs').value = product.specs || '';
+      document.getElementById('setupDescription').value = product.description || '';
+      document.getElementById('setupFeatures').value = product.features || '';
+      document.getElementById('setupNotes').value = product.notes || '';
+      document.getElementById('setupMarket').value = projectState.market || '';
+    }
+    function saveBackground() {
+      const projectName = document.getElementById('setupProjectName').value.trim();
+      const productName = document.getElementById('setupProductName').value.trim();
+      const description = document.getElementById('setupDescription').value.trim();
+      const market = document.getElementById('setupMarket').value;
+      if (!projectName || !productName || !description || !market) { toast('请填写项目名称、商品名称、商品描述和目标市场'); return; }
+      projectState.projectName = projectName;
+      projectState.market = market;
+      const price = document.getElementById('setupPrice').value.trim();
+      projectState.product = { name: productName, category: document.getElementById('setupCategory').value.trim(), price: price ? `${price} 元` : '', specs: document.getElementById('setupSpecs').value.trim(), description, features: document.getElementById('setupFeatures').value.trim(), notes: document.getElementById('setupNotes').value.trim(), imageName: '' };
+      projectState.backgroundSaved = true;
+      projectState.confirmed = false;
+      projectState.path = '';
+      loadProductIntoReview();
+      completeStep('background', 'path', '路径选择');
+      updatePathSummary();
+      navigate('path', { projectId: currentProjectId });
+      toast('项目背景已保存');
+    }
+    function updatePathSummary() {
+      const summary = document.getElementById('pathSummary');
+      if (!summary) return;
+      const title = document.createElement('strong');
+      title.textContent = projectState.product.name || '未填写商品';
+      const details = document.createElement('span');
+      details.textContent = `${projectState.market || '未选择市场'} · ${projectState.product.price || '未填写售价'}`;
+      summary.replaceChildren(title, details);
+    }
+    function choosePath(path) {
+      projectState.path = path;
+      projectState.currentStep = path === 'data-analysis' ? 'upload' : 'product';
+      projectState.stage = path === 'data-analysis' ? '上传广告数据' : '商品理解';
+      projectState.confirmed = false;
+      saveCurrentProject();
+      syncOverview();
+      navigate('overview', { projectId: currentProjectId });
+      toast(path === 'data-analysis' ? '已选择广告数据分析路径' : '已选择广告创意路径');
+    }
+    const pathDefinitions = {
+      'creative-generation': [
+        { key: 'background', label: '项目背景', detail: '保存项目和商品基础信息', view: 'setup' },
+        { key: 'product', label: '商品理解与卖点提炼', detail: '确认商品信息、卖点和待确认项', view: 'product' },
+        { key: 'strategy', label: '目标市场分析与创意策略', detail: '生成并选择广告创意方向', view: 'strategy' },
+        { key: 'assets', label: '广告素材生成', detail: '制作广告图或专业提示词', view: 'assets' },
+        { key: 'complete', label: '项目完成', detail: '本次广告创意流程已完成', view: 'overview' }
+      ],
+      'data-analysis': [
+        { key: 'background', label: '项目背景', detail: '保存项目和商品基础信息', view: 'setup' },
+        { key: 'upload', label: '上传广告数据', detail: '上传或粘贴历史投放数据', view: 'data' },
+        { key: 'fields', label: '字段识别与确认', detail: '确认表格字段的对应关系', view: 'data' },
+        { key: 'metrics', label: '数据指标计算', detail: '计算 CTR、CPC、CVR 和 CPA', view: 'data' },
+        { key: 'recommendations', label: '专业复盘与改进建议', detail: '输出结论、边界和下一轮实验', view: 'data' },
+        { key: 'complete', label: '项目完成', detail: '本次数据分析流程已完成', view: 'overview' }
+      ]
+    };
+    function renderOverview() {
+      const list = document.getElementById('overviewProgressList');
+      if (!list) return;
+      const steps = pathDefinitions[projectState.path] || [{ key: 'background', label: '项目背景', detail: '填写并保存项目基础信息', view: 'setup' }, { key: 'path', label: '选择项目方向', detail: '选择广告创意或数据分析路径', view: 'path' }, { key: 'complete', label: '项目完成', detail: '项目路径已选择', view: 'overview' }];
+      const completed = new Set(projectState.completedSteps || []);
+      const current = projectState.currentStep || steps.find(step => !completed.has(step.key))?.key || 'background';
+      const countable = steps.length - 1;
+      const completedCount = completed.has('complete') ? countable : Math.min(completed.size, countable);
+      const percent = projectState.path ? Math.round((completedCount / countable) * 100) : 0;
+      document.getElementById('overviewProjectName').textContent = projectState.projectName || '项目总览';
+      document.getElementById('overviewProjectMeta').textContent = projectState.path ? `目标市场：${projectState.market || '未选择'} · 路径：${projectState.path === 'data-analysis' ? '广告数据分析' : '获取广告创意'}` : '请先完成项目背景填写并选择工作路径。';
+      document.getElementById('overviewPathLabel').textContent = projectState.path === 'data-analysis' ? '广告数据分析 / 项目进度' : projectState.path === 'creative-generation' ? '获取广告创意 / 项目进度' : '项目进度';
+      document.getElementById('overviewPercent').textContent = `${percent}%`;
+      document.getElementById('overviewProgressFill').style.width = `${percent}%`;
+      list.innerHTML = '';
+      steps.forEach((step, index) => {
+        const isComplete = completed.has(step.key);
+        const isCurrent = !isComplete && step.key === current;
+        const button = document.createElement('button');
+        button.className = `progress-step ${isComplete ? 'complete' : isCurrent ? 'current' : 'locked'}`;
+        button.type = 'button';
+        const icon = document.createElement('span');
+        icon.className = 'progress-icon';
+        icon.textContent = isComplete ? '✓' : index + 1;
+        const body = document.createElement('span');
+        const title = document.createElement('span');
+        title.className = 'progress-step-title';
+        title.textContent = step.label;
+        const detail = document.createElement('span');
+        detail.className = 'progress-step-detail';
+        detail.textContent = isComplete ? `已完成 · ${projectState.stepStatus?.[step.key]?.completedAt || projectState.updatedAt || '刚刚'}` : step.detail;
+        body.append(title, detail);
+        const status = document.createElement('span');
+        status.className = 'progress-step-status';
+        status.textContent = isComplete ? '已完成' : isCurrent ? '继续处理' : '未开始';
+        button.append(icon, body, status);
+        button.addEventListener('click', () => { if (isComplete || isCurrent) navigate(step.view, { projectId: currentProjectId }); else toast('请先完成当前步骤'); });
+        list.appendChild(button);
+      });
+      const nextStep = steps.find(step => !completed.has(step.key));
+      document.getElementById('overviewNextTitle').textContent = nextStep ? `下一步：${nextStep.label}` : '项目已完成';
+      document.getElementById('overviewNextDetail').textContent = nextStep ? nextStep.detail : '你可以查看已完成的项目内容。';
+      const continueButton = document.getElementById('overviewContinue');
+      continueButton.disabled = !nextStep;
+      continueButton.textContent = nextStep ? '继续 →' : '已完成';
+      continueButton.onclick = () => { if (nextStep) navigate(nextStep.view, { projectId: currentProjectId }); };
+    }
+    function syncOverview() { renderOverview(); }
+    function installOverviewControls() {
+      const card = document.querySelector('#overview-view .overview-card.primary');
+      if (!card || document.getElementById('editBackground')) return;
+      const button = document.createElement('button');
+      button.id = 'editBackground';
+      button.className = 'ghost-btn';
+      button.type = 'button';
+      button.style.marginTop = '10px';
+      button.textContent = '编辑项目背景';
+      button.addEventListener('click', () => navigate('setup', { projectId: currentProjectId }));
+      card.appendChild(button);
+    }
+    document.querySelector('#data-view .metric-grid .metric-card:last-child .stat-value').textContent = '¥7.15';
+    function installProductContexts() {
+      ['strategy', 'assets'].forEach(viewName => {
+        const heading = document.querySelector(`#${viewName}-view .panel-main .panel-heading`);
+        if (!heading || document.getElementById(`${viewName}ProductContext`)) return;
+        const context = document.createElement('div');
+        context.id = `${viewName}ProductContext`;
+        context.className = 'notice product-context';
+        const title = document.createElement('strong');
+        title.textContent = '商品信息尚未确认';
+        const detail = document.createElement('span');
+        detail.textContent = '完成商品理解确认后，这里会自动显示本项目的商品信息。';
+        context.append(title, detail);
+        heading.insertAdjacentElement('afterend', context);
+      });
+    }
+    function syncProjectState() {
+      if (projectState.confirmed) {
+        const product = projectState.product;
+        ['strategy', 'assets'].forEach(viewName => {
+          const context = document.getElementById(`${viewName}ProductContext`);
+          if (!context) return;
+          const title = document.createElement('strong');
+          title.textContent = '当前已确认商品';
+          const detail = document.createElement('span');
+          detail.textContent = `${product.name} · ${product.category} · ${product.price} · ${product.specs}`;
+          context.replaceChildren(title, detail);
+        });
+        const prompt = document.getElementById('promptText');
+        if (prompt) prompt.textContent = `广告图片提示词：以${product.name}为主体，保持商品外观与参考图一致。突出${product.features}，结合目标市场的生活场景进行广告构图，画面预留文案区域，整体风格简洁、真实、有高级感。\n\n商品规格：${product.specs}\n商品售价参考：${product.price}\n画幅建议：1:1 或 4:5\n负面提示词：产品变形、错误文字、模糊、过度复杂背景、额外配件。`;
+      }
+      renderOverview();
+    }
+    function routeFor(view, projectId = currentProjectId) {
+      if (view === 'home') return '#/home';
+      if (view === 'history') return '#/history';
+      if (projectId) return `#/project/${encodeURIComponent(projectId)}/${view}`;
+      return '#/home';
+    }
+    function navigate(view, options = {}) {
+      const projectId = options.projectId || (['home', 'history'].includes(view) ? null : currentProjectId);
+      if (projectId) currentProjectId = projectId;
+      const url = routeFor(view, projectId);
+      const state = { view, projectId, internal: true };
+      if (options.replace) history.replaceState(state, '', url);
+      else if (location.hash !== url) history.pushState(state, '', url);
+      showView(view, { fromHistory: true });
+    }
+    function restoreFromUrl() {
+      const hash = location.hash || '';
+      if (!hash || hash === '#') {
+        history.replaceState({ view: 'home', internal: true }, '', '#/home');
+        currentProjectId = null;
+        showView('home', { fromHistory: true });
+        return;
+      }
+      if (hash === '#/home') { currentProjectId = null; showView('home', { fromHistory: true }); return; }
+      if (hash === '#/history') { showView('history', { fromHistory: true }); return; }
+      const match = hash.match(/^#\/project\/([^/]+)\/([^/]+)$/);
+      if (!match) { navigate('home', { replace: true }); return; }
+      const projectId = decodeURIComponent(match[1]);
+      const view = match[2];
+      if (!readProjects().some(project => project.id === projectId)) { navigate('history', { replace: true }); return; }
+      if (view === 'overview') { openProject(projectId, { fromHistory: true, view: 'overview' }); return; }
+      currentProjectId = projectId;
+      const project = readProjects().find(item => item.id === projectId);
+      projectState.product = { ...blankProduct, ...(project.product || {}) };
+      projectState.projectName = project.name || '';
+      projectState.market = project.market || '';
+      projectState.path = project.path || '';
+      projectState.stage = project.stage || '项目背景';
+      projectState.backgroundSaved = Boolean(project.backgroundSaved);
+      projectState.confirmed = Boolean(project.confirmed);
+      projectState.strategyComplete = Boolean(project.strategyComplete);
+      projectState.currentStep = project.currentStep || 'background';
+      projectState.completedSteps = [...(project.completedSteps || [])];
+      projectState.stepStatus = { ...(project.stepStatus || {}) };
+      projectState.updatedAt = project.updatedAt || '';
+      const productKey = productFingerprint(projectState.product);
+      projectState.productUnderstanding = project.productUnderstanding?._sourceFingerprint === productKey ? project.productUnderstanding : null;
+      projectState.strategy = project.strategy?._sourceFingerprint === `${productKey}|${projectState.market || ''}` ? project.strategy : null;
+      projectState.assets = project.assets?._sourceFingerprint === `${productKey}|${projectState.market || ''}|${project.strategy?.selectedDirections?.join(',') || ''}` ? project.assets : null;
+      loadProductIntoReview();
+      showView(view, { fromHistory: true });
+    }
+    async function callAI(endpoint, payload) {
+      const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.ok) throw new Error(body.message || 'AI 分析暂时失败，请检查服务配置或稍后重试。');
+      return body.data;
+    }
+    function setProductStatus(text, tone = '') {
+      const status = document.querySelector('#product-view .status-pill');
+      if (status) { status.textContent = text; status.className = `status-pill ${tone}`; }
+    }
+    function clearProductAIResult(message = '等待 AI 结果') {
+      const functions = document.getElementById('reviewFeatures');
+      const scene = document.querySelector('#product-view .review-item:nth-child(6) div');
+      const tags = document.getElementById('productTags');
+      const notice = document.querySelector('#product-view .panel-main .notice');
+      if (functions) functions.textContent = message;
+      if (scene) scene.textContent = message;
+      if (tags) tags.innerHTML = `<span class="tag">${message}</span>`;
+      if (notice) { const title = document.createElement('strong'); title.textContent = '信息可信度核查'; notice.replaceChildren(title, document.createTextNode('AI 正在根据当前项目资料生成核查结果。')); }
+      const badge = document.querySelector('#product-view .review-badge');
+      if (badge) badge.textContent = '等待生成';
+      const confirm = document.getElementById('confirmProduct');
+      if (confirm) confirm.disabled = true;
+    }
+    function renderProductUnderstanding(data) {
+      const functions = data.basicInfo?.confirmedFunctions || [];
+      const points = data.sellingPoints || [];
+      const scenes = data.usageScenes || [];
+      document.getElementById('reviewFeatures').textContent = functions.join('、') || '暂无已确认功能';
+      const scene = document.querySelector('#product-view .review-item:nth-child(6) div');
+      if (scene) scene.textContent = scenes.map(item => item.scene).join('、') || '暂无适用场景';
+      const tags = document.getElementById('productTags');
+      tags.innerHTML = '';
+      points.slice(0, 4).forEach((point, index) => { const button = document.createElement('button'); button.className = `tag ${index < 3 ? 'selected' : ''}`; button.textContent = point.title; button.title = point.evidence || ''; tags.appendChild(button); });
+      const notice = document.querySelector('#product-view .panel-main .notice');
+      if (notice) { const title = document.createElement('strong'); title.textContent = data.pendingItems?.length ? '待确认项提示' : '信息可信度核查'; const body = document.createTextNode(data.pendingItems?.length ? data.pendingItems.join('；') : '当前卖点均有商品资料依据，请继续核对广告表达。'); notice.replaceChildren(title, body); }
+      document.querySelectorAll('#productTags .tag').forEach(tag => tag.addEventListener('click', () => tag.classList.toggle('selected')));
+      document.querySelector('#product-view .review-badge').textContent = '第 1 版理解';
+      document.getElementById('confirmProduct').disabled = false;
+      setProductStatus('等待确认');
+    }
+    async function generateProductUnderstanding() {
+      if (!projectState.backgroundSaved || !projectState.product.name || projectState.productUnderstanding || projectState.aiLoading) return;
+      projectState.aiLoading = true;
+      clearProductAIResult('AI 分析中');
+      document.getElementById('confirmProduct').disabled = true;
+      setProductStatus('AI 分析中');
+      try {
+        const data = await callAI('/api/product-understanding', { ...projectState.product, market: projectState.market });
+      projectState.productUnderstanding = { ...data, _sourceFingerprint: productFingerprint(projectState.product) };
+        saveCurrentProject();
+        renderProductUnderstanding(data);
+      } catch (error) {
+        setProductStatus('AI 未完成');
+        toast(error.message);
+      } finally { projectState.aiLoading = false; }
+    }
+    function renderStrategy(data) {
+      const grid = document.querySelector('#strategy-view .creative-grid');
+      if (!grid) return;
+      const directions = data.creativeDirections || [];
+      projectState.strategy.selectedDirections = projectState.strategy.selectedDirections || [];
+      grid.innerHTML = '';
+      directions.forEach((direction, index) => {
+        const card = document.createElement('button');
+        card.className = `creative-card ${projectState.strategy.selectedDirections.includes(index) ? 'selected' : ''}`;
+        card.innerHTML = `<h4></h4><p></p>`;
+        card.querySelector('h4').textContent = direction.title;
+        card.querySelector('p').textContent = `${direction.usageScene} · ${direction.copyAngle}`;
+        card.addEventListener('click', () => { const selected = projectState.strategy.selectedDirections; const position = selected.indexOf(index); if (position >= 0) selected.splice(position, 1); else selected.push(index); saveCurrentProject(); renderStrategy(projectState.strategy); });
+        grid.appendChild(card);
+      });
+      const notices = document.querySelectorAll('#strategy-view .panel-main .notice');
+      const brief = notices[notices.length - 1];
+      const selected = projectState.strategy.selectedDirections.map(index => directions[index]).filter(Boolean);
+      if (brief) { const title = document.createElement('strong'); title.textContent = selected.length ? selected.map(item => item.title).join(' + ') : '请选择一个或多个创意方向'; const body = document.createTextNode(selected.length ? selected.map(item => `${item.usageScene}：${item.visualConcept}`).join('；') : '选择创意方向后，AdLab 会生成组合后的创意简报。'); brief.replaceChildren(title, body); }
+      const marketAdvice = document.querySelector('#strategy-view .panel-side .notice');
+      if (marketAdvice) { const title = document.createElement('strong'); title.textContent = data.languageAdvice?.recommendedLanguage || '目标市场表达建议'; const body = document.createTextNode(`${data.languageAdvice?.tone || ''} ${data.languageAdvice?.localizationNotes?.join('；') || ''}`); marketAdvice.replaceChildren(title, body); }
+      const audienceTags = document.querySelector('#strategy-view .panel-side .tag-row');
+      if (audienceTags) { audienceTags.replaceChildren(...(data.targetAudience || []).map((audience, index) => { const tag = document.createElement('span'); tag.className = `tag ${index < 2 ? 'selected' : ''}`; tag.textContent = audience.name; tag.title = `${audience.need || ''} ${audience.painPoint || ''}`; return tag; })); }
+      const selectedList = document.querySelector('#strategy-view .panel-side .side-list');
+      if (selectedList) { selectedList.replaceChildren(...selected.map(item => { const row = document.createElement('div'); row.className = 'side-list-item'; row.innerHTML = '<span class="number">+</span><span></span>'; row.lastElementChild.textContent = item.title; return row; })); }
+    }
+    function clearStrategyAIResult() {
+      const grid = document.querySelector('#strategy-view .creative-grid');
+      if (grid) grid.innerHTML = '<div class="notice"><strong>等待 AI 生成创意方向</strong>确认商品理解后，AdLab 才会根据当前商品和目标市场生成策略。</div>';
+      const notices = document.querySelectorAll('#strategy-view .panel-main .notice');
+      const brief = notices[notices.length - 1];
+      if (brief) { const title = document.createElement('strong'); title.textContent = '等待 AI 生成创意简报'; brief.replaceChildren(title, document.createTextNode('选择创意方向后，这里会显示组合后的广告简报。')); }
+      const audienceTags = document.querySelector('#strategy-view .panel-side .tag-row');
+      if (audienceTags) audienceTags.innerHTML = '<span class="tag">等待 AI 分析</span>';
+    }
+    async function generateStrategy() {
+      if (!projectState.confirmed || projectState.strategy || projectState.aiLoading) { if (projectState.strategy) renderStrategy(projectState.strategy); return; }
+      projectState.aiLoading = true;
+      const status = document.querySelector('#strategy-view .status-pill');
+      if (status) status.textContent = 'AI 分析中';
+      clearStrategyAIResult();
+      try {
+        projectState.strategy = await callAI('/api/creative-strategy', { product: projectState.product, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: 'TikTok Shop' });
+        projectState.strategy.selectedDirections = [];
+        projectState.strategy._sourceFingerprint = strategyFingerprint();
+        saveCurrentProject();
+        renderStrategy(projectState.strategy);
+        if (status) status.textContent = '可多选组合';
+      } catch (error) { if (status) status.textContent = 'AI 未完成'; toast(error.message); } finally { projectState.aiLoading = false; }
+    }
+    function renderAssets(data) {
+      const inputs = document.querySelectorAll('#templateMode input, #templateMode textarea');
+      if (inputs[0]) inputs[0].value = data.adTitle || '';
+      if (inputs[1]) inputs[1].value = data.adBody || '';
+      const prompt = document.getElementById('promptText');
+      if (prompt) prompt.textContent = `图片提示词：${data.imagePrompt || ''}\n\n视频提示词：${data.videoPrompt || ''}\n\n负面提示词：${data.negativePrompt || ''}`;
+      const assetTags = document.querySelector('#assets-view .panel-side .tag-row');
+      if (assetTags) assetTags.replaceChildren(...(projectState.strategy?.creativeDirections || []).filter((_, index) => projectState.strategy.selectedDirections?.includes(index)).map(direction => { const tag = document.createElement('span'); tag.className = 'tag selected'; tag.textContent = direction.title; return tag; }));
+    }
+    function clearAssetsAIResult() {
+      const inputs = document.querySelectorAll('#templateMode input, #templateMode textarea');
+      if (inputs[0]) inputs[0].value = '等待 AI 生成广告标题';
+      if (inputs[1]) inputs[1].value = '等待 AI 生成广告正文';
+      const prompt = document.getElementById('promptText');
+      if (prompt) prompt.textContent = '等待 AI 生成专业图片提示词、视频提示词和负面提示词。';
+      const assetTags = document.querySelector('#assets-view .panel-side .tag-row');
+      if (assetTags) assetTags.innerHTML = '<span class="tag">等待已选创意</span>';
+    }
+    async function generateAssets() {
+      if (!projectState.confirmed || !projectState.strategy || projectState.assets || projectState.aiLoading) { if (projectState.assets) renderAssets(projectState.assets); return; }
+      projectState.aiLoading = true;
+      clearAssetsAIResult();
+      const status = document.querySelector('#assets-view .status-pill');
+      if (status) status.textContent = 'AI 生成中';
+      try { projectState.assets = await callAI('/api/ad-assets', { product: projectState.product, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, market: projectState.market, platform: 'TikTok Shop' }); projectState.assets._sourceFingerprint = `${strategyFingerprint()}|${projectState.strategy.selectedDirections?.join(',') || ''}`; saveCurrentProject(); renderAssets(projectState.assets); if (status) status.textContent = '素材已就绪'; }
+      catch (error) { if (status) status.textContent = 'AI 未完成'; toast(error.message); } finally { projectState.aiLoading = false; }
+    }
+    installProductContexts();
+    installOverviewControls();
+    installDataProgressControls();
+    function canOpenView(name) {
+      if (['home', 'history', 'setup', 'path', 'overview'].includes(name)) return true;
+      if (!projectState.backgroundSaved) return false;
+      if (projectState.path === 'data-analysis') return name === 'data';
+      if (projectState.path === 'creative-generation') {
+        if (name === 'product') return true;
+        if (name === 'strategy') return projectState.confirmed;
+        if (name === 'assets') return projectState.confirmed && projectState.strategyComplete;
+      }
+      return false;
+    }
+    function showView(name) {
+      if (!canOpenView(name)) { toast('请先完成当前步骤，再进入下一步'); return; }
+      views.forEach(v => document.getElementById(v + '-view').classList.toggle('active', v === name));
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.view === name));
+      document.querySelectorAll('.step').forEach(step => { step.classList.toggle('current', step.dataset.step === name); step.classList.toggle('done', views.indexOf(step.dataset.step) < views.indexOf(name)); });
+      document.querySelector('.app-shell').classList.toggle('home-mode', name === 'home' || name === 'history');
+      document.querySelector('.main').classList.toggle('data-mode', name === 'data');
+      document.querySelector('.main').classList.toggle('entry-mode', name === 'setup' || name === 'path');
+      document.getElementById('eyebrow').textContent = name === 'data' ? '广告实验室 / 独立分析工具' : name === 'setup' ? '广告实验室 / 项目背景' : name === 'path' ? '广告实验室 / 路径选择' : '广告实验室 / 项目工作区';
+      document.getElementById('pageTitle').textContent = name === 'data' ? '让每一笔投放，都有依据。' : name === 'setup' ? '先把这次实验说清楚。' : name === 'path' ? '选择你的下一步。' : '把商品，变成更好的广告。';
+      if (name === 'history') renderHistory();
+      if (name === 'setup') loadSetupForm();
+      if (name === 'path') updatePathSummary();
+      if (name === 'overview') syncOverview();
+      const projectChip = document.querySelector('.project-chip');
+      if (projectChip) projectChip.textContent = currentProjectId ? `项目 / ${projectState.projectName || '未命名项目'}` : 'AdLab / 未选择项目';
+      if (name === 'product') { loadProductIntoReview(); if (projectState.productUnderstanding) renderProductUnderstanding(projectState.productUnderstanding); else generateProductUnderstanding(); }
+      if (name === 'strategy') { if (projectState.strategy) renderStrategy(projectState.strategy); else { clearStrategyAIResult(); generateStrategy(); } }
+      if (name === 'assets') { if (projectState.assets) renderAssets(projectState.assets); else { clearAssetsAIResult(); generateAssets(); } }
+      const back = document.getElementById('workspaceBack');
+      if (back) {
+        const insideWorkspace = !['home', 'history'].includes(name);
+        back.style.display = insideWorkspace ? 'inline-block' : 'none';
+        back.textContent = ['overview', 'setup', 'path'].includes(name) && returnView === 'history' ? '← 返回历史项目' : '← 返回项目主页';
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    const titleBlock = document.querySelector('.topbar > div:first-child');
+    const workspaceBack = document.createElement('button');
+    workspaceBack.id = 'workspaceBack';
+    workspaceBack.className = 'workspace-back';
+    workspaceBack.type = 'button';
+    workspaceBack.addEventListener('click', () => { const active = document.querySelector('.view.active')?.id; navigate(['overview-view','setup-view','path-view'].includes(active) ? returnView : 'overview', { projectId: currentProjectId }); });
+    titleBlock.prepend(workspaceBack);
+    document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', () => navigate(item.dataset.view, { projectId: currentProjectId })));
+    document.querySelectorAll('.step').forEach(step => step.addEventListener('click', () => navigate(step.dataset.step, { projectId: currentProjectId })));
+    document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => navigate(btn.dataset.go, { projectId: currentProjectId })));
+    document.getElementById('newProjectBtn').addEventListener('click', startNewProject);
+    document.getElementById('historyBtn').addEventListener('click', () => { returnView = 'home'; navigate('history'); });
+    document.getElementById('historyBack').addEventListener('click', () => navigate('home'));
+    document.getElementById('historyNewProject').addEventListener('click', startNewProject);
+    document.getElementById('emptyNewProject').addEventListener('click', startNewProject);
+    document.getElementById('historyList').addEventListener('click', event => { const item = event.target.closest('[data-project-id]'); if (item) openProject(item.dataset.projectId); });
+    document.getElementById('setupBack').addEventListener('click', () => navigate(returnView, { projectId: currentProjectId }));
+    document.getElementById('saveBackground').addEventListener('click', saveBackground);
+    document.getElementById('pathBack').addEventListener('click', () => navigate('setup', { projectId: currentProjectId }));
+    document.getElementById('chooseDataPath').addEventListener('click', () => choosePath('data-analysis'));
+    document.getElementById('chooseCreativePath').addEventListener('click', () => choosePath('creative-generation'));
+    document.getElementById('setupImage').addEventListener('click', () => toast('演示版暂保存图片名称，后续接入真实图片上传'));
+    document.getElementById('continueBtn').addEventListener('click', () => { navigate('strategy', { projectId: currentProjectId }); toast('商品信息已确认，进入创意策略'); });
+    document.getElementById('saveBtn').addEventListener('click', () => toast('项目已保存到本地演示空间'));
+    document.getElementById('demoBtn').addEventListener('click', () => toast('演示数据已停用，请填写当前项目的真实商品资料'));
+    document.getElementById('upload').addEventListener('click', () => toast('演示模式暂不上传文件，已使用商品示例图')); 
+    document.querySelectorAll('.tag, .creative-card').forEach(el => el.addEventListener('click', () => el.classList.toggle('selected')));
+    document.querySelectorAll('.mode-tab').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); const prompt = tab.dataset.mode === 'prompt'; document.getElementById('templateMode').style.display = prompt ? 'none' : 'block'; document.getElementById('promptMode').style.display = prompt ? 'block' : 'none'; }));
+    document.getElementById('copyPrompt').addEventListener('click', async () => { try { await navigator.clipboard.writeText(document.getElementById('promptText').textContent); toast('提示词已复制'); } catch { toast('提示词已准备好，可手动复制'); } });
+    document.getElementById('uploadData').addEventListener('click', () => { if (projectState.path === 'data-analysis') { completeStep('upload', 'fields', '字段识别与确认'); document.getElementById('confirmDataFields').disabled = false; } toast('演示模式已准备字段识别，接入后支持 CSV 与 Excel'); });
+    document.getElementById('pasteData').addEventListener('click', () => { if (projectState.path === 'data-analysis') { completeStep('upload', 'fields', '字段识别与确认'); document.getElementById('confirmDataFields').disabled = false; } toast('已切换为粘贴表格入口（演示模式）'); });
+    const review = document.getElementById('productReview');
+    const editor = document.getElementById('productEdit');
+    const confirmed = document.getElementById('confirmedProduct');
+    const continueProduct = document.getElementById('productContinue');
+    document.querySelector('label[for="editPrice"]').textContent = '人民币售价（元）';
+    document.getElementById('editCurrency').closest('.field').style.display = 'none';
+    document.getElementById('editProduct').addEventListener('click', () => { review.style.display = 'none'; editor.style.display = 'block'; confirmed.classList.remove('show'); });
+    document.getElementById('cancelEdit').addEventListener('click', () => { editor.style.display = 'none'; review.style.display = 'block'; });
+    document.getElementById('recheckProduct').addEventListener('click', () => {
+      const price = document.getElementById('editPrice').value.trim();
+      projectState.product = { ...projectState.product, name: document.getElementById('editName').value.trim(), category: document.getElementById('editCategory').value.trim(), price: price ? `${price} 元` : '', specs: document.getElementById('editSpecs').value.trim(), features: document.getElementById('editFeatures').value.trim() };
+      if (!projectState.product.name) { toast('请至少填写商品名称'); return; }
+      projectState.confirmed = false;
+      projectState.strategyComplete = false;
+      projectState.productUnderstanding = null;
+      projectState.strategy = null;
+      projectState.assets = null;
+      projectState.completedSteps = projectState.completedSteps.filter(step => step === 'background');
+      projectState.currentStep = 'product';
+      projectState.stage = '商品理解';
+      loadProductIntoReview();
+      clearProductAIResult();
+      editor.style.display = 'none'; review.style.display = 'block';
+      saveCurrentProject();
+      toast('已根据你的修改重新整理商品信息');
+      generateProductUnderstanding();
+    });
+    document.getElementById('confirmProduct').addEventListener('click', () => {
+      if (!projectState.productUnderstanding) { toast('请等待 AI 完成商品理解'); return; }
+      projectState.product = { ...projectState.product, name: document.getElementById('reviewName').textContent, category: document.getElementById('reviewCategory').textContent, price: document.getElementById('reviewPrice').textContent, specs: document.getElementById('reviewSpecs').textContent, features: document.getElementById('reviewFeatures').textContent };
+      projectState.confirmed = true;
+      projectState.productUnderstanding = { ...projectState.productUnderstanding, confirmed: true };
+      confirmed.classList.add('show');
+      continueProduct.disabled = false;
+      document.querySelector('#product-view .status-pill').textContent = '已确认';
+      completeStep('product', 'strategy', '创意策略');
+      syncProjectState();
+      toast('商品信息已确认，其他模块已同步');
+    });
+    document.querySelector('#strategy-view .panel-main .primary-btn[data-go="assets"]').addEventListener('click', () => {
+      if (!projectState.strategy || !projectState.strategy.selectedDirections?.length) { toast('请至少选择一个创意方向'); return; }
+      projectState.strategyComplete = true;
+      saveCurrentProject();
+      completeStep('strategy', 'assets', '广告素材');
+      navigate('assets', { projectId: currentProjectId });
+    });
+    function saveAssetsAndComplete(message) {
+      if (!projectState.assets) { toast('请等待 AI 完成素材生成'); return; }
+      const inputs = document.querySelectorAll('#templateMode input, #templateMode textarea');
+      projectState.assets = { ...projectState.assets, adTitle: inputs[0]?.value || projectState.assets.adTitle, adBody: inputs[1]?.value || projectState.assets.adBody };
+      saveCurrentProject();
+      completeStep('assets', 'complete', '项目完成');
+      toast(message);
+    }
+    document.getElementById('exportBtn').addEventListener('click', () => saveAssetsAndComplete('广告素材已保存，项目进度已更新'));
+    document.getElementById('promptDone').addEventListener('click', () => saveAssetsAndComplete('提示词已保存，项目进度已更新'));
+    document.getElementById('saveAnalysis').addEventListener('click', () => { if (!projectState.completedSteps.includes('metrics')) { toast('请先完成字段确认和指标计算'); return; } completeStep('recommendations', 'complete', '项目完成'); toast('分析报告已保存，项目进度已更新'); });
+    ensureDemoProject();
+    window.addEventListener('popstate', restoreFromUrl);
+    restoreFromUrl();
+  </script>
+</body>
+</html>
