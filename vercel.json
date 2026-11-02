@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "framework": null,
+  "buildCommand": null,
+  "installCommand": "npm install",
   "cleanUrls": true,
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
