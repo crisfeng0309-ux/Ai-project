@@ -530,6 +530,9 @@
       ['setupProjectName','setupProductName','setupCategory','setupPrice','setupSpecs','setupDescription','setupFeatures','setupNotes'].forEach(id => { document.getElementById(id).value = ''; });
       document.getElementById('setupMarket').value = '';
     }
+    const additionalMarkets = ['印度尼西亚', '菲律宾', '柬埔寨', '老挝', '缅甸'];
+    const marketSelect = document.getElementById('setupMarket');
+    additionalMarkets.forEach(market => { if (marketSelect && !Array.from(marketSelect.options).some(option => option.value === market)) marketSelect.add(new Option(market, market)); });
     function loadProductIntoReview() {
       const product = projectState.product;
       document.getElementById('reviewName').textContent = product.name || '未填写';
