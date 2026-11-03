@@ -27,7 +27,8 @@ const schemas = {
     properties: {
       languageAdvice: { type: 'object', properties: { recommendedLanguage: { type: 'string' }, tone: { type: 'string' }, localizationNotes: { type: 'array', items: { type: 'string' } } }, required: ['recommendedLanguage', 'tone', 'localizationNotes'], additionalProperties: false },
       targetAudience: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, need: { type: 'string' }, painPoint: { type: 'string' } }, required: ['name', 'need', 'painPoint'], additionalProperties: false } },
-      creativeDirections: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, coreSellingPoints: { type: 'array', items: { type: 'string' } }, usageScene: { type: 'string' }, visualConcept: { type: 'string' }, copyAngle: { type: 'string' }, reason: { type: 'string' } }, required: ['title', 'coreSellingPoints', 'usageScene', 'visualConcept', 'copyAngle', 'reason'], additionalProperties: false } }
+      creativeDirections: { type: 'array', items: { type: 'object', properties: { title: { type: 'string' }, coreSellingPoints: { type: 'array', items: { type: 'string' } }, usageScene: { type: 'string' }, visualConcept: { type: 'string' }, copyAngle: { type: 'string' }, reason: { type: 'string' } }, required: ['title', 'coreSellingPoints', 'usageScene', 'visualConcept', 'copyAngle', 'reason'], additionalProperties: false } },
+      creativeBrief: { type: 'object', properties: { theme: { type: 'string' }, objective: { type: 'string' }, audience: { type: 'string' }, languageExpression: { type: 'string' }, problem: { type: 'string' }, sellingPoints: { type: 'array', items: { type: 'string' } }, usageScene: { type: 'string' }, visualSubject: { type: 'string' }, actions: { type: 'string' }, productDisplay: { type: 'string' }, visualStyle: { type: 'string' }, composition: { type: 'string' }, copyDirection: { type: 'string' }, headline: { type: 'string' }, body: { type: 'string' }, avoid: { type: 'string' }, formats: { type: 'array', items: { type: 'string' } }, productionNotes: { type: 'string' } }, required: ['theme', 'objective', 'audience', 'languageExpression', 'problem', 'sellingPoints', 'usageScene', 'visualSubject', 'actions', 'productDisplay', 'visualStyle', 'composition', 'copyDirection', 'headline', 'body', 'avoid', 'formats', 'productionNotes'], additionalProperties: false }
     },
     required: ['languageAdvice', 'targetAudience', 'creativeDirections'],
     additionalProperties: false
@@ -122,7 +123,27 @@ function normalizeStrategy(raw) {
       visualConcept: text(item.visualConcept || item.visual_concept || item.visual),
       copyAngle: text(item.copyAngle || item.copy_angle || item.message),
       reason: text(item.reason)
-    }))
+    })),
+    creativeBrief: raw.creativeBrief || raw.creative_brief ? {
+      theme: text((raw.creativeBrief || raw.creative_brief).theme || (raw.creativeBrief || raw.creative_brief).title),
+      objective: text((raw.creativeBrief || raw.creative_brief).objective),
+      audience: text((raw.creativeBrief || raw.creative_brief).audience),
+      languageExpression: text((raw.creativeBrief || raw.creative_brief).languageExpression || (raw.creativeBrief || raw.creative_brief).language_expression),
+      problem: text((raw.creativeBrief || raw.creative_brief).problem),
+      sellingPoints: ((raw.creativeBrief || raw.creative_brief).sellingPoints || (raw.creativeBrief || raw.creative_brief).selling_points || []).map(item => text(item)),
+      usageScene: text((raw.creativeBrief || raw.creative_brief).usageScene || (raw.creativeBrief || raw.creative_brief).usage_scene),
+      visualSubject: text((raw.creativeBrief || raw.creative_brief).visualSubject || (raw.creativeBrief || raw.creative_brief).visual_subject),
+      actions: text((raw.creativeBrief || raw.creative_brief).actions),
+      productDisplay: text((raw.creativeBrief || raw.creative_brief).productDisplay || (raw.creativeBrief || raw.creative_brief).product_display),
+      visualStyle: text((raw.creativeBrief || raw.creative_brief).visualStyle || (raw.creativeBrief || raw.creative_brief).visual_style),
+      composition: text((raw.creativeBrief || raw.creative_brief).composition),
+      copyDirection: text((raw.creativeBrief || raw.creative_brief).copyDirection || (raw.creativeBrief || raw.creative_brief).copy_direction),
+      headline: text((raw.creativeBrief || raw.creative_brief).headline),
+      body: text((raw.creativeBrief || raw.creative_brief).body),
+      avoid: text((raw.creativeBrief || raw.creative_brief).avoid),
+      formats: ((raw.creativeBrief || raw.creative_brief).formats || []).map(item => text(item)),
+      productionNotes: text((raw.creativeBrief || raw.creative_brief).productionNotes || (raw.creativeBrief || raw.creative_brief).production_notes)
+    } : null
   };
 }
 
@@ -150,8 +171,8 @@ async function askDeepSeek(kind, input) {
   const shared = '你是 AdLab 的专业广告策略 Agent。只能使用用户提供的商品信息，不得引入任何历史项目或演示商品。不能把推测写成事实；不确定的信息必须标记为 needs_confirmation。所有输出必须是合法 JSON，不要使用 Markdown。';
   const schemaText = kind => JSON.stringify(schemas[kind]);
   const prompts = {
-    product: `${shared}\n任务：理解商品并提炼卖点。商品资料：${JSON.stringify(input)}。卖点必须附带证据来源，场景必须与当前商品匹配。只能返回符合以下结构的 JSON：${schemaText('product')}`,
-    strategy: `${shared}\n任务：基于已确认商品信息制定目标市场广告创意策略。商品资料：${JSON.stringify(input)}。请生成 2 到 3 个创意方向，每个方向包含卖点、场景、视觉构思和文案角度。只能返回符合以下结构的 JSON：${schemaText('strategy')}`,
+    product: `${shared}\n任务：${input.mode === 'more-selling-points' ? '基于最新商品资料补充 2 到 4 个新的、不重复的卖点候选。不要重复 existingSellingPoints，也不要使用 removedSellingPoints。' : '理解商品并提炼卖点。'}商品资料：${JSON.stringify(input)}。卖点必须附带证据来源，不能把未提供的信息当成事实，场景必须与当前商品匹配。只能返回符合以下结构的 JSON：${schemaText('product')}`,
+    strategy: `${shared}\n任务：${input.mode === 'brief' ? '根据用户最新选择生成一份精细、具体、可执行的创意简报。必须综合 selectedSellingPoints、selectedDirections、selectedAudience、目标市场、广告平台和完整商品资料，不能返回泛泛而谈的描述。' : input.mode === 'more-directions' ? '基于最新商品资料和已确认卖点，补充 2 到 3 个新的、不重复的创意方向。不要重复 existingDirections，也不要使用 removedDirections。' : '基于已确认商品信息制定目标市场广告创意策略，生成 2 到 3 个创意方向。'}商品资料：${JSON.stringify(input)}。每个创意方向包含卖点、场景、视觉构思、文案角度和生成依据。${input.mode === 'brief' ? 'creativeBrief 必须包含主题、传播目标、受众、语言表达、用户需求、卖点、场景、画面主体、人物动作、商品展示、视觉风格、构图、文案方向、标题、正文、避免内容、画幅和制作建议。' : ''}只能返回符合以下结构的 JSON：${schemaText('strategy')}`,
     assets: `${shared}\n任务：基于已确认商品信息和选中的创意方向生成广告文案及专业图片/视频提示词。输入：${JSON.stringify(input)}。不要虚构商品外观；没有图片时不要假设外观细节。只能返回符合以下结构的 JSON：${schemaText('assets')}`
   };
   const response = await fetch(`${baseUrl}/chat/completions`, {
