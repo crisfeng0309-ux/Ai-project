@@ -170,6 +170,24 @@
     .app-shell.setup-mode #setup-view .workspace { display: block; max-width: 980px; }
     .app-shell.setup-mode #setup-view .panel-main { padding: 34px 40px; }
     .app-shell.setup-mode #setup-view .panel-side { display: none; }
+    .app-shell.creative-mode .nav-label { display: none; }
+    .app-shell.creative-mode .nav-item[data-view="overview"], .app-shell.creative-mode .nav-item[data-view="data"] { display: none; }
+    .creative-back { display: none; width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: #5d6874; padding: 0 12px 16px; margin-bottom: 16px; text-align: left; font-size: 11px; }
+    .creative-back:hover { color: var(--blue); }
+    .app-shell.creative-mode .creative-back { display: block; }
+    .creative-progress { display: none; width: 100%; }
+    .creative-progress-head { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; color: #9da3ad; font-size: 11px; }
+    .creative-progress-head span { position: relative; }
+    .creative-progress-head span:nth-child(2) { text-align: center; }
+    .creative-progress-head span:last-child { text-align: right; }
+    .creative-progress-head span.current { color: var(--ink); font-weight: 700; }
+    .creative-progress-track { height: 10px; margin-top: 9px; border-radius: 999px; background: #e8ebf0; overflow: hidden; }
+    .creative-progress-fill { height: 100%; width: 33.333%; border-radius: inherit; background: var(--blue); transition: width .25s ease; }
+    .creative-progress-status { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; color: var(--muted); font-size: 10px; }
+    .creative-progress-status strong { color: var(--blue); font-size: 11px; }
+    .app-shell.creative-mode .progress-wrap { display: block; max-width: 980px; margin-top: 28px; }
+    .app-shell.creative-mode .progress-wrap .steps, .app-shell.creative-mode .progress-wrap .project-chip { display: none; }
+    .app-shell.creative-mode .creative-progress { display: block; }
     .setup-path-section { border-top: 1px solid var(--line); margin-top: 30px; padding-top: 28px; }
     .setup-path-heading { margin-bottom: 15px; }
     .setup-path-heading h3 { margin: 0 0 6px; font-size: 16px; letter-spacing: -.03em; }
@@ -630,7 +648,11 @@
       loadProductIntoReview();
       if (existingPath) { projectState.updatedAt = new Date().toLocaleString('zh-CN', { hour12: false }); saveCurrentProject(); renderOverview(); }
       else completeStep('background', projectState.currentStep, projectState.stage);
-      navigate('overview', { projectId: currentProjectId });
+      const creativeSteps = ['product', 'strategy', 'assets'];
+      const destination = selectedPath === 'creative-generation'
+        ? (existingPath && creativeSteps.includes(projectState.currentStep) ? projectState.currentStep : 'product')
+        : 'overview';
+      navigate(destination, { projectId: currentProjectId });
       toast('项目背景已保存，项目已创建');
     }
     function updatePathSummary() {
@@ -728,6 +750,27 @@
       button.textContent = '编辑项目背景';
       button.addEventListener('click', () => navigate('setup', { projectId: currentProjectId }));
       card.appendChild(button);
+    }
+    function installCreativeSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      const brand = sidebar?.querySelector('.brand');
+      if (!sidebar || !brand || document.getElementById('creativeBack')) return;
+      const button = document.createElement('button');
+      button.id = 'creativeBack';
+      button.className = 'creative-back';
+      button.type = 'button';
+      button.textContent = '← 返回项目背景';
+      button.addEventListener('click', () => navigate('setup', { projectId: currentProjectId }));
+      brand.insertAdjacentElement('afterend', button);
+    }
+    function renderCreativeProgress(name) {
+      const wrap = document.querySelector('.progress-wrap');
+      if (!wrap) return;
+      let progress = document.getElementById('creativeProgress');
+      if (!progress) { progress = document.createElement('div'); progress.id = 'creativeProgress'; progress.className = 'creative-progress'; wrap.appendChild(progress); }
+      const index = { product: 1, strategy: 2, assets: 3 }[name] || 1;
+      const labels = ['商品理解', '创意策略', '广告素材'];
+      progress.innerHTML = `<div class="creative-progress-head">${labels.map((label, position) => `<span class="${position + 1 === index ? 'current' : ''}">${position + 1} ${label}</span>`).join('')}</div><div class="creative-progress-track"><div class="creative-progress-fill" style="width:${index * 33.3333}%"></div></div><div class="creative-progress-status"><span>${labels[index - 1]} · 当前步骤</span><strong>${index} / 3</strong></div>`;
     }
     document.querySelector('#data-view .metric-grid .metric-card:last-child .stat-value').textContent = '¥7.15';
     function installProductContexts() {
@@ -953,6 +996,7 @@
     installOverviewControls();
     installDataProgressControls();
     installSetupPathPicker();
+    installCreativeSidebar();
     function canOpenView(name) {
       if (['home', 'history', 'setup', 'path', 'overview'].includes(name)) return true;
       if (!projectState.backgroundSaved) return false;
@@ -971,6 +1015,8 @@
       document.querySelectorAll('.step').forEach(step => { step.classList.toggle('current', step.dataset.step === name); step.classList.toggle('done', views.indexOf(step.dataset.step) < views.indexOf(name)); });
       document.querySelector('.app-shell').classList.toggle('home-mode', name === 'home' || name === 'history');
       document.querySelector('.app-shell').classList.toggle('setup-mode', name === 'setup');
+      const creativeMode = projectState.path === 'creative-generation' && ['product', 'strategy', 'assets'].includes(name);
+      document.querySelector('.app-shell').classList.toggle('creative-mode', creativeMode);
       document.querySelector('.main').classList.toggle('data-mode', name === 'data');
       document.querySelector('.main').classList.toggle('entry-mode', name === 'setup' || name === 'path');
       document.getElementById('eyebrow').textContent = name === 'data' ? '广告实验室 / 独立分析工具' : name === 'setup' ? '广告实验室 / 项目背景' : name === 'path' ? '广告实验室 / 路径选择' : '广告实验室 / 项目工作区';
@@ -979,6 +1025,7 @@
       if (name === 'setup') loadSetupForm();
       if (name === 'path') updatePathSummary();
       if (name === 'overview') syncOverview();
+      if (creativeMode) renderCreativeProgress(name);
       const projectChip = document.querySelector('.project-chip');
       if (projectChip) projectChip.textContent = currentProjectId ? `项目 / ${projectState.projectName || '未命名项目'}` : 'AdLab / 未选择项目';
       if (name === 'product') { loadProductIntoReview(); if (projectState.productUnderstanding) renderProductUnderstanding(projectState.productUnderstanding); else generateProductUnderstanding(); }
