@@ -637,7 +637,7 @@
       if (editDescription) editDescription.value = product.description || '';
       const editNotes = document.getElementById('editNotes');
       if (editNotes) editNotes.value = product.notes || '';
-      document.getElementById('productContinue').disabled = !projectState.confirmed;
+      document.getElementById('productContinue').disabled = !projectState.confirmed || !projectState.productUnderstanding?.selectedSellingPoints?.length;
       document.querySelector('#product-view .status-pill').textContent = projectState.confirmed ? '已确认' : '等待确认';
       const confirmedState = document.getElementById('confirmedProduct');
       if (confirmedState) confirmedState.classList.toggle('show', projectState.confirmed);
@@ -1011,7 +1011,6 @@
           data.sellingPoints = data.sellingPoints.filter(item => item.title !== point.title);
           data.selectedSellingPoints = data.selectedSellingPoints.filter(titleValue => titleValue !== point.title);
           data.removedSellingPoints = [...new Set([...(data.removedSellingPoints || []), point.title])];
-          projectState.confirmed = false;
           invalidateStrategyFromProductSelection();
           renderSellingPoints(data);
           loadProductIntoReview();
@@ -1023,7 +1022,6 @@
           const position = selected.indexOf(point.title);
           if (position >= 0) selected.splice(position, 1);
           else selected.push(point.title);
-          projectState.confirmed = false;
           invalidateStrategyFromProductSelection();
           renderSellingPoints(data);
           loadProductIntoReview();
@@ -1108,7 +1106,7 @@
           regenerate.textContent = '重新生成创意简报';
           actions.insertBefore(regenerate, actions.firstChild);
           const primary = actions.querySelector('[data-go="assets"]');
-          if (primary) { primary.id = 'useStrategyBrief'; primary.textContent = '使用这个创意简报，制作广告 →'; primary.disabled = true; }
+          if (primary) { primary.id = 'useStrategyBrief'; primary.removeAttribute('data-go'); primary.textContent = '使用这个创意简报，制作广告 →'; primary.disabled = true; }
         }
       }
       document.getElementById('strategyPlatform')?.addEventListener('change', event => {
@@ -1140,6 +1138,12 @@
       projectState.strategy._briefFingerprint = '';
       projectState.strategyComplete = false;
       projectState.assets = null;
+      projectState.completedSteps = projectState.completedSteps.filter(step => !['strategy', 'assets', 'complete'].includes(step));
+      delete projectState.stepStatus.strategy;
+      delete projectState.stepStatus.assets;
+      delete projectState.stepStatus.complete;
+      projectState.currentStep = 'strategy';
+      projectState.stage = '创意策略';
       saveCurrentProject();
     }
     function formatBriefText(brief) {
@@ -1216,7 +1220,7 @@
       const briefReady = Boolean(data.brief && data._briefFingerprint === currentBriefFingerprint);
       if (brief) { const title = document.createElement('strong'); title.textContent = briefReady ? '已生成的创意简报' : data.selectedDirections.length ? '创意简报需要更新' : '等待选择创意方向'; brief.replaceChildren(title, document.createTextNode(briefReady ? formatBriefText(data.brief) : '请完成选择后重新生成一份基于当前信息的可执行创意简报。')); brief.classList.toggle('stale', !briefReady); }
       const use = document.getElementById('useStrategyBrief');
-      if (use) use.disabled = !briefReady || !data.selectedDirections.length || !selectedSellingPointTitles().length;
+      if (use) use.disabled = !data.selectedDirections.length || !selectedSellingPointTitles().length;
     }
     function clearStrategyAIResult() {
       const grid = document.querySelector('#strategy-view .creative-grid');
@@ -1262,20 +1266,30 @@
     function currentBriefFingerprint() {
       return JSON.stringify({ base: projectState.strategy?._sourceFingerprint || strategyFingerprint(), sellingPoints: selectedSellingPointTitles(), directions: projectState.strategy?.selectedDirections || [], audience: projectState.strategy?.selectedAudience || [], platform: projectState.platform || 'TikTok Shop' });
     }
-    async function generateCreativeBrief() {
-      if (!projectState.strategy || !selectedSellingPointTitles().length || !projectState.strategy.selectedDirections?.length || projectState.aiLoading) { toast('请至少选择一个卖点和一个创意方向'); return; }
+    function completeStrategyAndContinue() {
+      if (!projectState.strategy || !projectState.strategy.selectedDirections?.length || !projectState.strategy.brief || projectState.strategy._briefFingerprint !== currentBriefFingerprint()) { toast('请先生成基于当前选择的创意简报'); return; }
+      projectState.strategyComplete = true;
+      saveCurrentProject();
+      completeStep('strategy', 'assets', '广告素材');
+      navigate('assets', { projectId: currentProjectId });
+    }
+    async function generateCreativeBrief(options = {}) {
+      if (projectState.aiLoading) { toast('AI 正在处理中，请稍候'); return; }
+      if (!projectState.strategy || !selectedSellingPointTitles().length || !projectState.strategy.selectedDirections?.length) { toast('请至少选择一个卖点和一个创意方向'); return; }
       projectState.aiLoading = true;
       const status = document.querySelector('#strategy-view .status-pill');
       if (status) status.textContent = '正在生成创意简报';
+      let succeeded = false;
       try {
         const result = await callAI('/api/creative-strategy', { product: projectState.product, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), strategy: projectState.strategy, mode: 'brief' });
         projectState.strategy.brief = result.creativeBrief || result.brief || null;
         projectState.strategy._briefFingerprint = currentBriefFingerprint();
         saveCurrentProject();
         renderStrategy(projectState.strategy);
+        succeeded = true;
         toast('创意简报已根据当前选择更新');
       } catch (error) { toast(error.message); }
-      finally { projectState.aiLoading = false; if (status) status.textContent = '可多选组合'; }
+      finally { projectState.aiLoading = false; if (status) status.textContent = '可多选组合'; if (succeeded && options.continueAfter) completeStrategyAndContinue(); }
     }
     function renderAssets(data) {
       const inputs = document.querySelectorAll('#templateMode input, #templateMode textarea');
@@ -1424,14 +1438,11 @@
       syncProjectState();
       toast('商品信息已确认，其他模块已同步');
     });
-    document.querySelector('#strategy-view .panel-main .primary-btn[data-go="assets"]').addEventListener('click', () => {
+    (document.getElementById('useStrategyBrief') || document.querySelector('#strategy-view .panel-main .primary-btn[data-go="assets"]')).addEventListener('click', () => {
       if (!projectState.strategy || !projectState.strategy.selectedDirections?.length) { toast('请至少选择一个创意方向'); return; }
       if (!selectedSellingPointTitles().length) { toast('请至少选择一个卖点'); return; }
-      if (!projectState.strategy.brief || projectState.strategy._briefFingerprint !== currentBriefFingerprint()) { toast('请先生成基于当前选择的创意简报'); return; }
-      projectState.strategyComplete = true;
-      saveCurrentProject();
-      completeStep('strategy', 'assets', '广告素材');
-      navigate('assets', { projectId: currentProjectId });
+      if (!projectState.strategy.brief || projectState.strategy._briefFingerprint !== currentBriefFingerprint()) { generateCreativeBrief({ continueAfter: true }); return; }
+      completeStrategyAndContinue();
     });
     function saveAssetsAndComplete(message) {
       if (!projectState.assets) { toast('请等待 AI 完成素材生成'); return; }
