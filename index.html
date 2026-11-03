@@ -526,7 +526,7 @@
       projectState.stepStatus = { ...(project.stepStatus || {}) };
       projectState.updatedAt = project.updatedAt || '';
       loadProductIntoReview();
-      const resumeMap = { background: 'setup', path: 'path', product: 'product', strategy: 'strategy', assets: 'assets', upload: 'data', fields: 'data', metrics: 'data', recommendations: 'data', complete: 'overview' };
+      const resumeMap = { background: 'setup', path: 'path', product: 'product', strategy: 'strategy', assets: 'assets', upload: 'data', fields: 'data', metrics: 'data', recommendations: 'data', complete: project.path === 'creative-generation' ? 'assets' : 'overview' };
       const destination = !projectState.backgroundSaved || !projectState.path ? 'setup' : resumeMap[projectState.currentStep] || 'overview';
       syncProjectState();
       if (options.fromHistory) showView(options.view || destination, { fromHistory: true });
@@ -835,7 +835,11 @@
       const projectId = decodeURIComponent(match[1]);
       const view = match[2];
       if (!readProjects().some(project => project.id === projectId)) { navigate('history', { replace: true }); return; }
-      if (view === 'overview') { openProject(projectId, { fromHistory: true, view: 'overview' }); return; }
+      if (view === 'overview') {
+        const routedProject = readProjects().find(item => item.id === projectId);
+        openProject(projectId, { fromHistory: true, view: routedProject?.path === 'creative-generation' ? 'assets' : 'overview' });
+        return;
+      }
       currentProjectId = projectId;
       const project = readProjects().find(item => item.id === projectId);
       projectState.product = { ...blankProduct, ...(project.product || {}) };
@@ -1034,7 +1038,7 @@
       const back = document.getElementById('workspaceBack');
       if (back) {
         const insideWorkspace = !['home', 'history'].includes(name);
-        back.style.display = insideWorkspace ? 'inline-block' : 'none';
+        back.style.display = creativeMode ? 'none' : (insideWorkspace ? 'inline-block' : 'none');
         back.textContent = ['overview', 'setup', 'path'].includes(name) && returnView === 'history' ? '← 返回历史项目' : '← 返回项目主页';
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
