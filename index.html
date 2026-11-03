@@ -164,6 +164,24 @@
     .analysis-label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 9px; }
     .main.data-mode .progress-wrap { display: none; }
     .main.entry-mode .progress-wrap { display: none; }
+    .app-shell.setup-mode { grid-template-columns: 1fr; }
+    .app-shell.setup-mode .sidebar, .app-shell.setup-mode .top-actions { display: none; }
+    .app-shell.setup-mode .main { padding: 32px 24px 60px; }
+    .app-shell.setup-mode #setup-view .workspace { display: block; max-width: 980px; }
+    .app-shell.setup-mode #setup-view .panel-main { padding: 34px 40px; }
+    .app-shell.setup-mode #setup-view .panel-side { display: none; }
+    .setup-path-section { border-top: 1px solid var(--line); margin-top: 30px; padding-top: 28px; }
+    .setup-path-heading { margin-bottom: 15px; }
+    .setup-path-heading h3 { margin: 0 0 6px; font-size: 16px; letter-spacing: -.03em; }
+    .setup-path-heading p { margin: 0; color: var(--muted); font-size: 11px; }
+    .setup-path-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .setup-path-option { border: 1px solid var(--line); border-radius: 13px; background: #fff; padding: 18px; text-align: left; cursor: pointer; transition: .2s ease; }
+    .setup-path-option:hover { border-color: #9abfff; box-shadow: 0 10px 24px rgba(33,38,52,.06); }
+    .setup-path-option.selected { border-color: #5d9dff; background: var(--blue-soft); box-shadow: 0 0 0 3px rgba(22,119,255,.08); }
+    .setup-path-option strong { display: block; font-size: 14px; margin-bottom: 7px; }
+    .setup-path-option span { display: block; color: var(--muted); font-size: 11px; line-height: 1.65; }
+    .setup-path-option .path-flow { margin-top: 12px; color: #4f5866; }
+    .setup-path-error { color: #bf684a; font-size: 11px; margin-top: 10px; min-height: 16px; }
     .path-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .path-card { border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 22px; text-align: left; transition: .2s ease; }
     .path-card:hover { border-color: #8db9ff; box-shadow: 0 12px 30px rgba(33, 38, 52, .07); transform: translateY(-1px); }
@@ -422,8 +440,8 @@
     function saveCurrentProject() {
       if (!currentProjectId) return;
       const projects = readProjects();
-      const project = projects.find(item => item.id === currentProjectId);
-      if (!project) return;
+      let project = projects.find(item => item.id === currentProjectId);
+      if (!project) { project = makeProject(projectState.projectName || '新广告项目'); project.id = currentProjectId; projects.unshift(project); }
       project.product = { ...projectState.product };
       project.name = projectState.projectName || project.name;
       project.market = projectState.market || '';
@@ -445,9 +463,6 @@
     }
     function startNewProject() {
       const project = makeProject('新广告项目');
-      const projects = readProjects();
-      projects.unshift(project);
-      writeProjects(projects);
       currentProjectId = project.id;
       returnView = 'home';
       projectState.product = { ...project.product };
@@ -465,9 +480,10 @@
       projectState.productUnderstanding = null;
       projectState.strategy = null;
       projectState.assets = null;
+      projectState.setupPath = '';
       resetSetupForm();
       navigate('setup', { projectId: currentProjectId });
-      toast('已创建新项目');
+      toast('已开始填写新项目');
     }
     function openProject(projectId, options = {}) {
       const project = readProjects().find(item => item.id === projectId);
@@ -478,6 +494,7 @@
       projectState.projectName = project.name;
       projectState.market = project.market || '';
       projectState.path = project.path || '';
+      projectState.setupPath = project.path || '';
       projectState.stage = project.stage || (project.path ? '商品理解' : '项目背景');
       projectState.backgroundSaved = Boolean(project.backgroundSaved);
       projectState.confirmed = Boolean(project.confirmed);
@@ -492,13 +509,13 @@
       projectState.updatedAt = project.updatedAt || '';
       loadProductIntoReview();
       const resumeMap = { background: 'setup', path: 'path', product: 'product', strategy: 'strategy', assets: 'assets', upload: 'data', fields: 'data', metrics: 'data', recommendations: 'data', complete: 'overview' };
-      const destination = !projectState.backgroundSaved ? 'setup' : !projectState.path ? 'path' : resumeMap[projectState.currentStep] || 'overview';
+      const destination = !projectState.backgroundSaved || !projectState.path ? 'setup' : resumeMap[projectState.currentStep] || 'overview';
       syncProjectState();
       if (options.fromHistory) showView(options.view || destination, { fromHistory: true });
       else navigate(destination, { projectId });
     }
     const projectState = {
-      projectName: '', market: '', path: '', stage: '项目背景', currentStep: 'background', completedSteps: [], stepStatus: {}, updatedAt: '', backgroundSaved: false, confirmed: false, strategyComplete: false, productUnderstanding: null, strategy: null, assets: null,
+      projectName: '', market: '', path: '', setupPath: '', stage: '项目背景', currentStep: 'background', completedSteps: [], stepStatus: {}, updatedAt: '', backgroundSaved: false, confirmed: false, strategyComplete: false, productUnderstanding: null, strategy: null, assets: null,
       product: { ...blankProduct }
     };
     function completeStep(stepKey, nextKey, nextStage) {
@@ -529,6 +546,26 @@
     function resetSetupForm() {
       ['setupProjectName','setupProductName','setupCategory','setupPrice','setupSpecs','setupDescription','setupFeatures','setupNotes'].forEach(id => { document.getElementById(id).value = ''; });
       document.getElementById('setupMarket').value = '';
+      projectState.setupPath = '';
+      renderSetupPathPicker();
+    }
+    function installSetupPathPicker() {
+      const panel = document.querySelector('#setup-view .panel-main');
+      const saveButton = document.getElementById('saveBackground');
+      if (!panel || !saveButton || document.getElementById('setupPathPicker')) return;
+      const section = document.createElement('section');
+      section.id = 'setupPathPicker';
+      section.className = 'setup-path-section';
+      section.innerHTML = '<div class="setup-path-heading"><h3>你这次希望 AdLab 帮你完成什么？</h3><p>选择一个方向，保存后 AdLab 会按照对应流程继续。</p></div><div class="setup-path-options"><button type="button" class="setup-path-option" data-setup-path="data-analysis"><strong>广告数据分析</strong><span>分析已有广告投放数据，计算 CTR、CPC、CVR、CPA 等指标，比较不同广告版本，并获得专业复盘和改进建议。</span><span class="path-flow">上传数据 → 字段确认 → 指标计算 → 专业复盘</span></button><button type="button" class="setup-path-option" data-setup-path="creative-generation"><strong>获取广告创意</strong><span>从商品理解开始，生成目标市场策略、广告创意方向、广告文案和专业图片或视频提示词。</span><span class="path-flow">商品理解 → 市场策略 → 广告素材</span></button></div><div class="setup-path-error" id="setupPathError"></div>';
+      saveButton.parentElement.insertAdjacentElement('beforebegin', section);
+      section.querySelectorAll('[data-setup-path]').forEach(button => button.addEventListener('click', () => { projectState.setupPath = button.dataset.setupPath; renderSetupPathPicker(); }));
+    }
+    function renderSetupPathPicker() {
+      const picker = document.getElementById('setupPathPicker');
+      if (!picker) return;
+      picker.querySelectorAll('[data-setup-path]').forEach(button => button.classList.toggle('selected', button.dataset.setupPath === projectState.setupPath));
+      const error = document.getElementById('setupPathError');
+      if (error && projectState.setupPath) error.textContent = '';
     }
     const additionalMarkets = ['印度尼西亚', '菲律宾', '柬埔寨', '老挝', '缅甸'];
     const marketSelect = document.getElementById('setupMarket');
@@ -561,25 +598,40 @@
       document.getElementById('setupFeatures').value = product.features || '';
       document.getElementById('setupNotes').value = product.notes || '';
       document.getElementById('setupMarket').value = projectState.market || '';
+      projectState.setupPath = projectState.path || projectState.setupPath || '';
+      renderSetupPathPicker();
     }
     function saveBackground() {
       const projectName = document.getElementById('setupProjectName').value.trim();
       const productName = document.getElementById('setupProductName').value.trim();
       const description = document.getElementById('setupDescription').value.trim();
       const market = document.getElementById('setupMarket').value;
-      if (!projectName || !productName || !description || !market) { toast('请填写项目名称、商品名称、商品描述和目标市场'); return; }
+      const selectedPath = projectState.setupPath;
+      if (!projectName || !productName || !description || !market || !selectedPath) { const error = document.getElementById('setupPathError'); if (error) error.textContent = selectedPath ? '' : '请选择一个项目方向。'; toast('请填写完整的项目背景，并选择一个项目方向'); return; }
+      const previousPath = projectState.path;
+      const previousMarket = projectState.market;
+      const previousProductKey = productFingerprint(projectState.product);
+      const wasSaved = projectState.backgroundSaved;
       projectState.projectName = projectName;
       projectState.market = market;
       const price = document.getElementById('setupPrice').value.trim();
       projectState.product = { name: productName, category: document.getElementById('setupCategory').value.trim(), price: price ? `${price} 元` : '', specs: document.getElementById('setupSpecs').value.trim(), description, features: document.getElementById('setupFeatures').value.trim(), notes: document.getElementById('setupNotes').value.trim(), imageName: '' };
       projectState.backgroundSaved = true;
-      projectState.confirmed = false;
-      projectState.path = '';
+      const pathChanged = wasSaved && previousPath && previousPath !== selectedPath;
+      const existingPath = wasSaved && previousPath === selectedPath;
+      const productChanged = previousProductKey !== productFingerprint(projectState.product);
+      const marketChanged = previousMarket !== market;
+      projectState.path = selectedPath;
+      projectState.setupPath = selectedPath;
+      if (!existingPath || pathChanged) { projectState.confirmed = false; projectState.currentStep = selectedPath === 'data-analysis' ? 'upload' : 'product'; projectState.stage = selectedPath === 'data-analysis' ? '上传广告数据' : '商品理解'; }
+      if (pathChanged) { projectState.completedSteps = ['background']; projectState.stepStatus = {}; projectState.strategyComplete = false; projectState.productUnderstanding = null; projectState.strategy = null; projectState.assets = null; }
+      if (existingPath && selectedPath === 'creative-generation' && productChanged) { projectState.confirmed = false; projectState.completedSteps = projectState.completedSteps.filter(step => ['background'].includes(step)); projectState.stepStatus = { background: projectState.stepStatus.background }; projectState.currentStep = 'product'; projectState.stage = '商品理解'; projectState.strategyComplete = false; projectState.productUnderstanding = null; projectState.strategy = null; projectState.assets = null; }
+      if (existingPath && selectedPath === 'creative-generation' && !productChanged && marketChanged) { projectState.completedSteps = projectState.completedSteps.filter(step => !['strategy', 'assets', 'complete'].includes(step)); delete projectState.stepStatus.strategy; delete projectState.stepStatus.assets; delete projectState.stepStatus.complete; projectState.strategyComplete = false; projectState.strategy = null; projectState.assets = null; projectState.currentStep = projectState.completedSteps.includes('product') ? 'strategy' : 'product'; projectState.stage = projectState.currentStep === 'strategy' ? '创意策略' : '商品理解'; }
       loadProductIntoReview();
-      completeStep('background', 'path', '路径选择');
-      updatePathSummary();
-      navigate('path', { projectId: currentProjectId });
-      toast('项目背景已保存');
+      if (existingPath) { projectState.updatedAt = new Date().toLocaleString('zh-CN', { hour12: false }); saveCurrentProject(); renderOverview(); }
+      else completeStep('background', projectState.currentStep, projectState.stage);
+      navigate('overview', { projectId: currentProjectId });
+      toast('项目背景已保存，项目已创建');
     }
     function updatePathSummary() {
       const summary = document.getElementById('pathSummary');
@@ -747,6 +799,7 @@
       projectState.projectName = project.name || '';
       projectState.market = project.market || '';
       projectState.path = project.path || '';
+      projectState.setupPath = project.path || '';
       projectState.stage = project.stage || '项目背景';
       projectState.backgroundSaved = Boolean(project.backgroundSaved);
       projectState.confirmed = Boolean(project.confirmed);
@@ -899,6 +952,7 @@
     installProductContexts();
     installOverviewControls();
     installDataProgressControls();
+    installSetupPathPicker();
     function canOpenView(name) {
       if (['home', 'history', 'setup', 'path', 'overview'].includes(name)) return true;
       if (!projectState.backgroundSaved) return false;
@@ -916,6 +970,7 @@
       document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.view === name));
       document.querySelectorAll('.step').forEach(step => { step.classList.toggle('current', step.dataset.step === name); step.classList.toggle('done', views.indexOf(step.dataset.step) < views.indexOf(name)); });
       document.querySelector('.app-shell').classList.toggle('home-mode', name === 'home' || name === 'history');
+      document.querySelector('.app-shell').classList.toggle('setup-mode', name === 'setup');
       document.querySelector('.main').classList.toggle('data-mode', name === 'data');
       document.querySelector('.main').classList.toggle('entry-mode', name === 'setup' || name === 'path');
       document.getElementById('eyebrow').textContent = name === 'data' ? '广告实验室 / 独立分析工具' : name === 'setup' ? '广告实验室 / 项目背景' : name === 'path' ? '广告实验室 / 路径选择' : '广告实验室 / 项目工作区';
