@@ -238,6 +238,21 @@
     .asset-template-card .template-angle { margin-top: 7px; color: var(--blue); }
     .asset-template-card .template-meta { margin-top: 10px; padding-top: 9px; border-top: 1px solid #edf0f4; color: #626b78; font-size: 10px; line-height: 1.7; white-space: pre-line; }
     .asset-template-card .template-choice { margin-top: 12px; width: 100%; }
+    .asset-template-card .template-choice:disabled { opacity: .65; cursor: wait; }
+    .asset-generated-preview { margin: 14px 0 18px; padding: 14px; border: 1px solid #dce8f8; border-radius: 12px; background: #f7fbff; }
+    .asset-generated-preview strong { display: block; margin-bottom: 9px; font-size: 12px; }
+    .asset-generated-preview img { display: block; width: min(100%, 720px); max-height: 620px; margin: 0 auto; object-fit: contain; border-radius: 9px; background: #fff; }
+    .asset-generated-preview p { margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
+    .asset-prompt-revision { display: grid; gap: 8px; margin-top: 13px; padding: 12px; border: 1px dashed #d6dce6; border-radius: 10px; background: #fbfcfe; }
+    .asset-prompt-revision label { color: var(--ink); font-size: 11px; font-weight: 700; }
+    .asset-prompt-revision textarea { min-height: 72px; resize: vertical; }
+    .asset-prompt-revision button { justify-self: start; }
+    .asset-translation-panel { display: grid; gap: 10px; }
+    .asset-translation-card { border: 1px solid #e7e9ee; border-radius: 9px; background: #fafbfc; padding: 10px; }
+    .asset-translation-card h4 { margin: 0 0 8px; font-size: 11px; }
+    .asset-translation-card strong { display: block; margin-top: 8px; color: var(--ink); font-size: 10px; }
+    .asset-translation-card p { margin: 4px 0 0; color: #5f636d; font-size: 10px; line-height: 1.65; white-space: pre-line; }
+    .asset-prompt-number { color: var(--blue); }
     .asset-mode-note { margin-top: 12px; color: var(--muted); font-size: 10px; line-height: 1.6; }
     .asset-check-list { display: grid; gap: 7px; margin-top: 10px; }
     .asset-check-item { display: flex; gap: 7px; align-items: flex-start; color: #626771; font-size: 10px; line-height: 1.5; }
@@ -2090,13 +2105,13 @@
       const main = view?.querySelector('.panel-main');
       const side = view?.querySelector('.panel-side');
       if (!main || !side) return;
-      main.innerHTML = '<div class="panel-heading"><div><h2 id="assetPageTitle">广告素材工作台</h2><p id="assetPageSubtitle">先选择你希望 AdLab 输出图片素材，还是输出专业提示词。</p></div><span class="status-pill" id="assetStatusPill">选择输出方式</span></div><div id="assetGenerationContext" class="asset-context"></div><div id="assetCurrency" class="asset-currency"></div><div id="assetBranchBack" class="asset-branch-back"></div><div id="assetModeChoice"></div><div id="assetSchemes" class="asset-schemes"></div><div id="assetBranchActions" class="asset-action-row"></div>';
-      side.innerHTML = '<div class="side-title">当前素材步骤</div><div id="assetInputSummary" class="notice">先选择一种素材产出方式。</div><div class="side-section"><div class="side-title">本步骤会使用</div><div class="asset-check-list"><div class="asset-check-item">已确认的商品和商品图片</div><div class="asset-check-item">用户保留的卖点、受众和创意方向</div><div class="asset-check-item">已确认的创意简报</div><div class="asset-check-item">目标市场语言和当地货币价格</div></div></div>';
+       main.innerHTML = '<div class="panel-heading"><div><h2 id="assetPageTitle">广告素材工作台</h2><p id="assetPageSubtitle">先选择你希望 AdLab 输出图片素材，还是输出专业提示词。</p></div><span class="status-pill" id="assetStatusPill">选择输出方式</span></div><div id="assetGenerationContext" class="asset-context"></div><div id="assetCurrency" class="asset-currency"></div><div id="assetBranchBack" class="asset-branch-back"></div><div id="assetModeChoice"></div><div id="assetGeneratedPreview"></div><div id="assetSchemes" class="asset-schemes"></div><div id="assetBranchActions" class="asset-action-row"></div>';
+       side.innerHTML = '<div class="side-title">当前素材步骤</div><div id="assetInputSummary" class="notice">先选择一种素材产出方式。</div><div id="assetTranslationPanel"></div><div class="side-section"><div class="side-title">本步骤会使用</div><div class="asset-check-list"><div class="asset-check-item">已确认的商品和商品图片</div><div class="asset-check-item">用户保留的卖点、受众和创意方向</div><div class="asset-check-item">已确认的创意简报</div><div class="asset-check-item">目标市场语言和当地货币价格</div></div></div>';
       view.addEventListener('click', event => {
         const mode = event.target.closest('[data-asset-mode]');
         if (mode) { selectAssetMode(mode.dataset.assetMode); return; }
-        const action = event.target.closest('[data-asset-action]');
-        if (action) { handleAssetAction(action.dataset.assetAction, action.dataset.templateId || ''); return; }
+         const action = event.target.closest('[data-asset-action]');
+         if (action) { const feedbackInput = action.closest('.asset-prompt-revision')?.querySelector('[data-prompt-feedback]'); handleAssetAction(action.dataset.assetAction, action.dataset.templateId || '', feedbackInput?.value || ''); return; }
         const copy = event.target.closest('[data-copy-asset]');
         if (copy) { const value = copy.dataset.copyAsset || ''; navigator.clipboard?.writeText(value).then(() => toast('内容已复制')).catch(() => toast('内容已准备好，可手动复制')); }
       });
@@ -2157,6 +2172,46 @@
       if (copyable && value) { const button = document.createElement('button'); button.type = 'button'; button.className = 'ghost-btn'; button.textContent = '复制'; button.dataset.copyAsset = value; button.style.marginTop = '8px'; block.appendChild(button); }
       return block;
     }
+    function schemeOrdinal(index) { return ['一', '二', '三'][index] || String(index + 1); }
+    function imagePromptText(scheme) {
+      const prompt = String(scheme.imagePrompt || '').trim();
+      const negative = String(scheme.negativePrompt || '').trim();
+      return negative && !/negative prompt|负面提示词/i.test(prompt) ? `${prompt}\n\nNegative prompt: ${negative}` : prompt;
+    }
+    function videoPromptText(scheme) {
+      const parts = [String(scheme.videoPrompt || '').trim()];
+      const format = [...(scheme.formatAdvice || [])].filter(Boolean).join('\n');
+      const production = String(scheme.productionNotes || '').trim();
+      const shots = [...(scheme.shotList || [])].filter(Boolean).join('\n');
+      const details = [...(scheme.qualityChecks || [])].filter(Boolean).join('\n');
+      const negative = String(scheme.negativePrompt || '').trim();
+      if (format && !/画幅|aspect|format/i.test(parts[0])) parts.push(`Format and production: ${format}`);
+      if (production && !/制作建议|production|制作/i.test(parts[0])) parts.push(`Production notes: ${production}`);
+      if (shots && !/分镜|shot|scene|镜头/i.test(parts[0])) parts.push(`Shot and camera details:\n${shots}`);
+      if (details && !/检查|quality|consistency/i.test(parts[0])) parts.push(`Quality checks:\n${details}`);
+      if (negative && !/negative prompt|负面提示词/i.test(parts[0])) parts.push(`Negative prompt: ${negative}`);
+      return parts.filter(Boolean).join('\n\n');
+    }
+    function renderPromptTranslations(schemes) {
+      const panel = document.getElementById('assetTranslationPanel');
+      if (!panel) return;
+      panel.replaceChildren();
+      if (!schemes?.length) return;
+      const section = document.createElement('div'); section.className = 'side-section';
+      const title = document.createElement('div'); title.className = 'side-title'; title.textContent = '提示词中文翻译'; section.appendChild(title);
+      const note = document.createElement('div'); note.className = 'notice'; note.textContent = '右侧翻译仅用于理解，复制使用时请复制左侧原始提示词。'; section.appendChild(note);
+      const list = document.createElement('div'); list.className = 'asset-translation-panel';
+      schemes.forEach((scheme, index) => {
+        const card = document.createElement('div'); card.className = 'asset-translation-card';
+        const heading = document.createElement('h4'); heading.textContent = `${schemeOrdinal(index)}、${scheme.title}`; card.appendChild(heading);
+        const imageLabel = document.createElement('strong'); imageLabel.textContent = '图片提示词中文翻译'; card.appendChild(imageLabel);
+        const imageText = document.createElement('p'); imageText.textContent = scheme.imagePromptZh || '本方案暂未生成中文翻译，请重新生成提示词。'; card.appendChild(imageText);
+        const videoLabel = document.createElement('strong'); videoLabel.textContent = '视频提示词中文翻译'; card.appendChild(videoLabel);
+        const videoText = document.createElement('p'); videoText.textContent = scheme.videoPromptZh || '本方案暂未生成中文翻译，请重新生成提示词。'; card.appendChild(videoText);
+        list.appendChild(card);
+      });
+      section.appendChild(list); panel.appendChild(section);
+    }
     function setAssetHeader(title, subtitle, status) {
       const pageTitle = document.getElementById('assetPageTitle'); if (pageTitle) pageTitle.textContent = title;
       const pageSubtitle = document.getElementById('assetPageSubtitle'); if (pageSubtitle) pageSubtitle.textContent = subtitle;
@@ -2167,9 +2222,11 @@
       const context = document.getElementById('assetGenerationContext'); if (context) context.innerHTML = '<strong>环节 3 / 选择素材产出方式</strong><span>两种方式使用同一份项目资料，但后续操作不同。</span>';
       const currency = document.getElementById('assetCurrency'); if (currency) currency.textContent = '';
       const back = document.getElementById('assetBranchBack'); if (back) back.innerHTML = '';
+       const translations = document.getElementById('assetTranslationPanel'); if (translations) translations.replaceChildren();
+       const generatedPreview = document.getElementById('assetGeneratedPreview'); if (generatedPreview) generatedPreview.replaceChildren();
       const choice = document.getElementById('assetModeChoice'); if (!choice) return;
       choice.className = 'asset-mode-choice';
-      choice.innerHTML = '<div class="asset-mode-intro"><h3>你希望如何制作广告素材？</h3><p>请选择一种输出方式，后续可以返回重新选择。</p></div><div class="asset-mode-options"><button type="button" class="asset-mode-card" data-asset-mode="image"><span class="mode-label">IMAGE ASSETS</span><h3>生成图片素材</h3><p>先生成多个广告图片模板，选择喜欢的模板后，再接入生图 API 生成最终广告图片。</p><span class="path-flow">生成模板 → 选择模板 → 生成广告图片</span></button><button type="button" class="asset-mode-card" data-asset-mode="prompt"><span class="mode-label">PROMPT PACKAGE</span><h3>生成广告提示词</h3><p>输出图片提示词、视频提示词、负面提示词和当地语言广告文案，方便复制到其他生图工具。</p><span class="path-flow">生成提示词 → 复制或下载 → 完成素材环节</span></button></div>';
+       choice.innerHTML = '<div class="asset-mode-intro"><h3>你希望如何制作广告素材？</h3><p>请选择一种输出方式，后续可以返回重新选择。</p></div><div class="asset-mode-options"><button type="button" class="asset-mode-card" data-asset-mode="image"><span class="mode-label">IMAGE ASSETS</span><h3>生成图片素材</h3><p>先生成多个广告图片模板，选择喜欢的模板后，再接入生图 API 生成最终广告图片。</p><span class="path-flow">生成模板 → 选择模板 → 生成广告图片</span></button><button type="button" class="asset-mode-card" data-asset-mode="prompt"><span class="mode-label">PROMPT PACKAGE</span><h3>生成广告提示词</h3><p>只输出图片生成提示词和视频生成提示词，并把专业制作细节整合在对应提示词中。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button></div>';
       const list = document.getElementById('assetSchemes'); if (list) list.replaceChildren();
       const actions = document.getElementById('assetBranchActions'); if (actions) actions.replaceChildren();
       const summary = document.getElementById('assetInputSummary'); if (summary) summary.textContent = `已准备商品图片、${selectedSellingPointTitles().length} 个卖点、${selectedDirections().length} 个创意方向和 ${selectedAudience().length} 个核心受众。`;
@@ -2177,14 +2234,28 @@
     function renderAssetSchemeCards(data, options = {}) {
       ensureAssetSchemes(data);
       const schemes = data.schemes;
-      setAssetHeader(options.promptOnly ? '生成广告提示词' : '生成图片素材', options.promptOnly ? '输出完整的广告提示词和文案，方便复制到图片或视频生成工具。' : '先选择一个广告图片模板，后续接入生图 API 生成最终图片。', '素材已生成');
+       setAssetHeader(options.promptOnly ? '生成广告提示词' : '生成图片素材', options.promptOnly ? '每套创意只提供图片提示词和视频提示词，复制即可使用。' : '先选择一个广告图片模板，后续接入生图 API 生成最终图片。', projectState.aiLoading && data.revisingSchemeId ? 'AI 修改中' : '素材已生成');
       const context = document.getElementById('assetGenerationContext');
       if (context) { context.className = 'notice asset-context'; context.innerHTML = `<strong>${options.promptOnly ? `已生成 ${data.schemes.length} 套完整提示词素材方案` : `已生成 ${data.schemes.length} 个广告图片模板`}</strong><span>商品：${projectState.product.name || '未填写'} · 市场：${projectState.market || '未选择'} · 平台：${projectState.platform || 'TikTok Shop'}</span>`; }
       const currency = data.currency || currencySnapshot();
-      const currencyEl = document.getElementById('assetCurrency');
+       const currencyEl = document.getElementById('assetCurrency');
       if (currencyEl) currencyEl.innerHTML = currency.available ? `<span>人民币售价：<strong>¥${currency.sourceAmount}</strong></span><span>广告展示价格：<strong>${currency.displayAmount}</strong></span><span>汇率：1 CNY ≈ ${currency.exchangeRate} ${currency.targetCurrency} · ${currency.rateUpdatedAt}</span>` : '<span>当前未生成当地货币价格，请确认人民币售价和汇率配置。</span>';
+       if (options.promptOnly) renderPromptTranslations(schemes); else { const translations = document.getElementById('assetTranslationPanel'); if (translations) translations.replaceChildren(); }
+       const preview = document.getElementById('assetGeneratedPreview');
+       if (preview) {
+         preview.replaceChildren();
+         if (!options.promptOnly && data.generatedImage) {
+           preview.className = 'asset-generated-preview';
+           const heading = document.createElement('strong'); heading.textContent = '已生成广告图片'; preview.appendChild(heading);
+           const image = document.createElement('img'); image.src = data.generatedImage; image.alt = `${data.schemes.find(item => item.id === data.selectedSchemeId)?.title || '广告素材'}生成图片`; preview.appendChild(image);
+           const note = document.createElement('p'); note.textContent = data.generatedImageModel ? `模型：${data.generatedImageModel}` : '图片已保存到当前项目。'; preview.appendChild(note);
+         } else if (!options.promptOnly && data.generatingImage) {
+           preview.className = 'asset-generated-preview';
+           const note = document.createElement('p'); note.textContent = '豆包正在生成广告图片，请稍候…'; preview.appendChild(note);
+         }
+       }
       const back = document.getElementById('assetBranchBack'); if (back) back.innerHTML = '<button type="button" class="back-link" data-asset-action="back-mode">← 重新选择产出方式</button>';
-      const summary = document.getElementById('assetInputSummary'); if (summary) summary.textContent = options.promptOnly ? `当前输出：${data.schemes.length} 套完整提示词、当地语言广告文案和中文释义。` : `当前输出：${data.schemes.length} 个图片模板，选择一个后可接入生图 API。`;
+       const summary = document.getElementById('assetInputSummary'); if (summary) summary.textContent = options.promptOnly ? `当前输出：${data.schemes.length} 套图片/视频提示词及对应中文翻译。` : `当前输出：${data.schemes.length} 个图片模板，选择一个后可接入生图 API。`;
       const list = document.getElementById('assetSchemes'); if (!list) return;
       list.className = options.promptOnly ? 'asset-schemes' : 'asset-template-grid'; list.replaceChildren();
       schemes.forEach((scheme, index) => {
@@ -2194,25 +2265,68 @@
           const summary = document.createElement('p'); summary.className = 'template-summary'; summary.textContent = scheme.summary;
           const angle = document.createElement('p'); angle.className = 'template-angle'; angle.textContent = `切入角度：${scheme.angle || ['用户痛点场景', '核心卖点展示', '真实生活场景'][index] || '综合创意场景'}`;
           const meta = document.createElement('div'); meta.className = 'template-meta'; meta.textContent = `画面构图：${scheme.imageLayout || 'AI 将根据创意简报规划'}\n广告标题：${scheme.adTitle || '目标市场当地语言广告标题'}\n核心卖点：${(scheme.sellingPointCopy || []).join('、') || '结合已确认卖点'}\n价格：${scheme.localPrice || data.currency?.displayAmount || '按目标市场换算'}`;
-          const choose = document.createElement('button'); choose.type = 'button'; choose.className = `${data.selectedSchemeId === scheme.id ? 'primary-btn' : 'ghost-btn'} template-choice`; choose.dataset.assetAction = 'select-template'; choose.dataset.templateId = scheme.id; choose.textContent = data.selectedSchemeId === scheme.id ? '已选择此模板' : '选择这个模板';
+          const choose = document.createElement('button'); choose.type = 'button'; choose.className = `${data.selectedSchemeId === scheme.id ? 'primary-btn' : 'ghost-btn'} template-choice`; choose.dataset.assetAction = 'generate-image'; choose.dataset.templateId = scheme.id; choose.disabled = Boolean(projectState.aiLoading); choose.textContent = data.generatingImage && data.selectedSchemeId === scheme.id ? '豆包生成中…' : data.generatedImage && data.selectedSchemeId === scheme.id ? '重新生成此模板' : '选择此模板并生成';
           card.append(title, summary, angle, meta, choose); list.appendChild(card); return;
         }
-        const card = document.createElement('article'); card.className = 'asset-scheme';
-        const head = document.createElement('div'); head.className = 'asset-scheme-head'; const titleWrap = document.createElement('div'); const title = document.createElement('h3'); title.textContent = scheme.title; const summary = document.createElement('p'); summary.textContent = scheme.summary; const angle = document.createElement('p'); angle.textContent = `切入角度：${scheme.angle || '综合当前创意简报生成'}`; titleWrap.append(title, summary, angle); head.appendChild(titleWrap); card.appendChild(head);
-        const copyGrid = document.createElement('div'); copyGrid.className = 'asset-scheme-grid'; copyGrid.append(assetTextBlock(`广告标题（${marketLanguage(projectState.market)}）`, scheme.adTitle, true), assetTextBlock('中文标题释义', scheme.adTitleZh)); copyGrid.append(assetTextBlock(`广告正文（${marketLanguage(projectState.market)}）`, scheme.adBody, true), assetTextBlock('中文正文释义', scheme.adBodyZh)); card.appendChild(copyGrid);
-        const promptGrid = document.createElement('div'); promptGrid.className = 'asset-scheme-grid asset-prompt-block'; promptGrid.append(assetTextBlock('图片生成提示词', scheme.imagePrompt, true), assetTextBlock('视频生成提示词', scheme.videoPrompt, true)); card.appendChild(promptGrid);
-        const detailGrid = document.createElement('div'); detailGrid.className = 'asset-scheme-grid asset-prompt-block'; detailGrid.append(assetTextBlock('负面提示词', scheme.negativePrompt, true), assetTextBlock('画幅与制作建议', [...(scheme.formatAdvice || []), scheme.productionNotes].filter(Boolean).join('\n'))); card.appendChild(detailGrid);
-        const productionGrid = document.createElement('div'); productionGrid.className = 'asset-scheme-grid asset-prompt-block'; productionGrid.append(assetTextBlock('开场钩子与卖点表达', [scheme.hook, ...(scheme.sellingPointCopy || [])].filter(Boolean).join('\n')), assetTextBlock('镜头与画面细节', [...(scheme.shotList || []), ...(scheme.qualityChecks || []).map(item => `检查：${item}`)].filter(Boolean).join('\n') || scheme.imageLayout)); card.appendChild(productionGrid);
+         const card = document.createElement('article'); card.className = 'asset-scheme';
+         const head = document.createElement('div'); head.className = 'asset-scheme-head'; const titleWrap = document.createElement('div'); const title = document.createElement('h3'); title.className = 'asset-prompt-number'; title.textContent = `${schemeOrdinal(index)}、${scheme.title}`; const summary = document.createElement('p'); summary.textContent = scheme.summary; const angle = document.createElement('p'); angle.textContent = `切入角度：${scheme.angle || '综合当前创意简报生成'}`; titleWrap.append(title, summary, angle); head.appendChild(titleWrap); card.appendChild(head);
+         const promptGrid = document.createElement('div'); promptGrid.className = 'asset-scheme-grid asset-prompt-block'; promptGrid.append(assetTextBlock('图片生成提示词', imagePromptText(scheme), true), assetTextBlock('视频生成提示词', videoPromptText(scheme), true)); card.appendChild(promptGrid);
+         const revision = document.createElement('div'); revision.className = 'asset-prompt-revision'; const revisionLabel = document.createElement('label'); revisionLabel.textContent = '对这套提示词不满意？告诉 AI 你想怎么改'; const revisionInput = document.createElement('textarea'); revisionInput.placeholder = '例如：人物动作更自然，突出防水功能，把画面改成越南上班族雨天通勤场景……'; revisionInput.dataset.promptFeedback = scheme.id; const revisionButton = document.createElement('button'); revisionButton.type = 'button'; revisionButton.className = 'ghost-btn'; revisionButton.dataset.assetAction = 'revise-prompt'; revisionButton.dataset.templateId = scheme.id; revisionButton.disabled = Boolean(projectState.aiLoading); revisionButton.textContent = data.revisingSchemeId === scheme.id ? 'AI 正在根据建议修改…' : '根据我的建议重新生成'; revision.append(revisionLabel, revisionInput, revisionButton); card.appendChild(revision);
         list.appendChild(card);
       });
       const actions = document.getElementById('assetBranchActions'); if (actions) actions.innerHTML = '<button type="button" class="ghost-btn" data-asset-action="back-mode">重新选择产出方式</button><button type="button" class="primary-btn" data-asset-action="save-prompt">保存提示词，完成素材环节 →</button>';
     }
     function renderImageBranch(data) {
       renderAssetSchemeCards(data, { imageMode: true });
-      const actions = document.getElementById('assetBranchActions'); if (actions) actions.innerHTML = '<button type="button" class="ghost-btn" data-asset-action="back-mode">重新选择产出方式</button><button type="button" class="primary-btn" data-asset-action="generate-image">生成广告图片</button><span class="asset-mode-note">图片生成 API 接入后，此按钮将使用你选择的模板生成最终广告图片。</span>';
+       const actions = document.getElementById('assetBranchActions'); if (actions) actions.innerHTML = `<button type="button" class="ghost-btn" data-asset-action="back-mode">重新选择产出方式</button>${data.generatedImage ? '<button type="button" class="primary-btn" data-asset-action="save-image">保存图片，完成素材环节 →</button>' : '<span class="asset-mode-note">点击任意模板下方的“选择此模板并生成”，即可调用豆包生成图片。</span>'}`;
     }
-    function renderAssets(data) {
-      if (!data || !data.mode) { renderAssetChoice(data || {}); return; }
+     async function reviseAssetPrompt(templateId, feedback) {
+       if (!feedback.trim()) { toast('请先填写你想修改的内容'); return; }
+       if (projectState.aiLoading) { toast('AI 正在处理中，请稍候'); return; }
+       const data = projectState.assets;
+       const scheme = data?.schemes?.find(item => item.id === templateId);
+       if (!scheme) { toast('没有找到这套提示词'); return; }
+       projectState.aiLoading = true;
+       projectState.assets = { ...data, revisingSchemeId: templateId };
+       renderAssets(projectState.assets);
+       try {
+         const result = await callAI('/api/ad-assets', {
+           mode: 'revise-prompt',
+           assetMode: 'prompt',
+           projectName: projectState.projectName,
+           product: projectState.product,
+           productImage: projectState.product?.image || null,
+           productUnderstanding: projectState.productUnderstanding,
+           strategy: projectState.strategy,
+           approvedBrief: projectState.strategy?.brief,
+           market: projectState.market,
+           language: marketLanguage(projectState.market),
+           platform: projectState.platform || 'TikTok Shop',
+           selectedSellingPoints: selectedSellingPointTitles(),
+           selectedDirections: selectedDirections(),
+           selectedAudience: selectedAudience(),
+           currency: currencySnapshot(),
+           scheme,
+           userFeedback: feedback
+         });
+         const revised = result.schemes?.[0];
+         if (!revised) throw new Error('AI 没有返回修改后的提示词');
+         const revisedSchemes = data.schemes.map(item => item.id === templateId ? { ...item, ...revised, revisionHistory: [...(item.revisionHistory || []), { feedback: feedback.trim(), createdAt: new Date().toISOString() }] } : item);
+         projectState.assets = { ...data, schemes: revisedSchemes, revisingSchemeId: '' };
+         projectState.aiLoading = false;
+         saveCurrentProject();
+         renderAssets(projectState.assets);
+         toast('这套提示词已根据你的建议重新生成');
+       } catch (error) {
+         projectState.assets = { ...projectState.assets, revisingSchemeId: '' };
+         projectState.aiLoading = false;
+         renderAssets(projectState.assets);
+         toast(error.message);
+       }
+     }
+     function renderAssets(data) {
+       if (data?.mode === 'prompt' && data.schemes?.length && data.promptFormatVersion !== 2 && !projectState.aiLoading && !data._translationRefreshRequested) { data._translationRefreshRequested = true; projectState.assets = data; generateAssets(true, 'prompt'); return; }
+       if (!data || !data.mode) { renderAssetChoice(data || {}); return; }
       if (data.mode === 'prompt') renderAssetSchemeCards(data, { promptOnly: true });
       else renderImageBranch(data);
     }
@@ -2223,14 +2337,52 @@
       const previousMode = projectState.assets?.mode || '';
       projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: projectState.assets?.sourceFingerprint || fingerprint, _sourceFingerprint: projectState.assets?._sourceFingerprint || fingerprint };
       saveCurrentProject();
-      if (previousMode === mode && projectState.assets.schemes?.length && projectState.assets.sourceFingerprint === fingerprint && (mode !== 'prompt' || projectState.assets.schemes.length >= 3)) { renderAssets(projectState.assets); return; }
+       const promptReady = mode !== 'prompt' || (projectState.assets.schemes?.length >= 3 && projectState.assets.schemes.every(item => item.imagePromptZh && item.videoPromptZh));
+       if (previousMode === mode && projectState.assets.schemes?.length && projectState.assets.sourceFingerprint === fingerprint && promptReady) { renderAssets(projectState.assets); return; }
       generateAssets(true, mode);
     }
-    function handleAssetAction(action, templateId = '') {
+     async function generateImageFromTemplate(templateId) {
+       if (projectState.aiLoading) { toast('AI 正在生成，请稍候'); return; }
+       const data = projectState.assets;
+       const scheme = data?.schemes?.find(item => item.id === templateId);
+       if (!scheme) { toast('没有找到这个素材模板'); return; }
+       projectState.aiLoading = true;
+       projectState.assets = { ...data, selectedSchemeId: templateId, generatedImage: '', generatedImageModel: '', generatingImage: true };
+       saveCurrentProject();
+       renderAssets(projectState.assets);
+       try {
+         const result = await callAI('/api/generate-image', {
+           projectName: projectState.projectName,
+           market: projectState.market,
+           platform: projectState.platform || 'TikTok Shop',
+           product: projectState.product,
+           productImage: projectState.product?.image || null,
+           scheme,
+           prompt: scheme.imagePrompt,
+           negativePrompt: scheme.negativePrompt,
+           size: '1024x1024'
+         });
+         if (!result.imageUrl) throw new Error('豆包返回了任务信息，但暂未返回图片地址，请检查接口是否为同步生图模式。');
+         projectState.assets = { ...projectState.assets, generatedImage: result.imageUrl, generatedImageModel: result.model || '', generatingImage: false, generatedAt: new Date().toISOString() };
+         projectState.aiLoading = false;
+         saveCurrentProject();
+         renderAssets(projectState.assets);
+         toast('广告图片已生成');
+       } catch (error) {
+         projectState.assets = { ...projectState.assets, generatingImage: false };
+         projectState.aiLoading = false;
+         saveCurrentProject();
+         renderAssets(projectState.assets);
+         toast(error.message);
+       } finally { projectState.aiLoading = false; }
+     }
+     function handleAssetAction(action, templateId = '', feedback = '') {
       if (action === 'back-mode') { projectState.assets = { ...(projectState.assets || {}), mode: '' }; saveCurrentProject(); renderAssets(projectState.assets); return; }
       if (action === 'select-template') { if (!projectState.assets) return; projectState.assets.selectedSchemeId = templateId; saveCurrentProject(); renderAssets(projectState.assets); return; }
       if (action === 'save-prompt') { saveAssetsAndComplete('提示词已保存，项目进度已更新'); return; }
-      if (action === 'generate-image') { toast('模板已保存。接入生图 API 后，这里会生成最终广告图片。'); return; }
+       if (action === 'generate-image') { generateImageFromTemplate(templateId); return; }
+       if (action === 'revise-prompt') { reviseAssetPrompt(templateId, feedback); return; }
+       if (action === 'save-image') { saveAssetsAndComplete('广告图片已保存，项目进度已更新'); return; }
     }
     function clearAssetsAIResult(mode = projectState.assets?.mode) {
       setAssetHeader(mode === 'prompt' ? '生成广告提示词' : '生成图片素材', 'AI 正在综合项目资料，请稍候。', 'AI 生成中');
@@ -2249,7 +2401,7 @@
       if (projectState.aiLoading) { toast('AI 正在生成素材，请稍候'); return; }
       projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint }; clearAssetsAIResult(mode);
       const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
-      try { const result = await callAI('/api/ad-assets', payload); projectState.assets = { ...result, mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
+       try { const result = await callAI('/api/ad-assets', payload); projectState.assets = { ...result, mode, promptFormatVersion: mode === 'prompt' ? 2 : undefined, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
       catch (error) { const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成'; toast(error.message); }
       finally { projectState.aiLoading = false; }
     }

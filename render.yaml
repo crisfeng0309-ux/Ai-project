@@ -12,3 +12,9 @@ services:
         value: deepseek-chat
       - key: DEEPSEEK_BASE_URL
         value: https://api.deepseek.com
+      - key: ARK_API_KEY
+        sync: false
+      - key: ARK_IMAGE_MODEL
+        sync: false
+      - key: ARK_IMAGE_API_URL
+        value: https://ark.cn-beijing.volces.com/api/v3/images/generations
