@@ -520,7 +520,7 @@
     let returnView = 'home';
     let currentProjectId = null;
     const blankProduct = { name: '', category: '', price: '', specs: '', features: '', description: '', imageName: '', notes: '' };
-    function makeDataAnalysis() { return { currentStep: 'upload', rawText: '', inputType: '', fileName: '', rows: [], columns: [], fieldMapping: {}, missingFields: [], warnings: [], dataQuality: {}, metrics: null, summaryConfirmed: false, review: null, context: { platform: '', dateRange: '', market: '', audience: '', objective: '', budget: '', landingPage: '', productPrice: '', margin: '', promotion: '' }, updatedAt: '' }; }
+    function makeDataAnalysis() { return { currentStep: 'upload', inputMode: 'file', rawText: '', pasteText: '', inputType: '', fileName: '', rows: [], columns: [], fieldMapping: {}, missingFields: [], warnings: [], dataQuality: {}, metrics: null, summaryConfirmed: false, review: null, context: { platform: '', dateRange: '', market: '', audience: '', objective: '', budget: '', landingPage: '', productPrice: '', margin: '', promotion: '' }, updatedAt: '' }; }
     const productFingerprint = product => JSON.stringify({ name: product?.name || '', category: product?.category || '', price: product?.price || '', specs: product?.specs || '', features: product?.features || '', description: product?.description || '', imageName: product?.imageName || '', notes: product?.notes || '' });
     const selectedSellingPointTitles = () => projectState.productUnderstanding?.selectedSellingPoints || [];
     const strategyFingerprint = () => JSON.stringify({ product: productFingerprint(projectState.product), market: projectState.market || '', platform: projectState.platform || 'TikTok Shop', sellingPoints: selectedSellingPointTitles() });
@@ -805,7 +805,11 @@
     }
     function renderDataUpload() {
       const data = projectState.dataAnalysis;
-      return `<div class="data-entry-panel"><div class="data-input-tabs"><button type="button" class="data-input-tab active" data-input-tab="file"><strong>上传文件</strong><span>推荐 CSV 或 Excel，也可以上传广告后台截图。</span></button><button type="button" class="data-input-tab" data-input-tab="paste"><strong>粘贴表格</strong><span>可粘贴 CSV 或从 Excel 复制的表格内容。</span></button></div><div class="data-input-pane"><div class="data-file"><div><strong>选择广告数据文件</strong><div class="data-hint">支持 CSV、XLS、XLSX、PNG、JPG。截图识别后需要确认。</div></div><input id="dataFileInput" type="file" accept=".csv,.xls,.xlsx,.png,.jpg,.jpeg" /></div><textarea id="dataPasteInput" placeholder="也可以直接粘贴表格，例如：广告版本,展示次数,点击次数,广告花费,购买次数\nA版本,10000,250,125,20">${escapeDataHtml(data.rawText || '')}</textarea><div id="dataFileNote" class="data-hint">还没有上传或粘贴数据。</div></div><div class="data-field-section"><h3>补充分析信息</h3><p>这些信息不会阻止你继续，但会帮助复盘更准确。</p><div class="data-field-grid"><div class="field"><label for="dataContextPlatform">广告平台</label><input id="dataContextPlatform" placeholder="例如：TikTok Ads" value="${escapeDataHtml(data.context.platform || '')}" /></div><div class="field"><label for="dataContextDateRange">投放日期或时间段</label><input id="dataContextDateRange" placeholder="例如：2026-10-01 至 2026-10-07" value="${escapeDataHtml(data.context.dateRange || '')}" /></div><div class="field"><label for="dataContextMarket">目标市场</label><input id="dataContextMarket" placeholder="例如：泰国" value="${escapeDataHtml(data.context.market || projectState.market || '')}" /></div><div class="field"><label for="dataContextAudience">目标受众</label><input id="dataContextAudience" placeholder="例如：城市通勤人群" value="${escapeDataHtml(data.context.audience || '')}" /></div><div class="field"><label for="dataContextObjective">投放目标</label><input id="dataContextObjective" placeholder="例如：获得购买" value="${escapeDataHtml(data.context.objective || '')}" /></div><div class="field"><label for="dataContextBudget">预算或预算分配</label><input id="dataContextBudget" placeholder="例如：每天 500 元" value="${escapeDataHtml(data.context.budget || '')}" /></div><div class="field"><label for="dataContextLandingPage">落地页信息</label><input id="dataContextLandingPage" placeholder="链接、页面类型或主要问题" value="${escapeDataHtml(data.context.landingPage || '')}" /></div><div class="field"><label for="dataContextPromotion">促销信息</label><input id="dataContextPromotion" placeholder="例如：大促、优惠券、无促销" value="${escapeDataHtml(data.context.promotion || '')}" /></div></div></div><div class="notice"><strong>建议上传完整数据</strong>必需字段是广告名称、展示次数、点击次数、广告花费和购买次数。只有 CTR 时，只能分析点击表现，无法完整计算 CPC、CVR、CPA 和 ROAS。</div><div class="data-primary-actions"><button type="button" class="primary-btn" id="dataSummarizeBtn">进行数据汇总 →</button></div></div>`;
+      const mode = data.inputMode === 'paste' ? 'paste' : 'file';
+      const inputPanel = mode === 'file'
+        ? `<div class="data-file"><div><strong>选择广告数据文件</strong><div class="data-hint">支持 CSV、XLS、XLSX、PNG、JPG。截图识别后需要确认。</div></div><input id="dataFileInput" type="file" accept=".csv,.xls,.xlsx,.png,.jpg,.jpeg" /></div><div id="dataFileNote" class="data-hint">${data.fileName ? `已选择：${escapeDataHtml(data.fileName)}。` : '还没有选择广告数据文件。'}</div>`
+        : `<textarea id="dataPasteInput" placeholder="请粘贴广告表格或内容，例如：广告版本,展示次数,点击次数,广告花费,购买次数\nA版本,10000,250,125,20">${escapeDataHtml(data.pasteText || (data.inputType === 'paste' ? data.rawText : '') || '')}</textarea><div id="dataFileNote" class="data-hint">${data.pasteText || data.inputType === 'paste' ? '已粘贴数据，请检查内容后保存。' : '还没有粘贴广告表格或内容。'}</div>`;
+      return `<div class="data-entry-panel"><div class="data-input-tabs"><button type="button" class="data-input-tab ${mode === 'file' ? 'active' : ''}" data-input-tab="file"><strong>上传文件</strong><span>推荐 CSV 或 Excel，也可以上传广告后台截图。</span></button><button type="button" class="data-input-tab ${mode === 'paste' ? 'active' : ''}" data-input-tab="paste"><strong>粘贴表格或内容</strong><span>可粘贴 CSV、Excel 复制的表格或广告后台文字。</span></button></div><div class="data-input-pane">${inputPanel}</div><div class="data-field-section"><h3>补充分析信息</h3><p>这些信息不会阻止你继续，但会帮助复盘更准确。</p><div class="data-field-grid"><div class="field"><label for="dataContextPlatform">广告平台</label><input id="dataContextPlatform" placeholder="例如：TikTok Ads" value="${escapeDataHtml(data.context.platform || '')}" /></div><div class="field"><label for="dataContextDateRange">投放日期或时间段</label><input id="dataContextDateRange" placeholder="例如：2026-10-01 至 2026-10-07" value="${escapeDataHtml(data.context.dateRange || '')}" /></div><div class="field"><label for="dataContextMarket">目标市场</label><input id="dataContextMarket" placeholder="例如：泰国" value="${escapeDataHtml(data.context.market || projectState.market || '')}" /></div><div class="field"><label for="dataContextAudience">目标受众</label><input id="dataContextAudience" placeholder="例如：城市通勤人群" value="${escapeDataHtml(data.context.audience || '')}" /></div><div class="field"><label for="dataContextObjective">投放目标</label><input id="dataContextObjective" placeholder="例如：获得购买" value="${escapeDataHtml(data.context.objective || '')}" /></div><div class="field"><label for="dataContextBudget">预算或预算分配</label><input id="dataContextBudget" placeholder="例如：每天 500 元" value="${escapeDataHtml(data.context.budget || '')}" /></div><div class="field"><label for="dataContextLandingPage">落地页信息</label><input id="dataContextLandingPage" placeholder="链接、页面类型或主要问题" value="${escapeDataHtml(data.context.landingPage || '')}" /></div><div class="field"><label for="dataContextPromotion">促销信息</label><input id="dataContextPromotion" placeholder="例如：大促、优惠券、无促销" value="${escapeDataHtml(data.context.promotion || '')}" /></div></div></div><div class="notice"><strong>建议上传完整数据</strong>必需字段是广告名称、展示次数、点击次数、广告花费和购买次数。只有 CTR 时，只能分析点击表现，无法完整计算 CPC、CVR、CPA 和 ROAS。</div><div class="data-primary-actions"><button type="button" class="primary-btn" id="dataSaveBtn">保存数据，进入数据汇总 →</button></div></div>`;
     }
     function renderDataSummary() {
       const data = projectState.dataAnalysis;
@@ -872,8 +876,17 @@
     }
     function summarizeData() {
       const data = projectState.dataAnalysis;
-      const text = document.getElementById('dataPasteInput')?.value.trim() || data.rawText.trim();
-      if (text) { const parsed = parseDelimited(text); data.columns = parsed.headers; data.fieldMapping = inferDataMapping(parsed.headers); data.rows = normalizeDataRows(parsed, data.fieldMapping); data.rawText = text; data.inputType = 'paste'; }
+      if (data.inputMode === 'paste') {
+        data.pasteText = document.getElementById('dataPasteInput')?.value.trim() || '';
+        if (!data.pasteText) { toast('请先粘贴广告表格或内容'); return; }
+        data.rawText = data.pasteText;
+        data.inputType = 'paste';
+      } else if (!data.fileName || !data.rawText.trim()) {
+        toast(data.fileName ? '当前文件暂不能直接读取，请将表格另存为 CSV 后重新上传' : '请先选择广告数据文件');
+        return;
+      }
+      const text = data.rawText.trim();
+      if (text) { const parsed = parseDelimited(text); data.columns = parsed.headers; data.fieldMapping = inferDataMapping(parsed.headers); data.rows = normalizeDataRows(parsed, data.fieldMapping); }
       data.context = dataContextFromForm();
       if (!data.rows.length) { toast('请先上传或粘贴包含表头和数据行的广告数据'); return; }
       data.metrics = calculateDataMetrics(data.rows);
@@ -886,17 +899,26 @@
       renderDataView();
       toast('数据已整理，请确认汇总结果');
     }
+    function switchDataInputMode(mode) {
+      const data = projectState.dataAnalysis;
+      if (data.inputMode === 'paste') data.pasteText = document.getElementById('dataPasteInput')?.value || data.pasteText || '';
+      data.inputMode = mode === 'paste' ? 'paste' : 'file';
+      data.viewStep = 'upload';
+      saveCurrentProject();
+      renderDataView();
+    }
     function bindDataViewEvents() {
       const file = document.getElementById('dataFileInput');
       const note = document.getElementById('dataFileNote');
+      document.querySelectorAll('[data-input-tab]').forEach(tab => tab.addEventListener('click', () => switchDataInputMode(tab.dataset.inputTab)));
       file?.addEventListener('change', async event => {
         const selected = event.target.files?.[0]; if (!selected) return;
-        const data = projectState.dataAnalysis; data.fileName = selected.name; data.inputType = selected.type.startsWith('image/') ? 'screenshot' : 'file';
+        const data = projectState.dataAnalysis; data.inputMode = 'file'; data.fileName = selected.name; data.inputType = selected.type.startsWith('image/') ? 'screenshot' : 'file';
         if (selected.type.startsWith('image/')) { note.textContent = `已上传截图：${selected.name}。请同时在下方粘贴识别后的表格，避免数字识别误差。`; saveCurrentProject(); return; }
-        if (/\.csv$/i.test(selected.name) || selected.type.includes('text')) { data.rawText = await selected.text(); const paste = document.getElementById('dataPasteInput'); if (paste) paste.value = data.rawText; note.textContent = `已读取：${selected.name}，点击“进行数据汇总”继续。`; saveCurrentProject(); }
-        else { note.textContent = `已选择：${selected.name}。当前浏览器版本建议将 Excel 另存为 CSV 后再上传，或直接复制表格粘贴到下方。`; saveCurrentProject(); }
+        if (/\.csv$/i.test(selected.name) || selected.type.includes('text')) { data.rawText = await selected.text(); note.textContent = `已读取：${selected.name}，点击“保存数据，进入数据汇总”继续。`; saveCurrentProject(); }
+        else { note.textContent = `已选择：${selected.name}。当前浏览器版本建议将 Excel 另存为 CSV 后再上传，或点击“粘贴表格或内容”后直接粘贴。`; saveCurrentProject(); }
       });
-      document.getElementById('dataSummarizeBtn')?.addEventListener('click', summarizeData);
+      document.getElementById('dataSaveBtn')?.addEventListener('click', summarizeData);
       document.getElementById('dataBackToUpload')?.addEventListener('click', () => { projectState.dataAnalysis.viewStep = 'upload'; renderDataView(); });
       document.getElementById('confirmDataSummary')?.addEventListener('click', () => { updateDataState('review', '专业复盘'); renderDataView(); generateDataReview(); });
       document.getElementById('dataBackToSummary')?.addEventListener('click', () => { projectState.dataAnalysis.viewStep = 'summary'; renderDataView(); });
