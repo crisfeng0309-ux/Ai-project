@@ -2205,12 +2205,33 @@
         const card = document.createElement('div'); card.className = 'asset-translation-card';
         const heading = document.createElement('h4'); heading.textContent = `${schemeOrdinal(index)}、${scheme.title}`; card.appendChild(heading);
         const imageLabel = document.createElement('strong'); imageLabel.textContent = '图片提示词中文翻译'; card.appendChild(imageLabel);
-        const imageText = document.createElement('p'); imageText.textContent = scheme.imagePromptZh || '本方案暂未生成中文翻译，请重新生成提示词。'; card.appendChild(imageText);
+         const imageText = document.createElement('p'); imageText.textContent = scheme.imagePromptZh || (projectState.assets?.translatingPrompts ? 'AI 正在补充中文翻译…' : '本方案暂未生成中文翻译。'); card.appendChild(imageText);
         const videoLabel = document.createElement('strong'); videoLabel.textContent = '视频提示词中文翻译'; card.appendChild(videoLabel);
-        const videoText = document.createElement('p'); videoText.textContent = scheme.videoPromptZh || '本方案暂未生成中文翻译，请重新生成提示词。'; card.appendChild(videoText);
+         const videoText = document.createElement('p'); videoText.textContent = scheme.videoPromptZh || (projectState.assets?.translatingPrompts ? 'AI 正在补充中文翻译…' : '本方案暂未生成中文翻译。'); card.appendChild(videoText);
         list.appendChild(card);
       });
       section.appendChild(list); panel.appendChild(section);
+    }
+    async function translateExistingPrompts(data) {
+      if (projectState.aiLoading) return;
+      projectState.aiLoading = true;
+      projectState.assets = { ...data, translatingPrompts: true };
+      renderAssets(projectState.assets);
+      try {
+        const result = await callAI('/api/prompt-translations', { schemes: data.schemes.map(item => ({ id: item.id, title: item.title, imagePrompt: imagePromptText(item), videoPrompt: videoPromptText(item) })) });
+        const translations = new Map((result.translations || []).map(item => [item.id, item]));
+        const schemes = data.schemes.map(item => ({ ...item, ...(translations.get(item.id) || {}) }));
+        projectState.assets = { ...data, schemes, translatingPrompts: false, promptFormatVersion: 2, _translationRequested: false };
+        projectState.aiLoading = false;
+        saveCurrentProject();
+        renderAssets(projectState.assets);
+        toast('三套提示词的中文翻译已生成');
+      } catch (error) {
+        projectState.assets = { ...data, translatingPrompts: false, _translationRequested: true };
+        projectState.aiLoading = false;
+        renderAssets(projectState.assets);
+        toast(error.message);
+      }
     }
     function setAssetHeader(title, subtitle, status) {
       const pageTitle = document.getElementById('assetPageTitle'); if (pageTitle) pageTitle.textContent = title;
@@ -2234,7 +2255,7 @@
     function renderAssetSchemeCards(data, options = {}) {
       ensureAssetSchemes(data);
       const schemes = data.schemes;
-       setAssetHeader(options.promptOnly ? '生成广告提示词' : '生成图片素材', options.promptOnly ? '每套创意只提供图片提示词和视频提示词，复制即可使用。' : '先选择一个广告图片模板，后续接入生图 API 生成最终图片。', projectState.aiLoading && data.revisingSchemeId ? 'AI 修改中' : '素材已生成');
+       setAssetHeader(options.promptOnly ? '生成广告提示词' : '生成图片素材', options.promptOnly ? '每套创意只提供图片提示词和视频提示词，复制即可使用。' : '先选择一个广告图片模板，后续接入生图 API 生成最终图片。', data.translatingPrompts ? 'AI 翻译中' : projectState.aiLoading && data.revisingSchemeId ? 'AI 修改中' : '素材已生成');
       const context = document.getElementById('assetGenerationContext');
       if (context) { context.className = 'notice asset-context'; context.innerHTML = `<strong>${options.promptOnly ? `已生成 ${data.schemes.length} 套完整提示词素材方案` : `已生成 ${data.schemes.length} 个广告图片模板`}</strong><span>商品：${projectState.product.name || '未填写'} · 市场：${projectState.market || '未选择'} · 平台：${projectState.platform || 'TikTok Shop'}</span>`; }
       const currency = data.currency || currencySnapshot();
@@ -2325,7 +2346,8 @@
        }
      }
      function renderAssets(data) {
-       if (data?.mode === 'prompt' && data.schemes?.length && data.promptFormatVersion !== 2 && !projectState.aiLoading && !data._translationRefreshRequested) { data._translationRefreshRequested = true; projectState.assets = data; generateAssets(true, 'prompt'); return; }
+       const needsTranslation = data?.mode === 'prompt' && data.schemes?.length && data.schemes.some(item => !item.imagePromptZh || !item.videoPromptZh);
+       if (needsTranslation && !projectState.aiLoading && !data.translatingPrompts && !data._translationRequested) { data._translationRequested = true; projectState.assets = data; translateExistingPrompts(data); return; }
        if (!data || !data.mode) { renderAssetChoice(data || {}); return; }
       if (data.mode === 'prompt') renderAssetSchemeCards(data, { promptOnly: true });
       else renderImageBranch(data);
@@ -2337,8 +2359,7 @@
       const previousMode = projectState.assets?.mode || '';
       projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: projectState.assets?.sourceFingerprint || fingerprint, _sourceFingerprint: projectState.assets?._sourceFingerprint || fingerprint };
       saveCurrentProject();
-       const promptReady = mode !== 'prompt' || (projectState.assets.schemes?.length >= 3 && projectState.assets.schemes.every(item => item.imagePromptZh && item.videoPromptZh));
-       if (previousMode === mode && projectState.assets.schemes?.length && projectState.assets.sourceFingerprint === fingerprint && promptReady) { renderAssets(projectState.assets); return; }
+       if (previousMode === mode && projectState.assets.schemes?.length && projectState.assets.sourceFingerprint === fingerprint) { renderAssets(projectState.assets); return; }
       generateAssets(true, mode);
     }
      async function generateImageFromTemplate(templateId) {
@@ -2401,7 +2422,7 @@
       if (projectState.aiLoading) { toast('AI 正在生成素材，请稍候'); return; }
       projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint }; clearAssetsAIResult(mode);
       const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
-       try { const result = await callAI('/api/ad-assets', payload); projectState.assets = { ...result, mode, promptFormatVersion: mode === 'prompt' ? 2 : undefined, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
+       try { const result = await callAI('/api/ad-assets', payload); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
       catch (error) { const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成'; toast(error.message); }
       finally { projectState.aiLoading = false; }
     }
