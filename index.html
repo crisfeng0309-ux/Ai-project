@@ -215,7 +215,60 @@
     .mapping-row span { color: #5f6168; font-size: 11px; }
     .mapping-row select { padding: 8px 9px; font-size: 11px; }
     .analysis-label { color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 9px; }
-    .main.data-mode .progress-wrap { display: none; }
+    .app-shell.data-mode .progress-wrap { display: block; max-width: 980px; margin-top: 28px; }
+    .app-shell.data-mode .progress-wrap .steps, .app-shell.data-mode .progress-wrap .project-chip { display: none; }
+    .app-shell.data-mode .nav-label, .app-shell.data-mode .nav > .nav-item { display: none; }
+    .app-shell.data-mode #dataPathNav, .app-shell.data-mode #dataBack { display: grid; }
+    .app-shell.data-mode #dataBack { display: block; }
+    .data-progress { display: none; width: 100%; }
+    .app-shell.data-mode .data-progress { display: block; }
+    .data-progress-head { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; color: #9da3ad; font-size: 11px; }
+    .data-progress-head span:nth-child(2) { text-align: center; }
+    .data-progress-head span:last-child { text-align: right; }
+    .data-progress-head span.current { color: var(--ink); font-weight: 700; }
+    .data-progress-track { height: 10px; margin-top: 9px; border-radius: 999px; background: #e8ebf0; overflow: hidden; }
+    .data-progress-fill { height: 100%; border-radius: inherit; background: var(--blue); transition: width .25s ease; }
+    .data-progress-status { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; color: var(--muted); font-size: 10px; }
+    .data-progress-status strong { color: var(--blue); font-size: 11px; }
+    .data-sidebar-back { display: none; width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: #5d6874; padding: 0 12px 16px; margin-bottom: 16px; text-align: left; font-size: 11px; }
+    .data-sidebar-back:hover { color: var(--blue); }
+    #dataPathNav { display: none; gap: 6px; }
+    .data-nav-item { border: 0; border-radius: 9px; background: transparent; color: #69717c; padding: 11px 12px; text-align: left; font-size: 12px; cursor: pointer; }
+    .data-nav-item:hover { color: var(--ink); background: #f5f8fc; }
+    .data-nav-item.current { color: var(--blue); background: var(--blue-soft); font-weight: 700; }
+    .data-nav-item.done { color: var(--green); }
+    .data-nav-item.locked { color: #b2b6bd; cursor: not-allowed; }
+    .data-entry-panel { display: grid; gap: 18px; }
+    .data-input-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .data-input-tab { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 15px; text-align: left; cursor: pointer; }
+    .data-input-tab.active { border-color: #83b2ff; background: var(--blue-soft); }
+    .data-input-tab strong { display: block; font-size: 13px; margin-bottom: 5px; }
+    .data-input-tab span { color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .data-input-pane { display: grid; gap: 12px; }
+    .data-file { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px dashed #c9d1df; border-radius: 12px; padding: 16px; background: #fbfcfe; }
+    .data-file input { max-width: 250px; font-size: 11px; }
+    .data-hint { color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .data-field-section { border-top: 1px solid var(--line); padding-top: 18px; }
+    .data-field-section h3 { margin: 0 0 6px; font-size: 13px; }
+    .data-field-section > p { margin: 0 0 12px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .data-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+    .data-field-grid .field label { font-size: 10px; }
+    .data-summary-table { overflow-x: auto; border: 1px solid var(--line); border-radius: 11px; }
+    .data-summary-table .data-table { min-width: 720px; }
+    .data-status-list { display: grid; gap: 8px; }
+    .data-status-row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #eef0f3; padding: 8px 0; color: #5f6168; font-size: 11px; }
+    .data-status-row strong { color: var(--green); }
+    .data-status-row strong.missing { color: #c2764f; }
+    .data-metric-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
+    .data-review-section { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 18px; }
+    .data-review-section h3 { margin: 0 0 10px; font-size: 13px; }
+    .data-review-list { display: grid; gap: 8px; margin: 0; padding-left: 18px; color: #5f6168; font-size: 11px; line-height: 1.7; }
+    .data-review-card { border: 1px solid var(--line); border-radius: 11px; background: #fff; padding: 13px; }
+    .data-review-card strong { display: block; color: var(--ink); margin-bottom: 5px; font-size: 12px; }
+    .data-review-card p { margin: 0; color: #666870; font-size: 11px; line-height: 1.65; }
+    .data-review-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .data-loading { border: 1px solid #dfe8f8; border-radius: 12px; background: #f8fbff; padding: 18px; color: #4775b8; font-size: 12px; line-height: 1.7; }
+    .data-primary-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px; }
     .main.entry-mode .progress-wrap { display: none; }
     .app-shell.setup-mode { grid-template-columns: 1fr; }
     .app-shell.setup-mode .sidebar, .app-shell.setup-mode .top-actions { display: none; }
@@ -384,7 +437,7 @@
     @media (max-width: 620px) { .home-actions { flex-direction: column; align-items: stretch; margin-top: 42px; } .home-actions button { width: 100%; } .history-top { flex-direction: column; } .history-item { align-items: flex-start; flex-direction: column; gap: 14px; } }
     @media (max-width: 980px) { .overview-grid { grid-template-columns: 1fr; } .workflow-strip { overflow-x: auto; grid-template-columns: repeat(5, minmax(130px,1fr)); } }
     @media (max-width: 620px) { .quick-grid { grid-template-columns: 1fr; } }
-    @media (max-width: 620px) { .data-entry, .evidence-grid { grid-template-columns: 1fr; } .metric-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 620px) { .data-entry, .evidence-grid, .data-input-tabs, .data-field-grid, .data-review-grid { grid-template-columns: 1fr; } .metric-grid, .data-metric-grid { grid-template-columns: 1fr 1fr; } .data-file { align-items: flex-start; flex-direction: column; } .data-file input { max-width: none; width: 100%; } }
     @media (max-width: 620px) { .path-grid { grid-template-columns: 1fr; } }
     @media (max-width: 980px) { .app-shell { grid-template-columns: 1fr; } .sidebar { display: none; } .main { padding: 24px 18px 42px; } .workspace { grid-template-columns: 1fr; } .panel-side { position: static; } .progress-wrap { overflow-x: auto; padding-bottom: 5px; } .step-line { min-width: 20px; } }
     @media (max-width: 620px) { .topbar { align-items: flex-start; flex-direction: column; } .top-actions { width: 100%; } .top-actions button { flex: 1; } .two-col, .creative-grid { grid-template-columns: 1fr; } .panel-main { padding: 20px; } .panel-side { padding: 18px; } .footer-bar { align-items: flex-start; gap: 10px; flex-direction: column; } }
@@ -467,6 +520,7 @@
     let returnView = 'home';
     let currentProjectId = null;
     const blankProduct = { name: '', category: '', price: '', specs: '', features: '', description: '', imageName: '', notes: '' };
+    function makeDataAnalysis() { return { currentStep: 'upload', rawText: '', inputType: '', fileName: '', rows: [], columns: [], fieldMapping: {}, missingFields: [], warnings: [], dataQuality: {}, metrics: null, summaryConfirmed: false, review: null, context: { platform: '', dateRange: '', market: '', audience: '', objective: '', budget: '', landingPage: '', productPrice: '', margin: '', promotion: '' }, updatedAt: '' }; }
     const productFingerprint = product => JSON.stringify({ name: product?.name || '', category: product?.category || '', price: product?.price || '', specs: product?.specs || '', features: product?.features || '', description: product?.description || '', imageName: product?.imageName || '', notes: product?.notes || '' });
     const selectedSellingPointTitles = () => projectState.productUnderstanding?.selectedSellingPoints || [];
     const strategyFingerprint = () => JSON.stringify({ product: productFingerprint(projectState.product), market: projectState.market || '', platform: projectState.platform || 'TikTok Shop', sellingPoints: selectedSellingPointTitles() });
@@ -476,7 +530,7 @@
     }
     function writeProjects(projects) { localStorage.setItem(projectStorageKey, JSON.stringify(projects)); }
     function makeProject(name = '新广告项目') {
-      return { id: `project-${Date.now()}`, name, product: { ...blankProduct }, market: '', platform: 'TikTok Shop', path: '', stage: '项目背景', currentStep: 'background', completedSteps: [], stepStatus: {}, updatedAt: '', status: '进行中', updated: '刚刚', backgroundSaved: false, confirmed: false, strategyComplete: false, productUnderstanding: null, strategy: null, assets: null };
+      return { id: `project-${Date.now()}`, name, product: { ...blankProduct }, market: '', platform: 'TikTok Shop', path: '', stage: '项目背景', currentStep: 'background', completedSteps: [], stepStatus: {}, updatedAt: '', status: '进行中', updated: '刚刚', backgroundSaved: false, confirmed: false, strategyComplete: false, productUnderstanding: null, strategy: null, assets: null, dataAnalysis: makeDataAnalysis() };
     }
     function ensureDemoProject() {
       const projects = readProjects();
@@ -526,6 +580,7 @@
       project.productUnderstanding = projectState.productUnderstanding;
       project.strategy = projectState.strategy;
       project.assets = projectState.assets;
+      project.dataAnalysis = projectState.dataAnalysis;
       project.stage = projectState.stage;
       project.currentStep = projectState.currentStep;
       project.completedSteps = [...projectState.completedSteps];
@@ -555,6 +610,7 @@
       projectState.productUnderstanding = null;
       projectState.strategy = null;
       projectState.assets = null;
+      projectState.dataAnalysis = makeDataAnalysis();
       projectState.setupPath = '';
       resetSetupForm();
       navigate('setup', { projectId: currentProjectId });
@@ -579,19 +635,20 @@
       projectState.productUnderstanding = project.productUnderstanding?._sourceFingerprint === productKey ? project.productUnderstanding : null;
       projectState.strategy = project.strategy?._sourceFingerprint === strategyFingerprint() ? project.strategy : null;
       projectState.assets = project.assets?._sourceFingerprint === strategySelectionFingerprint() ? project.assets : null;
+      projectState.dataAnalysis = { ...makeDataAnalysis(), ...(project.dataAnalysis || {}) };
       projectState.currentStep = project.currentStep || 'background';
       projectState.completedSteps = [...(project.completedSteps || [])];
       projectState.stepStatus = { ...(project.stepStatus || {}) };
       projectState.updatedAt = project.updatedAt || '';
       loadProductIntoReview();
-      const resumeMap = { background: 'setup', path: 'path', product: 'product', strategy: 'strategy', assets: 'assets', upload: 'data', fields: 'data', metrics: 'data', recommendations: 'data', complete: project.path === 'creative-generation' ? 'assets' : 'overview' };
+      const resumeMap = { background: 'setup', path: 'path', product: 'product', strategy: 'strategy', assets: 'assets', upload: 'data', summary: 'data', review: 'data', fields: 'data', metrics: 'data', recommendations: 'data', complete: project.path === 'creative-generation' ? 'assets' : 'data' };
       const destination = !projectState.backgroundSaved || !projectState.path ? 'setup' : resumeMap[projectState.currentStep] || 'overview';
       syncProjectState();
       if (options.fromHistory) showView(options.view || destination, { fromHistory: true });
       else navigate(destination, { projectId });
     }
     const projectState = {
-      projectName: '', market: '', platform: 'TikTok Shop', path: '', setupPath: '', stage: '项目背景', currentStep: 'background', completedSteps: [], stepStatus: {}, updatedAt: '', backgroundSaved: false, confirmed: false, strategyComplete: false, productUnderstanding: null, strategy: null, assets: null,
+      projectName: '', market: '', platform: 'TikTok Shop', path: '', setupPath: '', stage: '项目背景', currentStep: 'background', completedSteps: [], stepStatus: {}, updatedAt: '', backgroundSaved: false, confirmed: false, strategyComplete: false, productUnderstanding: null, strategy: null, assets: null, dataAnalysis: makeDataAnalysis(),
       product: { ...blankProduct }
     };
     function completeStep(stepKey, nextKey, nextStage) {
@@ -607,17 +664,249 @@
       saveCurrentProject();
       renderOverview();
     }
-    function installDataProgressControls() {
-      const panel = document.querySelector('#data-view .panel-main');
-      const table = panel?.querySelector('.data-table');
-      if (!panel || !table || document.getElementById('dataProgressActions')) return;
-      const actions = document.createElement('div');
-      actions.id = 'dataProgressActions';
-      actions.style = 'display:flex;justify-content:flex-end;gap:9px;margin:16px 0 0;';
-      actions.innerHTML = '<button class="ghost-btn" id="confirmDataFields" disabled>确认字段</button><button class="primary-btn" id="calculateDataMetrics" disabled>确认指标并生成复盘</button>';
-      table.insertAdjacentElement('afterend', actions);
-      document.getElementById('confirmDataFields').addEventListener('click', () => { completeStep('fields', 'metrics', '数据指标计算'); document.getElementById('calculateDataMetrics').disabled = false; toast('字段已确认'); });
-      document.getElementById('calculateDataMetrics').addEventListener('click', () => { completeStep('metrics', 'recommendations', '专业复盘与改进建议'); toast('指标已计算，可以生成专业复盘'); });
+    const dataFieldLabels = { adName: '广告名称或版本', impressions: '展示次数', clicks: '点击次数', spend: '广告花费', purchases: '购买次数', revenue: '销售额', addToCart: '加购次数', checkouts: '结账次数', ctr: '点击率 CTR', date: '投放日期', platform: '广告平台', placement: '广告位', audience: '目标受众', budget: '广告预算', objective: '投放目标' };
+    const dataFieldAliases = {
+      adName: ['广告名称', '广告版本', '广告名', 'campaign name', 'campaign_name', 'ad name', 'ad_name', 'creative name'],
+      impressions: ['展示次数', '展示', '曝光', 'impressions', 'impression'],
+      clicks: ['点击次数', '点击', 'clicks', 'link clicks', 'link_clicks'],
+      spend: ['广告花费', '花费', '消费', 'spend', 'cost'],
+      purchases: ['购买次数', '购买', '订单数', '转化次数', 'purchases', 'orders', 'conversions'],
+      revenue: ['销售额', '成交金额', '收入', 'revenue', 'sales', 'purchase value'],
+      ctr: ['点击率', 'ctr', 'click through rate', 'clickthroughrate'],
+      addToCart: ['加购次数', '加购', 'add to cart', 'add_to_cart'],
+      checkouts: ['结账次数', '发起结账', 'checkout', 'checkouts'],
+      date: ['日期', '投放日期', 'date', 'day']
+    };
+    const dataRequiredFields = ['adName', 'impressions', 'clicks', 'spend', 'purchases'];
+    const dataStepLabels = { upload: '数据分析', summary: '数据汇总', review: '专业复盘', complete: '项目完成' };
+    function dataStepIndex(step = projectState.dataAnalysis?.currentStep) { return step === 'summary' ? 2 : ['review', 'complete'].includes(step) ? 3 : 1; }
+    function dataCurrentStep() { return projectState.dataAnalysis?.currentStep || (projectState.currentStep === 'summary' ? 'summary' : projectState.currentStep === 'review' ? 'review' : projectState.currentStep === 'complete' ? 'complete' : 'upload'); }
+    function dataStepIsUnlocked(step) {
+      const current = dataCurrentStep();
+      if (step === 'upload') return true;
+      if (step === 'summary') return current !== 'upload';
+      return ['review', 'complete'].includes(current);
+    }
+    function installDataSidebar() {
+      const sidebar = document.querySelector('.sidebar');
+      const brand = sidebar?.querySelector('.brand');
+      if (!sidebar || !brand || document.getElementById('dataPathNav')) return;
+      const back = document.createElement('button');
+      back.id = 'dataBack';
+      back.className = 'data-sidebar-back';
+      back.type = 'button';
+      back.textContent = '← 返回项目背景';
+      back.addEventListener('click', () => navigate('setup', { projectId: currentProjectId }));
+      const nav = document.createElement('nav');
+      nav.id = 'dataPathNav';
+      nav.setAttribute('aria-label', '数据分析流程');
+      brand.insertAdjacentElement('afterend', back);
+      back.insertAdjacentElement('afterend', nav);
+    }
+    function renderDataSidebar() {
+      installDataSidebar();
+      const nav = document.getElementById('dataPathNav');
+      if (!nav) return;
+      const current = dataCurrentStep();
+      const progress = dataStepIndex(current);
+      nav.replaceChildren();
+      [['upload', '数据分析'], ['summary', '数据汇总'], ['review', '专业复盘']].forEach(([step, label], index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `data-nav-item ${index + 1 < progress ? 'done' : index + 1 === progress ? 'current' : 'locked'}`;
+        button.textContent = `${index + 1}  ${label}`;
+        button.addEventListener('click', () => {
+          if (!dataStepIsUnlocked(step)) { toast('请先完成当前步骤'); return; }
+          navigate('data', { projectId: currentProjectId, dataStep: step });
+        });
+        nav.appendChild(button);
+      });
+    }
+    function renderDataProgress() {
+      const wrap = document.querySelector('.progress-wrap');
+      if (!wrap) return;
+      let progress = document.getElementById('dataProgress');
+      if (!progress) { progress = document.createElement('div'); progress.id = 'dataProgress'; progress.className = 'data-progress'; wrap.appendChild(progress); }
+      const current = dataCurrentStep();
+      const index = dataStepIndex(current);
+      const labels = ['数据分析', '数据汇总', '专业复盘'];
+      progress.innerHTML = `<div class="data-progress-head">${labels.map((label, position) => `<span class="${position + 1 === index ? 'current' : ''}">${position + 1} ${label}</span>`).join('')}</div><div class="data-progress-track"><div class="data-progress-fill" style="width:${index * 33.3333}%"></div></div><div class="data-progress-status"><span>${labels[index - 1]} · ${current === 'complete' ? '已完成' : '当前步骤'}</span><strong>${index} / 3</strong></div>`;
+    }
+    function escapeDataHtml(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
+    function parseDataNumber(value) {
+      if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+      const normalized = String(value ?? '').replace(/[,￥¥$€\s]/g, '').replace('%', '');
+      if (!normalized) return null;
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+    function parseDelimited(text) {
+      const rows = [];
+      let row = [], cell = '', quoted = false;
+      for (let index = 0; index < text.length; index += 1) {
+        const char = text[index];
+        if (char === '"') { if (quoted && text[index + 1] === '"') { cell += '"'; index += 1; } else quoted = !quoted; }
+        else if (char === ',' && !quoted) { row.push(cell.trim()); cell = ''; }
+        else if ((char === '\n' || char === '\r') && !quoted) { if (char === '\r' && text[index + 1] === '\n') index += 1; row.push(cell.trim()); if (row.some(Boolean)) rows.push(row); row = []; cell = ''; }
+        else cell += char;
+      }
+      if (cell || row.length) { row.push(cell.trim()); if (row.some(Boolean)) rows.push(row); }
+      if (rows.length < 2 && text.includes('\t')) return parseDelimited(text.replace(/\t/g, ','));
+      const headers = (rows.shift() || []).map((header, index) => header || `字段 ${index + 1}`);
+      return { headers, rows: rows.map(values => Object.fromEntries(headers.map((header, index) => [header, values[index] || '']))) };
+    }
+    function normalizedHeader(value) { return String(value || '').trim().toLowerCase().replace(/[\s_\-()（）]/g, ''); }
+    function inferDataMapping(headers) {
+      const mapping = {};
+      Object.entries(dataFieldAliases).forEach(([field, aliases]) => {
+        const found = headers.find(header => aliases.some(alias => normalizedHeader(alias) === normalizedHeader(header)));
+        if (found) mapping[field] = found;
+      });
+      return mapping;
+    }
+    function normalizeDataRows(parsed, mapping) {
+      return (parsed.rows || []).map(row => {
+        const normalized = { adName: row[mapping.adName] || '未命名广告', date: row[mapping.date] || '' };
+        ['impressions', 'clicks', 'spend', 'purchases', 'revenue', 'addToCart', 'checkouts'].forEach(field => { normalized[field] = parseDataNumber(mapping[field] ? row[mapping[field]] : ''); });
+        const rawCtr = mapping.ctr ? String(row[mapping.ctr] || '') : '';
+        const parsedCtr = parseDataNumber(rawCtr);
+        normalized.ctr = parsedCtr === null ? null : rawCtr.includes('%') || parsedCtr > 1 ? parsedCtr / 100 : parsedCtr;
+        return normalized;
+      }).filter(row => Object.values(row).some(value => value !== null && value !== '' && value !== '未命名广告'));
+    }
+    function calculateDataMetrics(rows) {
+      const sum = field => rows.reduce((total, row) => total + (Number(row[field]) || 0), 0);
+      const rate = (numerator, denominator) => denominator ? numerator / denominator : null;
+      const total = { impressions: sum('impressions'), clicks: sum('clicks'), spend: sum('spend'), purchases: sum('purchases'), revenue: sum('revenue'), addToCart: sum('addToCart'), checkouts: sum('checkouts') };
+      const providedCtr = rows.filter(row => row.ctr !== null).map(row => row.ctr);
+      total.ctr = rate(total.clicks, total.impressions) ?? (providedCtr.length ? providedCtr.reduce((sumValue, value) => sumValue + value, 0) / providedCtr.length : null); total.cpc = rate(total.spend, total.clicks); total.cvr = rate(total.purchases, total.clicks); total.cpa = rate(total.spend, total.purchases); total.roas = total.spend ? total.revenue / total.spend : null; total.addToCartRate = rate(total.addToCart, total.clicks); total.checkoutRate = rate(total.checkouts, total.addToCart);
+      const byAd = rows.map(row => ({ ...row, ctr: rate(row.clicks, row.impressions) ?? row.ctr, cpc: rate(row.spend, row.clicks), cvr: rate(row.purchases, row.clicks), cpa: rate(row.spend, row.purchases), roas: row.spend ? row.revenue / row.spend : null }));
+      const missingFields = dataRequiredFields.filter(field => !rows.some(row => row[field] !== null && row[field] !== undefined));
+      if (!rows.some(row => row.revenue !== null)) missingFields.push('revenue');
+      return { total, byAd, missingFields: [...new Set(missingFields)], available: Object.keys(total).filter(key => total[key] !== null && total[key] !== 0) };
+    }
+    function formatDataMetric(value, type = 'number') { if (value === null || value === undefined || Number.isNaN(value)) return '无法计算'; if (type === 'percent') return `${(value * 100).toFixed(2)}%`; if (type === 'money') return `¥${value.toFixed(2)}`; return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 }); }
+    function dataContextFromForm() {
+      const context = { ...(projectState.dataAnalysis.context || {}) };
+      ['platform', 'dateRange', 'market', 'audience', 'objective', 'budget', 'landingPage', 'productPrice', 'margin', 'promotion'].forEach(key => { const field = document.getElementById(`dataContext${key[0].toUpperCase()}${key.slice(1)}`); if (field) context[key] = field.value.trim(); });
+      return context;
+    }
+    function dataRowsTable(rows) {
+      const columns = ['adName', 'impressions', 'clicks', 'spend', 'purchases', 'revenue'];
+      return `<div class="data-summary-table"><table class="data-table"><thead><tr>${columns.map(column => `<th>${dataFieldLabels[column] || column}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${columns.map(column => `<td>${escapeDataHtml(row[column] === null || row[column] === undefined ? '—' : column === 'spend' || column === 'revenue' ? formatDataMetric(row[column], 'money') : row[column])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+    }
+    function dataStatusList(data) {
+      const required = dataRequiredFields.map(field => `<div class="data-status-row"><span>${dataFieldLabels[field]}</span><strong class="${data.missingFields.includes(field) ? 'missing' : ''}">${data.missingFields.includes(field) ? '缺失' : '已识别'}</strong></div>`).join('');
+      return `<div class="data-status-list">${required}<div class="data-status-row"><span>销售额 / ROAS</span><strong class="${data.missingFields.includes('revenue') ? 'missing' : ''}">${data.missingFields.includes('revenue') ? '未提供，无法计算' : '已识别'}</strong></div></div>`;
+    }
+    function dataMetricCards(metrics) {
+      const total = metrics?.total || {};
+      return `<div class="data-metric-grid"><div class="metric-card"><div class="stat-value">${formatDataMetric(total.ctr, 'percent')}</div><div class="stat-label">整体 CTR</div></div><div class="metric-card"><div class="stat-value">${formatDataMetric(total.cpc, 'money')}</div><div class="stat-label">整体 CPC</div></div><div class="metric-card"><div class="stat-value">${formatDataMetric(total.cvr, 'percent')}</div><div class="stat-label">整体 CVR</div></div><div class="metric-card"><div class="stat-value">${formatDataMetric(total.cpa, 'money')}</div><div class="stat-label">整体 CPA</div></div><div class="metric-card"><div class="stat-value">${formatDataMetric(total.roas, 'number')}</div><div class="stat-label">整体 ROAS</div></div></div>`;
+    }
+    function renderDataUpload() {
+      const data = projectState.dataAnalysis;
+      return `<div class="data-entry-panel"><div class="data-input-tabs"><button type="button" class="data-input-tab active" data-input-tab="file"><strong>上传文件</strong><span>推荐 CSV 或 Excel，也可以上传广告后台截图。</span></button><button type="button" class="data-input-tab" data-input-tab="paste"><strong>粘贴表格</strong><span>可粘贴 CSV 或从 Excel 复制的表格内容。</span></button></div><div class="data-input-pane"><div class="data-file"><div><strong>选择广告数据文件</strong><div class="data-hint">支持 CSV、XLS、XLSX、PNG、JPG。截图识别后需要确认。</div></div><input id="dataFileInput" type="file" accept=".csv,.xls,.xlsx,.png,.jpg,.jpeg" /></div><textarea id="dataPasteInput" placeholder="也可以直接粘贴表格，例如：广告版本,展示次数,点击次数,广告花费,购买次数\nA版本,10000,250,125,20">${escapeDataHtml(data.rawText || '')}</textarea><div id="dataFileNote" class="data-hint">还没有上传或粘贴数据。</div></div><div class="data-field-section"><h3>补充分析信息</h3><p>这些信息不会阻止你继续，但会帮助复盘更准确。</p><div class="data-field-grid"><div class="field"><label for="dataContextPlatform">广告平台</label><input id="dataContextPlatform" placeholder="例如：TikTok Ads" value="${escapeDataHtml(data.context.platform || '')}" /></div><div class="field"><label for="dataContextDateRange">投放日期或时间段</label><input id="dataContextDateRange" placeholder="例如：2026-10-01 至 2026-10-07" value="${escapeDataHtml(data.context.dateRange || '')}" /></div><div class="field"><label for="dataContextMarket">目标市场</label><input id="dataContextMarket" placeholder="例如：泰国" value="${escapeDataHtml(data.context.market || projectState.market || '')}" /></div><div class="field"><label for="dataContextAudience">目标受众</label><input id="dataContextAudience" placeholder="例如：城市通勤人群" value="${escapeDataHtml(data.context.audience || '')}" /></div><div class="field"><label for="dataContextObjective">投放目标</label><input id="dataContextObjective" placeholder="例如：获得购买" value="${escapeDataHtml(data.context.objective || '')}" /></div><div class="field"><label for="dataContextBudget">预算或预算分配</label><input id="dataContextBudget" placeholder="例如：每天 500 元" value="${escapeDataHtml(data.context.budget || '')}" /></div><div class="field"><label for="dataContextLandingPage">落地页信息</label><input id="dataContextLandingPage" placeholder="链接、页面类型或主要问题" value="${escapeDataHtml(data.context.landingPage || '')}" /></div><div class="field"><label for="dataContextPromotion">促销信息</label><input id="dataContextPromotion" placeholder="例如：大促、优惠券、无促销" value="${escapeDataHtml(data.context.promotion || '')}" /></div></div></div><div class="notice"><strong>建议上传完整数据</strong>必需字段是广告名称、展示次数、点击次数、广告花费和购买次数。只有 CTR 时，只能分析点击表现，无法完整计算 CPC、CVR、CPA 和 ROAS。</div><div class="data-primary-actions"><button type="button" class="primary-btn" id="dataSummarizeBtn">进行数据汇总 →</button></div></div>`;
+    }
+    function renderDataSummary() {
+      const data = projectState.dataAnalysis;
+      const metrics = data.metrics || calculateDataMetrics(data.rows || []);
+      return `<div class="data-entry-panel"><div class="notice"><strong>请确认整理后的数据</strong>系统已根据你上传或粘贴的内容识别字段并计算可用指标。请先检查数据是否准确。</div><div class="analysis-label">数据质量检查</div>${dataStatusList(data)}${data.warnings?.length ? `<div class="notice" style="margin-top:12px"><strong>需要注意</strong>${data.warnings.map(warning => `<div>${escapeDataHtml(warning)}</div>`).join('')}</div>` : ''}<div class="analysis-label" style="margin-top:20px">原始数据预览</div>${dataRowsTable(data.rows || [])}<div class="analysis-label" style="margin-top:20px">核心指标预览</div>${dataMetricCards(metrics)}<div class="data-hint" style="margin-top:12px">缺失字段不会直接报错，但对应指标会显示“无法计算”。</div><div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToUpload">返回修改数据</button><button type="button" class="primary-btn" id="confirmDataSummary">确认数据无误，开始专业复盘 →</button></div></div>`;
+    }
+    function renderDataReview() {
+      const data = projectState.dataAnalysis;
+      if (!data.review) return '<div class="data-loading">正在生成专业复盘，请稍候…</div>';
+      const review = data.review;
+      const list = value => Array.isArray(value) && value.length ? `<ul class="data-review-list">${value.map(item => `<li>${escapeDataHtml(typeof item === 'string' ? item : item.detail || item.title || JSON.stringify(item))}</li>`).join('')}</ul>` : '<p class="data-hint">当前数据暂未支持这一项判断。</p>';
+      const cards = (title, key, className = '') => `<div class="data-review-section"><h3>${title}</h3><div class="data-review-card ${className}">${list(review[key])}</div></div>`;
+      return `<div class="data-entry-panel"><div class="notice"><strong>专业复盘已生成</strong>以下内容区分了数据直接支持的结论、合理推测和当前无法判断的部分。</div><div class="analysis-label">核心指标总览</div>${dataMetricCards(data.metrics)}${cards('数据完整性检查', 'dataIntegrity')}${cards('数据直接支持', 'supportedConclusions', 'supported')}${cards('合理推测', 'hypotheses')}${cards('当前无法判断', 'unknowns', 'limit')}${cards('可能的问题原因', 'possibleCauses')}${cards('下一轮实验建议', 'experiments')}${cards('可执行的改进任务', 'tasks')}<div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存专业复盘，完成项目 →</button></div></div>`;
+    }
+    function renderDataSidePanel() {
+      const side = document.getElementById('dataSidePanel');
+      if (!side) return;
+      const data = projectState.dataAnalysis;
+      const current = dataCurrentStep();
+      side.innerHTML = current === 'upload' ? '<div class="side-title">数据上传建议</div><div class="notice"><strong>推荐 CSV 或 Excel</strong>表格字段越完整，复盘越准确。</div><div class="side-section"><div class="side-title">必需字段</div><div class="side-list"><div class="side-list-item"><span class="number">1</span><span>广告名称或版本</span></div><div class="side-list-item"><span class="number">2</span><span>展示、点击、花费、购买</span></div></div></div><div class="side-section"><div class="side-title">可选补充</div><div class="notice">销售额、加购、受众、广告位、落地页和促销信息。</div></div>' : `<div class="side-title">当前数据状态</div><div class="notice"><strong>${current === 'summary' ? '请确认汇总结果' : current === 'complete' ? '项目已完成' : '已进入专业复盘'}</strong>${data.rows?.length || 0} 条广告数据 · ${data.missingFields?.length || 0} 个字段待补充。</div><div class="side-section"><div class="side-title">结论边界</div><div class="notice">缺少受众、时段或落地页信息时，系统会明确标记“当前无法判断”。</div></div>`;
+    }
+    function renderDataView() {
+      const view = document.getElementById('data-view');
+      if (!view) return;
+      const data = projectState.dataAnalysis || (projectState.dataAnalysis = makeDataAnalysis());
+      const current = data.viewStep || dataCurrentStep();
+      const content = current === 'upload' ? renderDataUpload() : current === 'summary' ? renderDataSummary() : renderDataReview();
+      view.innerHTML = `<div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>${current === 'upload' ? '广告数据分析' : current === 'summary' ? '数据汇总' : '专业复盘与改进建议'}</h2><p>${current === 'upload' ? '一次性上传和补充广告投放信息，系统会整理可用指标。' : current === 'summary' ? '确认系统识别出的数据和计算结果是否准确。' : '基于当前数据输出有依据、可执行的广告复盘。'}</p></div><span class="status-pill" id="dataStatusPill">${current === 'upload' ? '待上传数据' : current === 'summary' ? '待确认' : data.review ? '已生成' : '生成中'}</span></div><div id="dataStageContent">${content}</div></div><aside class="panel panel-side" id="dataSidePanel"></aside></div>`;
+      renderDataSidePanel();
+      renderDataSidebar();
+      renderDataProgress();
+      bindDataViewEvents();
+    }
+    function updateDataState(nextStep, label) {
+      const data = projectState.dataAnalysis;
+      data.currentStep = nextStep;
+      data.viewStep = nextStep;
+      if (nextStep !== 'upload' && !projectState.completedSteps.includes('upload')) projectState.completedSteps.push('upload');
+      if (nextStep === 'review' || nextStep === 'complete') { if (!projectState.completedSteps.includes('summary')) projectState.completedSteps.push('summary'); data.summaryConfirmed = true; }
+      if (nextStep === 'complete' && !projectState.completedSteps.includes('review')) projectState.completedSteps.push('review');
+      projectState.currentStep = nextStep;
+      projectState.stage = label || dataStepLabels[nextStep];
+      projectState.updatedAt = new Date().toLocaleString('zh-CN', { hour12: false });
+      projectState.stepStatus[nextStep === 'summary' ? 'upload' : nextStep === 'review' ? 'summary' : nextStep === 'complete' ? 'review' : nextStep] = { status: 'complete', completedAt: projectState.updatedAt };
+      saveCurrentProject();
+      renderOverview();
+    }
+    function buildLocalDataReview(data) {
+      const metrics = data.metrics || calculateDataMetrics(data.rows || []);
+      const best = [...(metrics.byAd || [])].filter(row => row.cpa !== null || row.ctr !== null).sort((a, b) => (a.cpa ?? Infinity) - (b.cpa ?? Infinity))[0];
+      const highestCtr = [...(metrics.byAd || [])].filter(row => row.ctr !== null).sort((a, b) => b.ctr - a.ctr)[0];
+      return { dataIntegrity: [`已读取 ${data.rows?.length || 0} 条广告版本数据`, data.missingFields?.length ? `缺少字段：${data.missingFields.map(field => dataFieldLabels[field] || field).join('、')}` : '核心计算字段完整'], supportedConclusions: [highestCtr ? `${highestCtr.adName} 的 CTR 为 ${formatDataMetric(highestCtr.ctr, 'percent')}，在当前数据范围内更容易获得点击。` : '当前数据不足以比较点击效率。', best ? `${best.adName} 的 CPA 为 ${formatDataMetric(best.cpa, 'money')}，可作为下一轮实验的参考版本。` : '当前数据不足以比较购买成本。'], hypotheses: ['表现差异可能与广告标题、首图、卖点表达或投放人群有关。'], unknowns: ['当前数据无法单独证明优势完全来自广告创意；还需要受众、投放时段、广告位和落地页信息。', data.missingFields?.includes('revenue') ? '缺少销售额，无法判断 ROAS 和收入效率。' : '当前数据未提供更多成本与利润背景。'], possibleCauses: ['点击高但购买低时，问题可能出现在落地页、价格、信任信息或商品匹配度。', '不同版本的预算、受众或投放时段不一致时，横向比较可能受到干扰。'], experiments: ['固定受众、预算、广告位和落地页，只替换一个创意变量进行 A/B 测试。', '优先保留点击效率或购买成本更好的版本，再测试新的标题或首图。'], tasks: ['保存当前数据作为基准版本。', '补充销售额、受众、投放时段和落地页信息。', '为下一轮实验定义唯一变化变量和成功指标。'] };
+    }
+    async function generateDataReview() {
+      const data = projectState.dataAnalysis;
+      data.review = null;
+      renderDataView();
+      try {
+        data.review = await callAI('/api/data-analysis', { projectName: projectState.projectName, market: projectState.market, product: projectState.product, data: { rows: data.rows, metrics: data.metrics, missingFields: data.missingFields, warnings: data.warnings }, context: data.context });
+      } catch (error) { data.review = buildLocalDataReview(data); toast('AI 复盘暂不可用，已先生成程序化数据复盘'); }
+      data.updatedAt = new Date().toLocaleString('zh-CN', { hour12: false });
+      saveCurrentProject();
+      renderDataView();
+    }
+    function summarizeData() {
+      const data = projectState.dataAnalysis;
+      const text = document.getElementById('dataPasteInput')?.value.trim() || data.rawText.trim();
+      if (text) { const parsed = parseDelimited(text); data.columns = parsed.headers; data.fieldMapping = inferDataMapping(parsed.headers); data.rows = normalizeDataRows(parsed, data.fieldMapping); data.rawText = text; data.inputType = 'paste'; }
+      data.context = dataContextFromForm();
+      if (!data.rows.length) { toast('请先上传或粘贴包含表头和数据行的广告数据'); return; }
+      data.metrics = calculateDataMetrics(data.rows);
+      data.missingFields = data.metrics.missingFields;
+      data.warnings = [];
+      if (data.missingFields.length) data.warnings.push(`当前缺少：${data.missingFields.map(field => dataFieldLabels[field] || field).join('、')}，相关指标将无法计算。`);
+      if (data.rows.some(row => row.clicks !== null && row.impressions !== null && row.clicks > row.impressions)) data.warnings.push('发现点击次数大于展示次数的记录，请确认字段是否映射正确。');
+      data.summaryConfirmed = false;
+      updateDataState('summary', '数据汇总');
+      renderDataView();
+      toast('数据已整理，请确认汇总结果');
+    }
+    function bindDataViewEvents() {
+      const file = document.getElementById('dataFileInput');
+      const note = document.getElementById('dataFileNote');
+      file?.addEventListener('change', async event => {
+        const selected = event.target.files?.[0]; if (!selected) return;
+        const data = projectState.dataAnalysis; data.fileName = selected.name; data.inputType = selected.type.startsWith('image/') ? 'screenshot' : 'file';
+        if (selected.type.startsWith('image/')) { note.textContent = `已上传截图：${selected.name}。请同时在下方粘贴识别后的表格，避免数字识别误差。`; saveCurrentProject(); return; }
+        if (/\.csv$/i.test(selected.name) || selected.type.includes('text')) { data.rawText = await selected.text(); const paste = document.getElementById('dataPasteInput'); if (paste) paste.value = data.rawText; note.textContent = `已读取：${selected.name}，点击“进行数据汇总”继续。`; saveCurrentProject(); }
+        else { note.textContent = `已选择：${selected.name}。当前浏览器版本建议将 Excel 另存为 CSV 后再上传，或直接复制表格粘贴到下方。`; saveCurrentProject(); }
+      });
+      document.getElementById('dataSummarizeBtn')?.addEventListener('click', summarizeData);
+      document.getElementById('dataBackToUpload')?.addEventListener('click', () => { projectState.dataAnalysis.viewStep = 'upload'; renderDataView(); });
+      document.getElementById('confirmDataSummary')?.addEventListener('click', () => { updateDataState('review', '专业复盘'); renderDataView(); generateDataReview(); });
+      document.getElementById('dataBackToSummary')?.addEventListener('click', () => { projectState.dataAnalysis.viewStep = 'summary'; renderDataView(); });
+      document.getElementById('completeDataReview')?.addEventListener('click', () => { updateDataState('complete', '项目完成'); toast('专业复盘已保存，数据分析项目已完成'); renderDataView(); });
+    }
+    function installDataAnalysisPath() {
+      const view = document.getElementById('data-view');
+      if (!view) return;
+      installDataSidebar();
+      renderDataView();
     }
     function resetSetupForm() {
       ['setupProjectName','setupProductName','setupCategory','setupPrice','setupSpecs','setupDescription','setupFeatures','setupNotes'].forEach(id => { document.getElementById(id).value = ''; });
@@ -771,8 +1060,8 @@
       const marketChanged = previousMarket !== market;
       projectState.path = selectedPath;
       projectState.setupPath = selectedPath;
-      if (!existingPath || pathChanged) { projectState.confirmed = false; projectState.currentStep = selectedPath === 'data-analysis' ? 'upload' : 'product'; projectState.stage = selectedPath === 'data-analysis' ? '上传广告数据' : '商品理解'; }
-      if (pathChanged) { projectState.completedSteps = ['background']; projectState.stepStatus = {}; projectState.strategyComplete = false; projectState.productUnderstanding = null; projectState.strategy = null; projectState.assets = null; }
+      if (!existingPath || pathChanged) { projectState.confirmed = false; projectState.currentStep = selectedPath === 'data-analysis' ? 'upload' : 'product'; projectState.stage = selectedPath === 'data-analysis' ? '数据分析' : '商品理解'; }
+      if (pathChanged) { projectState.completedSteps = ['background']; projectState.stepStatus = {}; projectState.strategyComplete = false; projectState.productUnderstanding = null; projectState.strategy = null; projectState.assets = null; if (selectedPath === 'data-analysis') projectState.dataAnalysis = makeDataAnalysis(); }
       if (existingPath && selectedPath === 'creative-generation' && productChanged) { projectState.confirmed = false; projectState.completedSteps = projectState.completedSteps.filter(step => ['background'].includes(step)); projectState.stepStatus = { background: projectState.stepStatus.background }; projectState.currentStep = 'product'; projectState.stage = '商品理解'; projectState.strategyComplete = false; projectState.productUnderstanding = null; projectState.strategy = null; projectState.assets = null; }
       if (existingPath && selectedPath === 'creative-generation' && !productChanged && marketChanged) { projectState.completedSteps = projectState.completedSteps.filter(step => !['strategy', 'assets', 'complete'].includes(step)); delete projectState.stepStatus.strategy; delete projectState.stepStatus.assets; delete projectState.stepStatus.complete; projectState.strategyComplete = false; projectState.strategy = null; projectState.assets = null; projectState.currentStep = projectState.completedSteps.includes('product') ? 'strategy' : 'product'; projectState.stage = projectState.currentStep === 'strategy' ? '创意策略' : '商品理解'; }
       loadProductIntoReview();
@@ -781,7 +1070,7 @@
       const creativeSteps = ['product', 'strategy', 'assets'];
       const destination = selectedPath === 'creative-generation'
         ? (existingPath && creativeSteps.includes(projectState.currentStep) ? projectState.currentStep : 'product')
-        : 'overview';
+        : 'data';
       navigate(destination, { projectId: currentProjectId });
       toast('项目背景已保存，项目已创建');
     }
@@ -797,11 +1086,12 @@
     function choosePath(path) {
       projectState.path = path;
       projectState.currentStep = path === 'data-analysis' ? 'upload' : 'product';
-      projectState.stage = path === 'data-analysis' ? '上传广告数据' : '商品理解';
+      projectState.dataAnalysis = path === 'data-analysis' ? { ...makeDataAnalysis(), ...(projectState.dataAnalysis || {}) } : projectState.dataAnalysis;
+      projectState.stage = path === 'data-analysis' ? '数据分析' : '商品理解';
       projectState.confirmed = false;
       saveCurrentProject();
       syncOverview();
-      navigate('overview', { projectId: currentProjectId });
+      navigate(path === 'data-analysis' ? 'data' : 'overview', { projectId: currentProjectId });
       toast(path === 'data-analysis' ? '已选择广告数据分析路径' : '已选择广告创意路径');
     }
     const pathDefinitions = {
@@ -814,10 +1104,9 @@
       ],
       'data-analysis': [
         { key: 'background', label: '项目背景', detail: '保存项目和商品基础信息', view: 'setup' },
-        { key: 'upload', label: '上传广告数据', detail: '上传或粘贴历史投放数据', view: 'data' },
-        { key: 'fields', label: '字段识别与确认', detail: '确认表格字段的对应关系', view: 'data' },
-        { key: 'metrics', label: '数据指标计算', detail: '计算 CTR、CPC、CVR 和 CPA', view: 'data' },
-        { key: 'recommendations', label: '专业复盘与改进建议', detail: '输出结论、边界和下一轮实验', view: 'data' },
+        { key: 'upload', label: '数据分析', detail: '一次性上传和补充广告投放信息', view: 'data' },
+        { key: 'summary', label: '数据汇总', detail: '确认字段、数据和可计算指标', view: 'data' },
+        { key: 'review', label: '专业复盘', detail: '输出结论、边界和下一轮实验', view: 'data' },
         { key: 'complete', label: '项目完成', detail: '本次数据分析流程已完成', view: 'overview' }
       ]
     };
@@ -935,19 +1224,21 @@
       }
       renderOverview();
     }
-    function routeFor(view, projectId = currentProjectId) {
+    function routeFor(view, projectId = currentProjectId, dataStep = '') {
       if (view === 'home') return '#/home';
       if (view === 'history') return '#/history';
+      if (view === 'data' && projectId && dataStep) return `#/project/${encodeURIComponent(projectId)}/data/${dataStep}`;
       if (projectId) return `#/project/${encodeURIComponent(projectId)}/${view}`;
       return '#/home';
     }
     function navigate(view, options = {}) {
       const projectId = options.projectId || (['home', 'history'].includes(view) ? null : currentProjectId);
       if (projectId) currentProjectId = projectId;
-      const url = routeFor(view, projectId);
-      const state = { view, projectId, internal: true };
+      const url = routeFor(view, projectId, options.dataStep || '');
+      const state = { view, projectId, dataStep: options.dataStep || '', internal: true };
       if (options.replace) history.replaceState(state, '', url);
       else if (location.hash !== url) history.pushState(state, '', url);
+      if (view === 'data') projectState.dataAnalysis.viewStep = options.dataStep || dataCurrentStep();
       showView(view, { fromHistory: true });
     }
     function restoreFromUrl() {
@@ -960,10 +1251,11 @@
       }
       if (hash === '#/home') { currentProjectId = null; showView('home', { fromHistory: true }); return; }
       if (hash === '#/history') { showView('history', { fromHistory: true }); return; }
-      const match = hash.match(/^#\/project\/([^/]+)\/([^/]+)$/);
+      const match = hash.match(/^#\/project\/([^/]+)\/([^/]+)(?:\/([^/]+))?$/);
       if (!match) { navigate('home', { replace: true }); return; }
       const projectId = decodeURIComponent(match[1]);
       const view = match[2];
+      const dataStep = match[3] || '';
       if (!readProjects().some(project => project.id === projectId)) { navigate('history', { replace: true }); return; }
       if (view === 'overview') {
         const routedProject = readProjects().find(item => item.id === projectId);
@@ -986,6 +1278,8 @@
       projectState.completedSteps = [...(project.completedSteps || [])];
       projectState.stepStatus = { ...(project.stepStatus || {}) };
       projectState.updatedAt = project.updatedAt || '';
+      projectState.dataAnalysis = { ...makeDataAnalysis(), ...(project.dataAnalysis || {}) };
+      if (view === 'data' && ['upload', 'summary', 'review'].includes(dataStep) && dataStepIsUnlocked(dataStep)) projectState.dataAnalysis.viewStep = dataStep;
       const productKey = productFingerprint(projectState.product);
       projectState.productUnderstanding = project.productUnderstanding?._sourceFingerprint === productKey ? project.productUnderstanding : null;
       projectState.strategy = project.strategy?._sourceFingerprint === strategyFingerprint() ? project.strategy : null;
@@ -1674,7 +1968,7 @@
     }
     installProductContexts();
     installOverviewControls();
-    installDataProgressControls();
+    installDataAnalysisPath();
     installSetupPathPicker();
     installCreativeSidebar();
     installProductEditFields();
@@ -1700,8 +1994,10 @@
       document.querySelector('.app-shell').classList.toggle('home-mode', name === 'home' || name === 'history');
       document.querySelector('.app-shell').classList.toggle('setup-mode', name === 'setup');
       const creativeMode = projectState.path === 'creative-generation' && ['product', 'strategy', 'assets'].includes(name);
+      const dataMode = projectState.path === 'data-analysis' && name === 'data';
       document.querySelector('.app-shell').classList.toggle('creative-mode', creativeMode);
-      document.querySelector('.main').classList.toggle('data-mode', name === 'data');
+      document.querySelector('.app-shell').classList.toggle('data-mode', dataMode);
+      document.querySelector('.main').classList.toggle('data-mode', dataMode);
       document.querySelector('.main').classList.toggle('entry-mode', name === 'setup' || name === 'path');
       document.getElementById('eyebrow').textContent = name === 'data' ? '广告实验室 / 独立分析工具' : name === 'setup' ? '广告实验室 / 项目背景' : name === 'path' ? '广告实验室 / 路径选择' : '广告实验室 / 项目工作区';
       document.getElementById('pageTitle').textContent = name === 'data' ? '让每一笔投放，都有依据。' : name === 'setup' ? '先把这次实验说清楚。' : name === 'path' ? '选择你的下一步。' : '把商品，变成更好的广告。';
@@ -1710,6 +2006,7 @@
       if (name === 'path') updatePathSummary();
       if (name === 'overview') syncOverview();
       if (creativeMode) renderCreativeProgress(name);
+      if (dataMode) { renderDataProgress(); renderDataSidebar(); renderDataView(); }
       const projectChip = document.querySelector('.project-chip');
       if (projectChip) projectChip.textContent = currentProjectId ? `项目 / ${projectState.projectName || '未命名项目'}` : 'AdLab / 未选择项目';
       if (name === 'product') { loadProductIntoReview(); if (projectState.productUnderstanding) renderProductUnderstanding(projectState.productUnderstanding); else generateProductUnderstanding(); }
@@ -1718,7 +2015,7 @@
       const back = document.getElementById('workspaceBack');
       if (back) {
         const insideWorkspace = !['home', 'history'].includes(name);
-        back.style.display = creativeMode ? 'none' : (insideWorkspace ? 'inline-block' : 'none');
+         back.style.display = creativeMode || dataMode ? 'none' : (insideWorkspace ? 'inline-block' : 'none');
         back.textContent = ['overview', 'setup', 'path'].includes(name) && returnView === 'history' ? '← 返回历史项目' : '← 返回项目主页';
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1752,8 +2049,6 @@
     document.querySelectorAll('.tag, .creative-card').forEach(el => el.addEventListener('click', () => el.classList.toggle('selected')));
     document.querySelectorAll('.mode-tab').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); const prompt = tab.dataset.mode === 'prompt'; document.getElementById('templateMode').style.display = prompt ? 'none' : 'block'; document.getElementById('promptMode').style.display = prompt ? 'block' : 'none'; }));
     document.getElementById('copyPrompt').addEventListener('click', async () => { try { await navigator.clipboard.writeText(document.getElementById('promptText').textContent); toast('提示词已复制'); } catch { toast('提示词已准备好，可手动复制'); } });
-    document.getElementById('uploadData').addEventListener('click', () => { if (projectState.path === 'data-analysis') { completeStep('upload', 'fields', '字段识别与确认'); document.getElementById('confirmDataFields').disabled = false; } toast('演示模式已准备字段识别，接入后支持 CSV 与 Excel'); });
-    document.getElementById('pasteData').addEventListener('click', () => { if (projectState.path === 'data-analysis') { completeStep('upload', 'fields', '字段识别与确认'); document.getElementById('confirmDataFields').disabled = false; } toast('已切换为粘贴表格入口（演示模式）'); });
     const review = document.getElementById('productReview');
     const editor = document.getElementById('productEdit');
     const confirmed = document.getElementById('confirmedProduct');
@@ -1804,7 +2099,6 @@
     }
     document.getElementById('exportBtn').addEventListener('click', () => saveAssetsAndComplete('广告素材已保存，项目进度已更新'));
     document.getElementById('promptDone').addEventListener('click', () => saveAssetsAndComplete('提示词已保存，项目进度已更新'));
-    document.getElementById('saveAnalysis').addEventListener('click', () => { if (!projectState.completedSteps.includes('metrics')) { toast('请先完成字段确认和指标计算'); return; } completeStep('recommendations', 'complete', '项目完成'); toast('分析报告已保存，项目进度已更新'); });
     ensureDemoProject();
     window.addEventListener('popstate', restoreFromUrl);
     restoreFromUrl();

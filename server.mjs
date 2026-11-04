@@ -38,6 +38,20 @@ const schemas = {
     properties: { adTitle: { type: 'string' }, adTitleZh: { type: 'string' }, adBody: { type: 'string' }, adBodyZh: { type: 'string' }, sellingPointCopy: { type: 'array', items: { type: 'string' } }, imageLayout: { type: 'string' }, imagePrompt: { type: 'string' }, videoPrompt: { type: 'string' }, negativePrompt: { type: 'string' }, formatAdvice: { type: 'array', items: { type: 'string' } } },
     required: ['adTitle', 'adTitleZh', 'adBody', 'adBodyZh', 'sellingPointCopy', 'imageLayout', 'imagePrompt', 'videoPrompt', 'negativePrompt', 'formatAdvice'],
     additionalProperties: false
+  },
+  dataAnalysis: {
+    type: 'object',
+    properties: {
+      dataIntegrity: { type: 'array', items: { type: 'string' } },
+      supportedConclusions: { type: 'array', items: { type: 'string' } },
+      hypotheses: { type: 'array', items: { type: 'string' } },
+      unknowns: { type: 'array', items: { type: 'string' } },
+      possibleCauses: { type: 'array', items: { type: 'string' } },
+      experiments: { type: 'array', items: { type: 'string' } },
+      tasks: { type: 'array', items: { type: 'string' } }
+    },
+    required: ['dataIntegrity', 'supportedConclusions', 'hypotheses', 'unknowns', 'possibleCauses', 'experiments', 'tasks'],
+    additionalProperties: false
   }
 };
 
@@ -190,9 +204,23 @@ function normalizeAssets(raw) {
   };
 }
 
+function normalizeDataReview(raw) {
+  const list = value => Array.isArray(value) ? value.map(item => text(typeof item === 'string' ? item : item?.detail || item?.title || JSON.stringify(item))) : [];
+  return {
+    dataIntegrity: list(raw.dataIntegrity || raw.data_integrity),
+    supportedConclusions: list(raw.supportedConclusions || raw.supported_conclusions),
+    hypotheses: list(raw.hypotheses || raw.reasonableHypotheses || raw.reasonable_hypotheses),
+    unknowns: list(raw.unknowns || raw.cannotDetermine || raw.cannot_determine),
+    possibleCauses: list(raw.possibleCauses || raw.possible_causes),
+    experiments: list(raw.experiments || raw.nextExperiments || raw.next_experiments),
+    tasks: list(raw.tasks || raw.actionItems || raw.action_items)
+  };
+}
+
 function normalizeAnswer(kind, raw, input = {}) {
   if (kind === 'product') return normalizeProduct(raw);
   if (kind === 'strategy') return normalizeStrategy(raw, input);
+  if (kind === 'dataAnalysis') return normalizeDataReview(raw);
   return normalizeAssets(raw);
 }
 
@@ -203,7 +231,8 @@ async function askDeepSeek(kind, input) {
   const prompts = {
     product: `${shared}\n任务：${input.mode === 'more-selling-points' ? '基于最新商品资料补充 2 到 4 个新的、不重复的卖点候选。不要重复 existingSellingPoints，也不要使用 removedSellingPoints。' : '理解商品并提炼卖点。'}商品资料：${JSON.stringify(input)}。卖点必须附带证据来源，不能把未提供的信息当成事实，场景必须与当前商品匹配。只能返回符合以下结构的 JSON：${schemaText('product')}`,
     strategy: `${shared}\n任务：${input.mode === 'brief' ? '根据用户最新选择生成一份精细、具体、可执行的创意简报。必须综合 selectedSellingPoints、selectedDirections、selectedAudience、目标市场、广告平台和完整商品资料，不能返回泛泛而谈的描述。若存在 modificationSuggestion，必须在保留有效内容的基础上按用户建议重新生成完整简报；不能只回复修改说明。' : input.mode === 'more-directions' ? '基于最新商品资料和已确认卖点，补充 2 到 3 个新的、不重复的创意方向。不要重复 existingDirections，也不要使用 removedDirections。' : '基于已确认商品信息制定目标市场广告创意策略，生成 2 到 3 个创意方向。'}商品资料：${JSON.stringify(input)}。每个创意方向必须有一个根据场景、卖点或传播角度生成的清晰中文标题，禁止返回“未命名创意方向”、空标题或泛化占位标题。每个创意方向还要包含卖点、场景、视觉构思、文案角度和生成依据。${input.mode === 'brief' ? 'creativeBrief 必须包含主题、传播目标、受众、语言表达、用户需求、卖点、场景、画面主体、人物动作、商品展示、视觉风格、构图、文案方向、标题、正文、避免内容、画幅和制作建议。' : ''}只能返回符合以下结构的 JSON：${schemaText('strategy')}`,
-    assets: `${shared}\n任务：基于已确认商品信息和选中的创意方向生成广告文案及专业图片/视频提示词。广告标题 adTitle 和广告正文 adBody 必须使用${input.language || input.market || '目标市场当地'}的主要语言；同时必须生成忠实对应的中文翻译 adTitleZh 和 adBodyZh，中文翻译不能添加原文没有的卖点或承诺。输入：${JSON.stringify(input)}。不要虚构商品外观；没有图片时不要假设外观细节。只能返回符合以下结构的 JSON：${schemaText('assets')}`
+    assets: `${shared}\n任务：基于已确认商品信息和选中的创意方向生成广告文案及专业图片/视频提示词。广告标题 adTitle 和广告正文 adBody 必须使用${input.language || input.market || '目标市场当地'}的主要语言；同时必须生成忠实对应的中文翻译 adTitleZh 和 adBodyZh，中文翻译不能添加原文没有的卖点或承诺。输入：${JSON.stringify(input)}。不要虚构商品外观；没有图片时不要假设外观细节。只能返回符合以下结构的 JSON：${schemaText('assets')}`,
+    dataAnalysis: `${shared}\n任务：分析用户上传的广告投放数据。程序已经计算 CTR、CPC、CVR、CPA、ROAS 等指标，你只能解释这些指标、比较广告版本、指出证据边界并提出实验建议，不能自行改写或臆造数字。必须严格区分数据直接支持、合理推测、当前无法判断和需要补充数据。输入：${JSON.stringify(input)}。只能返回符合以下结构的 JSON：${schemaText('dataAnalysis')}`
   };
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
@@ -217,7 +246,7 @@ async function askDeepSeek(kind, input) {
 
 async function handleApi(req, res, path) {
   const body = await readBody(req);
-  const kind = path.endsWith('product-understanding') ? 'product' : path.endsWith('creative-strategy') ? 'strategy' : 'assets';
+  const kind = path.endsWith('product-understanding') ? 'product' : path.endsWith('creative-strategy') ? 'strategy' : path.endsWith('data-analysis') ? 'dataAnalysis' : 'assets';
   try { json(res, 200, { ok: true, data: await askDeepSeek(kind, body) }); }
   catch (error) {
     const status = error.message === 'AI_NOT_CONFIGURED' ? 503 : 502;
@@ -230,7 +259,7 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     if (url.pathname.startsWith('/api/')) {
-      if (req.method !== 'POST' || !['/api/product-understanding', '/api/creative-strategy', '/api/ad-assets'].includes(url.pathname)) return json(res, 404, { ok: false, message: 'Not found' });
+       if (req.method !== 'POST' || !['/api/product-understanding', '/api/creative-strategy', '/api/ad-assets', '/api/data-analysis'].includes(url.pathname)) return json(res, 404, { ok: false, message: 'Not found' });
       return await handleApi(req, res, url.pathname);
     }
     const requested = url.pathname === '/' ? '/index.html' : url.pathname;
