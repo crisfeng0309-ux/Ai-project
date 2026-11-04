@@ -35,8 +35,8 @@ const schemas = {
   },
   assets: {
     type: 'object',
-    properties: { adTitle: { type: 'string' }, adBody: { type: 'string' }, sellingPointCopy: { type: 'array', items: { type: 'string' } }, imageLayout: { type: 'string' }, imagePrompt: { type: 'string' }, videoPrompt: { type: 'string' }, negativePrompt: { type: 'string' }, formatAdvice: { type: 'array', items: { type: 'string' } } },
-    required: ['adTitle', 'adBody', 'sellingPointCopy', 'imageLayout', 'imagePrompt', 'videoPrompt', 'negativePrompt', 'formatAdvice'],
+    properties: { adTitle: { type: 'string' }, adTitleZh: { type: 'string' }, adBody: { type: 'string' }, adBodyZh: { type: 'string' }, sellingPointCopy: { type: 'array', items: { type: 'string' } }, imageLayout: { type: 'string' }, imagePrompt: { type: 'string' }, videoPrompt: { type: 'string' }, negativePrompt: { type: 'string' }, formatAdvice: { type: 'array', items: { type: 'string' } } },
+    required: ['adTitle', 'adTitleZh', 'adBody', 'adBodyZh', 'sellingPointCopy', 'imageLayout', 'imagePrompt', 'videoPrompt', 'negativePrompt', 'formatAdvice'],
     additionalProperties: false
   }
 };
@@ -103,7 +103,7 @@ function normalizeProduct(raw) {
   };
 }
 
-function normalizeStrategy(raw) {
+function normalizeStrategy(raw, input = {}) {
   const advice = raw.languageAdvice || raw.language_advice || {};
   const audience = raw.targetAudience || raw.target_audience || raw.audiences || [];
   const directions = raw.creativeDirections || raw.creative_directions || raw.directions || [];
@@ -113,9 +113,7 @@ function normalizeStrategy(raw) {
       tone: text(advice.tone, '清晰、直接、生活化'),
       localizationNotes: (advice.localizationNotes || advice.localization_notes || []).map(item => text(item))
     },
-    targetAudience: audience.map(item => ({
-      name: text(item.name || item.audience), need: text(item.need), painPoint: text(item.painPoint || item.pain_point)
-    })),
+    targetAudience: audience.map((item, index) => normalizeAudience(item, index, input)),
     creativeDirections: directions.map((item, index) => ({
       title: directionTitle(item, index),
       coreSellingPoints: (item.coreSellingPoints || item.core_selling_points || item.sellingPoints || []).map(point => text(point)),
@@ -147,6 +145,24 @@ function normalizeStrategy(raw) {
   };
 }
 
+function normalizeAudience(item, index, input = {}) {
+  const product = input.product || {};
+  const market = text(input.market, '目标市场');
+  const category = `${text(product.category)} ${text(product.name)}`;
+  const candidates = /充电|手机|数码|电源/.test(category)
+    ? [`${market}手机重度使用者`, `${market}高校学生`, `${market}城市通勤人群`, `${market}短途出行用户`]
+    : /包|箱|收纳|服饰/.test(category)
+      ? [`${market}高校学生`, `${market}城市通勤人群`, `${market}短途出行用户`, `${market}轻运动生活人群`]
+      : [`${market}年轻消费者`, `${market}日常通勤人群`, `${market}短途出行用户`, `${market}注重便利性的家庭用户`];
+  const rawName = text(item.name || item.audience);
+  const name = rawName && !/^(潜在受众|target audience|audience)\s*\d*$/i.test(rawName) ? rawName : candidates[index % candidates.length];
+  const rawNeed = text(item.need);
+  const rawPainPoint = text(item.painPoint || item.pain_point);
+  const need = rawNeed && !/AI 根据当前商品资料识别的潜在受众|暂无|待补充/.test(rawNeed) ? rawNeed : `希望在${text(product.description, '日常使用')}中获得更方便的商品体验`;
+  const painPoint = rawPainPoint && !/AI 根据当前商品资料识别的潜在受众|暂无|待补充/.test(rawPainPoint) ? rawPainPoint : `现有解决方案不够便携或不够符合${market}的日常使用场景`;
+  return { name, need, painPoint };
+}
+
 function directionTitle(item, index) {
   const provided = text(item.title || item.name);
   if (provided && !/^(未命名|unnamed|untitled)/i.test(provided)) return provided;
@@ -162,7 +178,9 @@ function directionTitle(item, index) {
 function normalizeAssets(raw) {
   return {
     adTitle: text(raw.adTitle || raw.ad_title),
+    adTitleZh: text(raw.adTitleZh || raw.ad_title_zh || raw.titleChinese),
     adBody: text(raw.adBody || raw.ad_body),
+    adBodyZh: text(raw.adBodyZh || raw.ad_body_zh || raw.bodyChinese),
     sellingPointCopy: (raw.sellingPointCopy || raw.selling_point_copy || []).map(item => text(item)),
     imageLayout: text(raw.imageLayout || raw.image_layout),
     imagePrompt: text(raw.imagePrompt || raw.image_prompt),
@@ -172,9 +190,9 @@ function normalizeAssets(raw) {
   };
 }
 
-function normalizeAnswer(kind, raw) {
+function normalizeAnswer(kind, raw, input = {}) {
   if (kind === 'product') return normalizeProduct(raw);
-  if (kind === 'strategy') return normalizeStrategy(raw);
+  if (kind === 'strategy') return normalizeStrategy(raw, input);
   return normalizeAssets(raw);
 }
 
@@ -185,7 +203,7 @@ async function askDeepSeek(kind, input) {
   const prompts = {
     product: `${shared}\n任务：${input.mode === 'more-selling-points' ? '基于最新商品资料补充 2 到 4 个新的、不重复的卖点候选。不要重复 existingSellingPoints，也不要使用 removedSellingPoints。' : '理解商品并提炼卖点。'}商品资料：${JSON.stringify(input)}。卖点必须附带证据来源，不能把未提供的信息当成事实，场景必须与当前商品匹配。只能返回符合以下结构的 JSON：${schemaText('product')}`,
     strategy: `${shared}\n任务：${input.mode === 'brief' ? '根据用户最新选择生成一份精细、具体、可执行的创意简报。必须综合 selectedSellingPoints、selectedDirections、selectedAudience、目标市场、广告平台和完整商品资料，不能返回泛泛而谈的描述。若存在 modificationSuggestion，必须在保留有效内容的基础上按用户建议重新生成完整简报；不能只回复修改说明。' : input.mode === 'more-directions' ? '基于最新商品资料和已确认卖点，补充 2 到 3 个新的、不重复的创意方向。不要重复 existingDirections，也不要使用 removedDirections。' : '基于已确认商品信息制定目标市场广告创意策略，生成 2 到 3 个创意方向。'}商品资料：${JSON.stringify(input)}。每个创意方向必须有一个根据场景、卖点或传播角度生成的清晰中文标题，禁止返回“未命名创意方向”、空标题或泛化占位标题。每个创意方向还要包含卖点、场景、视觉构思、文案角度和生成依据。${input.mode === 'brief' ? 'creativeBrief 必须包含主题、传播目标、受众、语言表达、用户需求、卖点、场景、画面主体、人物动作、商品展示、视觉风格、构图、文案方向、标题、正文、避免内容、画幅和制作建议。' : ''}只能返回符合以下结构的 JSON：${schemaText('strategy')}`,
-    assets: `${shared}\n任务：基于已确认商品信息和选中的创意方向生成广告文案及专业图片/视频提示词。输入：${JSON.stringify(input)}。不要虚构商品外观；没有图片时不要假设外观细节。只能返回符合以下结构的 JSON：${schemaText('assets')}`
+    assets: `${shared}\n任务：基于已确认商品信息和选中的创意方向生成广告文案及专业图片/视频提示词。广告标题 adTitle 和广告正文 adBody 必须使用${input.language || input.market || '目标市场当地'}的主要语言；同时必须生成忠实对应的中文翻译 adTitleZh 和 adBodyZh，中文翻译不能添加原文没有的卖点或承诺。输入：${JSON.stringify(input)}。不要虚构商品外观；没有图片时不要假设外观细节。只能返回符合以下结构的 JSON：${schemaText('assets')}`
   };
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
@@ -194,7 +212,7 @@ async function askDeepSeek(kind, input) {
   });
   if (!response.ok) throw new Error(`AI_HTTP_${response.status}`);
   const data = await response.json();
-  return normalizeAnswer(kind, parseJsonAnswer(data.choices?.[0]?.message?.content || '{}'));
+  return normalizeAnswer(kind, parseJsonAnswer(data.choices?.[0]?.message?.content || '{}'), input);
 }
 
 async function handleApi(req, res, path) {
