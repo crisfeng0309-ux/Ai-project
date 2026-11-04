@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveCurrency } from './lib/currency.mjs';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const port = Number(process.env.PORT || 4173);
@@ -35,8 +36,11 @@ const schemas = {
   },
   assets: {
     type: 'object',
-    properties: { adTitle: { type: 'string' }, adTitleZh: { type: 'string' }, adBody: { type: 'string' }, adBodyZh: { type: 'string' }, sellingPointCopy: { type: 'array', items: { type: 'string' } }, imageLayout: { type: 'string' }, imagePrompt: { type: 'string' }, videoPrompt: { type: 'string' }, negativePrompt: { type: 'string' }, formatAdvice: { type: 'array', items: { type: 'string' } } },
-    required: ['adTitle', 'adTitleZh', 'adBody', 'adBodyZh', 'sellingPointCopy', 'imageLayout', 'imagePrompt', 'videoPrompt', 'negativePrompt', 'formatAdvice'],
+    properties: {
+      adTitle: { type: 'string' }, adTitleZh: { type: 'string' }, adBody: { type: 'string' }, adBodyZh: { type: 'string' }, sellingPointCopy: { type: 'array', items: { type: 'string' } }, imageLayout: { type: 'string' }, imagePrompt: { type: 'string' }, videoPrompt: { type: 'string' }, negativePrompt: { type: 'string' }, formatAdvice: { type: 'array', items: { type: 'string' } }, currency: { type: 'object' },
+      schemes: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, title: { type: 'string' }, angle: { type: 'string' }, imageUrl: { type: 'string' }, adTitle: { type: 'string' }, adTitleZh: { type: 'string' }, adBody: { type: 'string' }, adBodyZh: { type: 'string' }, hook: { type: 'string' }, sellingPointCopy: { type: 'array', items: { type: 'string' } }, imageLayout: { type: 'string' }, imagePrompt: { type: 'string' }, videoPrompt: { type: 'string' }, negativePrompt: { type: 'string' }, formatAdvice: { type: 'array', items: { type: 'string' } }, shotList: { type: 'array', items: { type: 'string' } }, productionNotes: { type: 'string' }, localPrice: { type: 'string' }, targetAudience: { type: 'array', items: { type: 'string' } }, qualityChecks: { type: 'array', items: { type: 'string' } } }, required: ['id', 'title', 'angle', 'imageUrl', 'adTitle', 'adTitleZh', 'adBody', 'adBodyZh', 'hook', 'sellingPointCopy', 'imageLayout', 'imagePrompt', 'videoPrompt', 'negativePrompt', 'formatAdvice', 'shotList', 'productionNotes', 'localPrice', 'targetAudience', 'qualityChecks'], additionalProperties: false } }
+    },
+    required: ['adTitle', 'adTitleZh', 'adBody', 'adBodyZh', 'sellingPointCopy', 'imageLayout', 'imagePrompt', 'videoPrompt', 'negativePrompt', 'formatAdvice', 'currency', 'schemes'],
     additionalProperties: false
   },
   dataAnalysis: {
@@ -189,8 +193,33 @@ function directionTitle(item, index) {
   return title.length > 24 ? `${title.slice(0, 24)}…` : title;
 }
 
-function normalizeAssets(raw) {
+function normalizeAssetScheme(item, index, fallback = {}) {
   return {
+    id: text(item.id, `scheme-${index + 1}`),
+    title: text(item.title || item.name, `广告素材方案 ${String.fromCharCode(65 + index)}`),
+    angle: text(item.angle || item.strategyAngle),
+    imageUrl: text(item.imageUrl || item.image_url || item.generatedImage),
+    adTitle: text(item.adTitle || item.ad_title || fallback.adTitle),
+    adTitleZh: text(item.adTitleZh || item.ad_title_zh || fallback.adTitleZh),
+    adBody: text(item.adBody || item.ad_body || fallback.adBody),
+    adBodyZh: text(item.adBodyZh || item.ad_body_zh || fallback.adBodyZh),
+    hook: text(item.hook || item.openingHook),
+    sellingPointCopy: (item.sellingPointCopy || item.selling_point_copy || fallback.sellingPointCopy || []).map(value => text(value)),
+    imageLayout: text(item.imageLayout || item.image_layout || fallback.imageLayout),
+    imagePrompt: text(item.imagePrompt || item.image_prompt || fallback.imagePrompt),
+    videoPrompt: text(item.videoPrompt || item.video_prompt || fallback.videoPrompt),
+    negativePrompt: text(item.negativePrompt || item.negative_prompt || fallback.negativePrompt),
+    formatAdvice: (item.formatAdvice || item.format_advice || fallback.formatAdvice || []).map(value => text(value)),
+    shotList: (item.shotList || item.shot_list || []).map(value => text(value)),
+    productionNotes: text(item.productionNotes || item.production_notes),
+    localPrice: text(item.localPrice || item.local_price || fallback.currency?.displayAmount),
+    targetAudience: (item.targetAudience || item.target_audience || []).map(value => text(typeof value === 'string' ? value : value?.name)),
+    qualityChecks: (item.qualityChecks || item.quality_checks || []).map(value => text(value))
+  };
+}
+
+function normalizeAssets(raw, input = {}) {
+  const fallback = {
     adTitle: text(raw.adTitle || raw.ad_title),
     adTitleZh: text(raw.adTitleZh || raw.ad_title_zh || raw.titleChinese),
     adBody: text(raw.adBody || raw.ad_body),
@@ -200,8 +229,13 @@ function normalizeAssets(raw) {
     imagePrompt: text(raw.imagePrompt || raw.image_prompt),
     videoPrompt: text(raw.videoPrompt || raw.video_prompt),
     negativePrompt: text(raw.negativePrompt || raw.negative_prompt),
-    formatAdvice: (raw.formatAdvice || raw.format_advice || []).map(item => text(item))
+    formatAdvice: (raw.formatAdvice || raw.format_advice || []).map(item => text(item)),
+    currency: raw.currency || input.currency || {}
   };
+  const rawSchemes = raw.schemes || raw.assetSchemes || raw.asset_schemes || [];
+  const schemes = Array.isArray(rawSchemes) && rawSchemes.length ? rawSchemes.map((item, index) => normalizeAssetScheme(item, index, fallback)) : [normalizeAssetScheme(fallback, 0, fallback)];
+  const primary = schemes[0];
+  return { ...primary, currency: raw.currency || input.currency || {}, schemes };
 }
 
 function normalizeDataReview(raw) {
@@ -221,27 +255,33 @@ function normalizeAnswer(kind, raw, input = {}) {
   if (kind === 'product') return normalizeProduct(raw);
   if (kind === 'strategy') return normalizeStrategy(raw, input);
   if (kind === 'dataAnalysis') return normalizeDataReview(raw);
-  return normalizeAssets(raw);
+  return normalizeAssets(raw, input);
 }
 
 async function askDeepSeek(kind, input) {
   if (!process.env.DEEPSEEK_API_KEY) throw new Error('AI_NOT_CONFIGURED');
+  const enrichedInput = { ...input, currency: resolveCurrency(input) };
+  const promptInput = { ...enrichedInput, productImage: enrichedInput.productImage ? { ...enrichedInput.productImage, dataUrl: enrichedInput.productImage.dataUrl ? '[商品图片已作为附件传入]' : '' } : null };
   const shared = '你是 AdLab 的专业广告策略 Agent。只能使用用户提供的商品信息，不得引入任何历史项目或演示商品。不能把推测写成事实；不确定的信息必须标记为 needs_confirmation。所有输出必须是合法 JSON，不要使用 Markdown。';
   const schemaText = kind => JSON.stringify(schemas[kind]);
   const prompts = {
-    product: `${shared}\n任务：${input.mode === 'more-selling-points' ? '基于最新商品资料补充 2 到 4 个新的、不重复的卖点候选。不要重复 existingSellingPoints，也不要使用 removedSellingPoints。' : '理解商品并提炼卖点。'}商品资料：${JSON.stringify(input)}。卖点必须附带证据来源，不能把未提供的信息当成事实，场景必须与当前商品匹配。只能返回符合以下结构的 JSON：${schemaText('product')}`,
-    strategy: `${shared}\n任务：${input.mode === 'brief' ? '根据用户最新选择生成一份精细、具体、可执行的创意简报。必须综合 selectedSellingPoints、selectedDirections、selectedAudience、目标市场、广告平台和完整商品资料，不能返回泛泛而谈的描述。若存在 modificationSuggestion，必须在保留有效内容的基础上按用户建议重新生成完整简报；不能只回复修改说明。' : input.mode === 'more-directions' ? '基于最新商品资料和已确认卖点，补充 2 到 3 个新的、不重复的创意方向。不要重复 existingDirections，也不要使用 removedDirections。' : '基于已确认商品信息制定目标市场广告创意策略，生成 2 到 3 个创意方向。'}商品资料：${JSON.stringify(input)}。每个创意方向必须有一个根据场景、卖点或传播角度生成的清晰中文标题，禁止返回“未命名创意方向”、空标题或泛化占位标题。每个创意方向还要包含卖点、场景、视觉构思、文案角度和生成依据。${input.mode === 'brief' ? 'creativeBrief 必须包含主题、传播目标、受众、语言表达、用户需求、卖点、场景、画面主体、人物动作、商品展示、视觉风格、构图、文案方向、标题、正文、避免内容、画幅和制作建议。' : ''}只能返回符合以下结构的 JSON：${schemaText('strategy')}`,
-    assets: `${shared}\n任务：基于已确认商品信息和选中的创意方向生成广告文案及专业图片/视频提示词。广告标题 adTitle 和广告正文 adBody 必须使用${input.language || input.market || '目标市场当地'}的主要语言；同时必须生成忠实对应的中文翻译 adTitleZh 和 adBodyZh，中文翻译不能添加原文没有的卖点或承诺。输入：${JSON.stringify(input)}。不要虚构商品外观；没有图片时不要假设外观细节。只能返回符合以下结构的 JSON：${schemaText('assets')}`,
-    dataAnalysis: `${shared}\n任务：分析用户上传的广告投放数据。程序已经计算 CTR、CPC、CVR、CPA、ROAS 等指标，你只能解释这些指标、比较广告版本、指出证据边界并提出实验建议，不能自行改写或臆造数字。必须严格区分数据直接支持、合理推测、当前无法判断和需要补充数据。输入：${JSON.stringify(input)}。只能返回符合以下结构的 JSON：${schemaText('dataAnalysis')}`
+    product: `${shared}\n任务：${input.mode === 'more-selling-points' ? '基于最新商品资料补充 2 到 4 个新的、不重复的卖点候选。不要重复 existingSellingPoints，也不要使用 removedSellingPoints。' : '理解商品并提炼卖点。'}商品资料：${JSON.stringify(promptInput)}。如果 productImage 是图片输入，结合图片识别商品外观，但无法确认的内容标记为 needs_confirmation。卖点必须附带证据来源，不能把未提供的信息当成事实，场景必须与当前商品匹配。只能返回符合以下结构的 JSON：${schemaText('product')}`,
+    strategy: `${shared}\n任务：${input.mode === 'brief' ? '根据用户最新选择生成一份精细、具体、可执行的创意简报。必须综合 selectedSellingPoints、selectedDirections、selectedAudience、目标市场、广告平台、商品图片和完整商品资料，不能返回泛泛而谈的描述。若存在 modificationSuggestion，必须在保留有效内容的基础上按用户建议重新生成完整简报；不能只回复修改说明。' : input.mode === 'more-directions' ? '基于最新商品资料和已确认卖点，补充 2 到 3 个新的、不重复的创意方向。不要重复 existingDirections，也不要使用 removedDirections。' : '基于已确认商品信息制定目标市场广告创意策略，生成 2 到 3 个创意方向。'}商品资料：${JSON.stringify(promptInput)}。每个创意方向必须有一个根据场景、卖点或传播角度生成的清晰中文标题，禁止返回“未命名创意方向”、空标题或泛化占位标题。每个创意方向还要包含卖点、场景、视觉构思、文案角度和生成依据。${input.mode === 'brief' ? 'creativeBrief 必须包含主题、传播目标、受众、语言表达、用户需求、卖点、场景、画面主体、人物动作、商品展示、视觉风格、构图、文案方向、标题、正文、避免内容、画幅和制作建议。' : ''}只能返回符合以下结构的 JSON：${schemaText('strategy')}`,
+    assets: `${shared}\n任务：综合用户提供的全部最新资料，生成三组具体、精细、可执行的广告素材方案，分别从用户痛点、核心卖点和真实生活场景切入。每组必须同时生成目标市场当地语言的广告标题和正文、忠实中文翻译、图片生成提示词、视频生成提示词、负面提示词、镜头/构图/制作信息。目标市场为${enrichedInput.market || '用户指定市场'}，广告语言为${enrichedInput.language || '目标市场当地语言'}。商品售价原始为人民币，广告中如果出现价格只能使用 currency.displayAmount 对应的当地货币，不能出现人民币金额；不要自行计算汇率。必须严格使用用户选中的卖点、创意方向、核心受众和已确认创意简报。保持商品图片中的外观、颜色、结构、比例和 logo 不变；没有图片或无法识别时不得虚构外观。不要生成“未命名的创意方向”。输入：${JSON.stringify(promptInput)}。只能返回符合以下结构的 JSON：${schemaText('assets')}`,
+    dataAnalysis: `${shared}\n任务：分析用户上传的广告投放数据。程序已经计算了 CTR、CPC、CVR、CPA、ROAS 等指标，你只能解释这些指标、比较广告版本、指出证据边界并提出实验建议，不能自行改写或臆造数字。必须严格区分数据直接支持、合理推测、当前无法判断和需要补充数据。输入：${JSON.stringify(promptInput)}。只能返回符合以下结构的 JSON：${schemaText('dataAnalysis')}`
   };
+  const hasVisionImage = Boolean(enrichedInput.productImage?.dataUrl);
+  const messages = hasVisionImage
+    ? [{ role: 'system', content: prompts[kind] }, { role: 'user', content: [{ type: 'text', text: '请结合这张商品图片完成上面的 JSON 任务。' }, { type: 'image_url', image_url: { url: enrichedInput.productImage.dataUrl } }] }]
+    : [{ role: 'system', content: prompts[kind] }];
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` },
-    body: JSON.stringify({ model, temperature: 0.2, messages: [{ role: 'system', content: prompts[kind] }], response_format: { type: 'json_object' } })
+    body: JSON.stringify({ model: hasVisionImage ? (process.env.DEEPSEEK_VISION_MODEL || model) : model, temperature: 0.2, messages, response_format: { type: 'json_object' } })
   });
   if (!response.ok) throw new Error(`AI_HTTP_${response.status}`);
   const data = await response.json();
-  return normalizeAnswer(kind, parseJsonAnswer(data.choices?.[0]?.message?.content || '{}'), input);
+  return normalizeAnswer(kind, parseJsonAnswer(data.choices?.[0]?.message?.content || '{}'), enrichedInput);
 }
 
 async function handleApi(req, res, path) {

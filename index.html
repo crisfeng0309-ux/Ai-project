@@ -82,9 +82,16 @@
     input, textarea, select { width: 100%; border: 1px solid #dedfe4; background: rgba(255,255,255,.86); border-radius: 9px; color: var(--ink); padding: 11px 12px; outline: none; font-size: 13px; transition: .2s ease; }
     textarea { resize: vertical; min-height: 110px; line-height: 1.65; }
     input:focus, textarea:focus, select:focus { border-color: #72a9ff; box-shadow: 0 0 0 3px rgba(22,119,255,.1); }
-    .upload { border: 1px dashed #cfd1d8; border-radius: 11px; min-height: 118px; display: grid; place-items: center; text-align: center; background: #fafafc; color: var(--muted); padding: 20px; }
+    .upload { border: 1px dashed #cfd1d8; border-radius: 11px; min-height: 118px; display: grid; place-items: center; text-align: center; background: #fafafc; color: var(--muted); padding: 20px; cursor: pointer; transition: border-color .2s, background .2s; }
+    .upload.drag-over { border-color: var(--blue); background: var(--blue-soft); }
     .upload strong { display: block; color: #474950; font-size: 13px; margin-bottom: 5px; }
     .upload span { font-size: 11px; }
+    .product-upload-filled { width: 100%; display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 12px; align-items: center; text-align: left; }
+    .product-upload-preview { width: 72px; height: 72px; object-fit: contain; border-radius: 9px; background: #fff; border: 1px solid var(--line); }
+    .product-upload-meta { min-width: 0; display: grid; gap: 4px; }
+    .product-upload-meta strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .product-upload-meta span { color: var(--muted); font-size: 11px; }
+    .product-upload-actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
     .section-break { border: 0; border-top: 1px solid var(--line); margin: 26px 0; }
     .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .section-title h3 { margin: 0; font-size: 14px; letter-spacing: -.02em; }
@@ -190,6 +197,30 @@
     .mode-tab { flex: 1; border: 0; background: transparent; color: var(--muted); border-radius: 7px; padding: 9px; font-size: 11px; }
     .mode-tab.active { background: white; color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.07); font-weight: 700; }
     .prompt-box { min-height: 175px; background: #171819; color: #e9eaee; border-radius: 11px; padding: 15px; font-size: 11px; line-height: 1.8; white-space: pre-wrap; }
+    .asset-context { display: grid; gap: 5px; margin-bottom: 15px; }
+    .asset-currency { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 12px 0 16px; color: var(--muted); font-size: 11px; }
+    .asset-currency strong { color: var(--ink); }
+    .asset-schemes { display: grid; gap: 12px; }
+    .asset-scheme { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 15px; }
+    .asset-scheme.selected { border-color: #7aaeff; box-shadow: 0 0 0 3px rgba(76,137,230,.1); }
+    .asset-scheme-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+    .asset-scheme-head h3 { margin: 0 0 5px; font-size: 14px; }
+    .asset-scheme-head p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .asset-scheme-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 12px; }
+    .asset-copy-block, .asset-detail-block { border: 1px solid #e7e9ee; border-radius: 9px; background: #fafbfc; padding: 11px; }
+    .asset-copy-block strong, .asset-detail-block strong { display: block; color: var(--ink); font-size: 11px; margin-bottom: 5px; }
+    .asset-copy-block p, .asset-detail-block p { margin: 0; white-space: pre-line; color: #5f636d; font-size: 11px; line-height: 1.7; }
+    .asset-translation { margin-top: 7px !important; color: #8a6c36 !important; }
+    .asset-reference { display: flex; gap: 10px; align-items: center; margin-top: 12px; padding: 10px; border-radius: 9px; background: #f5f7fa; color: var(--muted); font-size: 10px; }
+    .asset-reference img { width: 58px; height: 58px; object-fit: contain; border-radius: 7px; background: #fff; }
+    .asset-prompt-block { margin-top: 12px; }
+    .asset-prompt-block .prompt-box { min-height: 0; }
+    .asset-action-row { display: flex; justify-content: flex-end; gap: 9px; flex-wrap: wrap; margin-top: 14px; }
+    .asset-empty { border: 1px dashed #d8dce3; border-radius: 11px; padding: 22px; color: var(--muted); font-size: 11px; line-height: 1.7; }
+    .asset-check-list { display: grid; gap: 7px; margin-top: 10px; }
+    .asset-check-item { display: flex; gap: 7px; align-items: flex-start; color: #626771; font-size: 10px; line-height: 1.5; }
+    .asset-check-item:before { content: "✓"; color: var(--green); font-weight: 700; }
+    @media (max-width: 620px) { .product-upload-filled, .asset-scheme-grid { grid-template-columns: 1fr; } .product-upload-actions { justify-content: flex-start; } }
     .data-table { width: 100%; border-collapse: collapse; font-size: 11px; }
     .data-table th, .data-table td { padding: 11px 8px; border-bottom: 1px solid var(--line); text-align: left; }
     .data-table th { color: var(--muted); font-weight: 600; }
@@ -519,9 +550,9 @@
     const projectStorageKey = 'adlab-projects-v1';
     let returnView = 'home';
     let currentProjectId = null;
-    const blankProduct = { name: '', category: '', price: '', specs: '', features: '', description: '', imageName: '', notes: '' };
+    const blankProduct = { name: '', category: '', price: '', specs: '', features: '', description: '', imageName: '', image: null, notes: '' };
     function makeDataAnalysis() { return { currentStep: 'upload', inputMode: 'file', rawText: '', pasteText: '', inputType: '', fileName: '', rows: [], columns: [], fieldMapping: {}, missingFields: [], warnings: [], dataQuality: {}, metrics: null, summaryConfirmed: false, review: null, context: { platform: '', dateRange: '', market: '', audience: '', objective: '', budget: '', landingPage: '', productPrice: '', margin: '', promotion: '' }, updatedAt: '' }; }
-    const productFingerprint = product => JSON.stringify({ name: product?.name || '', category: product?.category || '', price: product?.price || '', specs: product?.specs || '', features: product?.features || '', description: product?.description || '', imageName: product?.imageName || '', notes: product?.notes || '' });
+    const productFingerprint = product => JSON.stringify({ name: product?.name || '', category: product?.category || '', price: product?.price || '', specs: product?.specs || '', features: product?.features || '', description: product?.description || '', imageName: product?.imageName || '', imageFingerprint: product?.image?.fingerprint || '', notes: product?.notes || '' });
     const selectedSellingPointTitles = () => projectState.productUnderstanding?.selectedSellingPoints || [];
     const strategyFingerprint = () => JSON.stringify({ product: productFingerprint(projectState.product), market: projectState.market || '', platform: projectState.platform || 'TikTok Shop', sellingPoints: selectedSellingPointTitles() });
     const strategySelectionFingerprint = () => JSON.stringify({ base: projectState.strategy?._sourceFingerprint || strategyFingerprint(), directions: projectState.strategy?.selectedDirections || [], audience: projectState.strategy?.selectedAudience || [], platform: projectState.platform || 'TikTok Shop' });
@@ -634,7 +665,7 @@
       const productKey = productFingerprint(projectState.product);
       projectState.productUnderstanding = project.productUnderstanding?._sourceFingerprint === productKey ? project.productUnderstanding : null;
       projectState.strategy = project.strategy?._sourceFingerprint === strategyFingerprint() ? project.strategy : null;
-      projectState.assets = project.assets?._sourceFingerprint === strategySelectionFingerprint() ? project.assets : null;
+      projectState.assets = project.assets?._sourceFingerprint === assetSourceFingerprint() || project.assets?.sourceFingerprint === assetSourceFingerprint() ? project.assets : null;
       projectState.dataAnalysis = { ...makeDataAnalysis(), ...(project.dataAnalysis || {}) };
       projectState.currentStep = project.currentStep || 'background';
       projectState.completedSteps = [...(project.completedSteps || [])];
@@ -930,10 +961,101 @@
       installDataSidebar();
       renderDataView();
     }
+    const clientCurrencyInfo = {
+      泰国: { code: 'THB', symbol: '฿', rate: 4.65 }, 越南: { code: 'VND', symbol: '₫', rate: 3500 }, 马来西亚: { code: 'MYR', symbol: 'RM', rate: 0.66 },
+      新加坡: { code: 'SGD', symbol: 'S$', rate: 0.19 }, 印度尼西亚: { code: 'IDR', symbol: 'Rp', rate: 2200 }, 菲律宾: { code: 'PHP', symbol: '₱', rate: 8.1 },
+      柬埔寨: { code: 'KHR', symbol: '៛', rate: 580 }, 老挝: { code: 'LAK', symbol: '₭', rate: 3200 }, 缅甸: { code: 'MMK', symbol: 'K', rate: 470 }
+    };
+    function parsePrice(value) { const match = String(value || '').replace(/,/g, '').match(/\d+(?:\.\d+)?/); return match ? Number(match[0]) : 0; }
+    function currencySnapshot() {
+      const target = clientCurrencyInfo[projectState.market];
+      const sourceAmount = parsePrice(projectState.product?.price);
+      if (!target || !sourceAmount) return { sourceCurrency: 'CNY', sourceAmount, targetCurrency: target?.code || 'CNY', targetSymbol: target?.symbol || '¥', convertedAmount: 0, displayAmount: '', exchangeRate: target?.rate || 0, available: false, rateSource: '前端配置', rateUpdatedAt: '当前配置' };
+      let converted = sourceAmount * target.rate;
+      if (['VND', 'IDR', 'KHR', 'LAK', 'MMK'].includes(target.code)) converted = Math.round(converted / 1000) * 1000;
+      else converted = Math.round(converted);
+      return { sourceCurrency: 'CNY', sourceAmount, targetCurrency: target.code, targetSymbol: target.symbol, convertedAmount: converted, displayAmount: `${target.symbol}${converted.toLocaleString('en-US')}`, exchangeRate: target.rate, available: true, rateSource: '前端配置', rateUpdatedAt: '当前配置' };
+    }
+    function invalidateProductOutputs() {
+      if (projectState.path && projectState.path !== 'creative-generation') return;
+      projectState.confirmed = false;
+      projectState.strategyComplete = false;
+      projectState.productUnderstanding = null;
+      projectState.strategy = null;
+      projectState.assets = null;
+      projectState.completedSteps = projectState.completedSteps.filter(step => step === 'background');
+      projectState.stepStatus = { background: projectState.stepStatus.background };
+      projectState.currentStep = 'product';
+      projectState.stage = '商品理解';
+    }
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
+    }
+    function compressProductImage(file) {
+      return readFileAsDataUrl(file).then(dataUrl => new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+          const scale = Math.min(1, 1600 / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+          canvas.height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+          canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.86), width: canvas.width, height: canvas.height });
+        };
+        image.onerror = reject;
+        image.src = dataUrl;
+      }));
+    }
+    function renderProductImageUpload() {
+      const wrapper = document.getElementById('setupImage');
+      if (!wrapper) return;
+      const image = projectState.product?.image;
+      wrapper.replaceChildren();
+      const input = document.createElement('input');
+      input.type = 'file'; input.id = 'setupImageInput'; input.accept = 'image/jpeg,image/png,image/webp'; input.hidden = true;
+      const content = document.createElement('div');
+      if (image?.dataUrl) {
+        const preview = document.createElement('img'); preview.className = 'product-upload-preview'; preview.src = image.dataUrl; preview.alt = '商品图片预览';
+        const meta = document.createElement('div'); meta.className = 'product-upload-meta';
+        const title = document.createElement('strong'); title.textContent = image.fileName || '商品图片';
+        const detail = document.createElement('span'); detail.textContent = `${image.width || 0} × ${image.height || 0} · ${Math.round((image.size || 0) / 1024)} KB`;
+        meta.append(title, detail);
+        const actions = document.createElement('div'); actions.className = 'product-upload-actions';
+        const replace = document.createElement('button'); replace.type = 'button'; replace.className = 'ghost-btn'; replace.textContent = '替换图片';
+        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'ghost-btn'; remove.textContent = '删除图片';
+        replace.addEventListener('click', event => { event.stopPropagation(); input.click(); });
+        remove.addEventListener('click', event => { event.stopPropagation(); projectState.product.image = null; projectState.product.imageName = ''; if (projectState.backgroundSaved) { invalidateProductOutputs(); saveCurrentProject(); } renderProductImageUpload(); toast('已删除商品图片，后续分析不会继续使用旧图片'); });
+        actions.append(replace, remove);
+        content.className = 'product-upload-filled'; content.append(preview, meta, actions);
+      } else {
+        const title = document.createElement('strong'); title.textContent = '添加商品图片';
+        const detail = document.createElement('span'); detail.textContent = '支持 JPG、PNG、WEBP，建议上传清晰的商品主图，图片会用于后续 AI 分析';
+        content.append(title, detail);
+      }
+      wrapper.append(content, input);
+      wrapper.onclick = event => { if (!event.target.closest('button')) input.click(); };
+      wrapper.ondragover = event => { event.preventDefault(); wrapper.classList.add('drag-over'); };
+      wrapper.ondragleave = () => wrapper.classList.remove('drag-over');
+      wrapper.ondrop = event => { event.preventDefault(); wrapper.classList.remove('drag-over'); const file = event.dataTransfer.files?.[0]; if (file) processProductImage(file); };
+      input.addEventListener('change', event => { const file = event.target.files?.[0]; if (file) processProductImage(file); });
+    }
+    async function processProductImage(file) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast('请上传 JPG、PNG 或 WEBP 图片'); return; }
+      if (file.size > 10 * 1024 * 1024) { toast('图片大小不能超过 10MB'); return; }
+      try {
+        const compressed = await compressProductImage(file);
+        projectState.product.image = { fileName: file.name, mimeType: 'image/jpeg', width: compressed.width, height: compressed.height, size: file.size, dataUrl: compressed.dataUrl, fingerprint: `${file.name}:${file.size}:${compressed.dataUrl.length}:${compressed.dataUrl.slice(-80)}`, uploadedAt: new Date().toISOString() };
+        projectState.product.imageName = file.name;
+        if (projectState.backgroundSaved) { invalidateProductOutputs(); saveCurrentProject(); }
+        renderProductImageUpload();
+        toast('商品图片已保存，后续 AI 会读取这张图片');
+      } catch { toast('图片读取失败，请重新选择'); }
+    }
     function resetSetupForm() {
       ['setupProjectName','setupProductName','setupCategory','setupPrice','setupSpecs','setupDescription','setupFeatures','setupNotes'].forEach(id => { document.getElementById(id).value = ''; });
       document.getElementById('setupMarket').value = '';
       projectState.setupPath = '';
+      renderProductImageUpload();
       renderSetupPathPicker();
     }
     function installSetupPathPicker() {
@@ -1017,7 +1139,7 @@
       setSellingPointGenerationState(true);
       const data = projectState.productUnderstanding;
       try {
-        const result = await callAI('/api/product-understanding', { product: projectState.product, market: projectState.market, projectName: projectState.projectName, mode: 'more-selling-points', existingSellingPoints: (data.sellingPoints || []).map(point => point.title), selectedSellingPoints: data.selectedSellingPoints || [] });
+        const result = await callAI('/api/product-understanding', { product: projectState.product, productImage: projectState.product.image, market: projectState.market, projectName: projectState.projectName, mode: 'more-selling-points', existingSellingPoints: (data.sellingPoints || []).map(point => point.title), selectedSellingPoints: data.selectedSellingPoints || [] });
         const existing = data.sellingPoints || [];
         const existingTitles = new Set(existing.map(point => point.title));
         const additions = (result.sellingPoints || []).filter(point => point.title && !existingTitles.has(point.title) && !(data.removedSellingPoints || []).includes(point.title));
@@ -1057,6 +1179,7 @@
       document.getElementById('setupFeatures').value = product.features || '';
       document.getElementById('setupNotes').value = product.notes || '';
       document.getElementById('setupMarket').value = projectState.market || '';
+      renderProductImageUpload();
       projectState.setupPath = projectState.path || projectState.setupPath || '';
       renderSetupPathPicker();
     }
@@ -1074,7 +1197,7 @@
       projectState.projectName = projectName;
       projectState.market = market;
       const price = document.getElementById('setupPrice').value.trim();
-      projectState.product = { name: productName, category: document.getElementById('setupCategory').value.trim(), price: price ? `${price} 元` : '', specs: document.getElementById('setupSpecs').value.trim(), description, features: document.getElementById('setupFeatures').value.trim(), notes: document.getElementById('setupNotes').value.trim(), imageName: '' };
+      projectState.product = { name: productName, category: document.getElementById('setupCategory').value.trim(), price: price ? `${price} 元` : '', specs: document.getElementById('setupSpecs').value.trim(), description, features: document.getElementById('setupFeatures').value.trim(), notes: document.getElementById('setupNotes').value.trim(), imageName: projectState.product.image?.fileName || '', image: projectState.product.image || null };
       projectState.backgroundSaved = true;
       const pathChanged = wasSaved && previousPath && previousPath !== selectedPath;
       const existingPath = wasSaved && previousPath === selectedPath;
@@ -1305,7 +1428,7 @@
       const productKey = productFingerprint(projectState.product);
       projectState.productUnderstanding = project.productUnderstanding?._sourceFingerprint === productKey ? project.productUnderstanding : null;
       projectState.strategy = project.strategy?._sourceFingerprint === strategyFingerprint() ? project.strategy : null;
-      projectState.assets = project.assets?._sourceFingerprint === strategySelectionFingerprint() ? project.assets : null;
+      projectState.assets = project.assets?._sourceFingerprint === assetSourceFingerprint() || project.assets?.sourceFingerprint === assetSourceFingerprint() ? project.assets : null;
       loadProductIntoReview();
       showView(view, { fromHistory: true });
     }
@@ -1346,6 +1469,24 @@
       projectState.stage = projectState.confirmed ? '创意策略' : '商品理解';
       saveCurrentProject();
     }
+    function translateProductFieldNames(value) {
+      if (!value) return value;
+      return String(value)
+        .replace(/\bdescription\b/gi, '商品描述')
+        .replace(/\bfeatures\b/gi, '已知功能')
+        .replace(/\bnotes\b/gi, '项目备注')
+        .replace(/\bimageName\b/gi, '商品图片')
+        .replace(/\bspecs\b/gi, '关键规格')
+        .replace(/\bcategory\b/gi, '商品类别')
+        .replace(/\bprice\b/gi, '人民币售价')
+        .replace(/\bname\b/gi, '商品名称')
+        .replace(/\bconfirmedFunctions\b/gi, '已知功能')
+        .replace(/\busageScenes\b/gi, '适用场景')
+        .replace(/\buser_input\b/gi, '用户填写')
+        .replace(/\bimage_observed\b/gi, '图片识别')
+        .replace(/\bmodel_inference\b/gi, 'AI 推测')
+        .replace(/\bneeds_confirmation\b/gi, '待确认');
+    }
     function renderSellingPoints(data) {
       const tags = document.getElementById('productTags');
       if (!tags) return;
@@ -1369,7 +1510,7 @@
         const description = document.createElement('p');
         description.textContent = point.description || '暂无详细说明';
         const evidence = document.createElement('small');
-        evidence.textContent = `依据：${point.evidence || '需要进一步确认'}`;
+        evidence.textContent = `依据：${translateProductFieldNames(point.evidence || '需要进一步确认')}`;
         content.append(title, description, evidence);
         const remove = document.createElement('button');
         remove.type = 'button';
@@ -1413,7 +1554,7 @@
       if (scene) scene.textContent = scenes.map(item => item.scene).join('、') || '暂无适用场景';
       renderSellingPoints(data);
       const notice = document.querySelector('#product-view .panel-main .notice');
-      if (notice) { const title = document.createElement('strong'); title.textContent = data.pendingItems?.length ? '待确认项提示' : '信息可信度核查'; const body = document.createTextNode(data.pendingItems?.length ? data.pendingItems.join('；') : '当前卖点均有商品资料依据，请继续核对广告表达。'); notice.replaceChildren(title, body); }
+      if (notice) { const title = document.createElement('strong'); title.textContent = data.pendingItems?.length ? '待确认项提示' : '信息可信度核查'; const body = document.createTextNode(data.pendingItems?.length ? data.pendingItems.map(translateProductFieldNames).join('；') : '当前卖点均有商品资料依据，请继续核对广告表达。'); notice.replaceChildren(title, body); }
       document.querySelector('#product-view .review-badge').textContent = '第 1 版理解';
       document.getElementById('confirmProduct').disabled = !data.selectedSellingPoints?.length || data._sourceFingerprint !== productFingerprint(projectState.product);
       setProductStatus('等待确认');
@@ -1428,7 +1569,7 @@
       document.getElementById('confirmProduct').disabled = true;
       setProductStatus('AI 分析中');
       try {
-        const data = await callAI('/api/product-understanding', { product: projectState.product, market: projectState.market, projectName: projectState.projectName, mode: 'initial' });
+        const data = await callAI('/api/product-understanding', { product: projectState.product, productImage: projectState.product.image, market: projectState.market, projectName: projectState.projectName, mode: 'initial' });
         projectState.productUnderstanding = { ...data, selectedSellingPoints: null, removedSellingPoints: [], _selectionInitialized: false, _sourceFingerprint: fingerprint };
         renderProductUnderstanding(projectState.productUnderstanding);
         saveCurrentProject();
@@ -1831,7 +1972,7 @@
       if (status) status.textContent = 'AI 分析中';
       clearStrategyAIResult();
       try {
-        const data = await callAI('/api/creative-strategy', { product: projectState.product, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), mode: 'initial' });
+        const data = await callAI('/api/creative-strategy', { product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), mode: 'initial' });
         projectState.strategy = { ...data, selectedDirections: [], selectedAudience: [], audienceSaved: false, removedAudience: [], removedDirections: [], _sourceFingerprint: fingerprint, sourceFingerprint: fingerprint, brief: null, briefStatus: 'not-generated', briefApproved: false, briefVersion: 0, briefFeedback: [], briefApprovedAt: '', briefFingerprint: '', _briefFingerprint: '' };
         saveCurrentProject();
         renderStrategy(projectState.strategy);
@@ -1855,7 +1996,7 @@
       if (status) status.textContent = '正在生成新方向';
       if (button) { button.disabled = true; button.classList.add('is-loading'); button.textContent = 'AI 正在生成方向…'; }
       try {
-        const result = await callAI('/api/creative-strategy', { product: projectState.product, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), existingDirections: projectState.strategy.creativeDirections || [], removedDirections: projectState.strategy.removedDirections || [], mode: 'more-directions' });
+        const result = await callAI('/api/creative-strategy', { product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), existingDirections: projectState.strategy.creativeDirections || [], removedDirections: projectState.strategy.removedDirections || [], mode: 'more-directions' });
         const existingTitles = new Set((projectState.strategy.creativeDirections || []).map(direction => direction.title));
         const additions = (result.creativeDirections || []).filter(direction => direction.title && !existingTitles.has(direction.title) && !(projectState.strategy.removedDirections || []).includes(direction.title));
         projectState.strategy.creativeDirections = [...(projectState.strategy.creativeDirections || []), ...additions];
@@ -1902,7 +2043,7 @@
       renderStrategy(strategy);
       let succeeded = false;
       try {
-        const result = await callAI('/api/creative-strategy', { product: projectState.product, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), strategy: projectState.strategy, currentBrief: strategy.brief, briefFeedback: strategy.briefFeedback || [], modificationSuggestion: feedback, mode: 'brief' });
+        const result = await callAI('/api/creative-strategy', { product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), strategy: projectState.strategy, currentBrief: strategy.brief, briefFeedback: strategy.briefFeedback || [], modificationSuggestion: feedback, mode: 'brief' });
         const nextVersion = (strategy.briefVersion || 0) + 1;
         strategy.brief = result.creativeBrief || result.brief || null;
         strategy.briefVersion = nextVersion;
@@ -1918,6 +2059,20 @@
         toast(feedback ? `创意简报第 ${nextVersion} 版已生成` : '创意简报已生成，请确认是否满意');
       } catch (error) { toast(error.message); }
       finally { projectState.aiLoading = false; if (status) status.textContent = '可多选组合'; if (!succeeded) strategy.briefStatus = strategy.brief ? 'needs-revision' : 'not-generated'; renderStrategy(strategy); }
+    }
+    function installAssetsLayout() {
+      const view = document.getElementById('assets-view');
+      const main = view?.querySelector('.panel-main');
+      const side = view?.querySelector('.panel-side');
+      if (!main || !side) return;
+      main.innerHTML = '<div class="panel-heading"><div><h2>广告素材工作台</h2><p>综合项目背景、商品图片、卖点、创意方向和创意简报，生成可直接执行的广告素材方案。</p></div><span class="status-pill" id="assetStatusPill">等待生成</span></div><div id="assetGenerationContext" class="asset-context"></div><div id="assetCurrency" class="asset-currency"></div><div id="assetSchemes" class="asset-schemes"></div><div class="asset-action-row"><button type="button" class="ghost-btn" id="generateAssetBtn">重新生成广告素材</button><button type="button" class="primary-btn" id="saveAssetsBtn" disabled>保存选中的素材，完成项目 →</button></div>';
+      side.innerHTML = '<div class="side-title">本次素材输入</div><div id="assetInputSummary" class="notice">等待 AI 读取项目资料。</div><div class="side-section"><div class="side-title">生成内容</div><div class="asset-check-list"><div class="asset-check-item">目标市场当地语言广告标题和正文</div><div class="asset-check-item">中文标题和正文释义</div><div class="asset-check-item">广告图片方案和图片提示词</div><div class="asset-check-item">视频提示词和负面提示词</div><div class="asset-check-item">当地货币价格和制作建议</div></div></div>';
+      document.getElementById('generateAssetBtn').addEventListener('click', () => generateAssets(true));
+      document.getElementById('saveAssetsBtn').addEventListener('click', () => saveAssetsAndComplete('已保存素材方案，项目进度已更新'));
+      view.addEventListener('click', event => {
+        const copy = event.target.closest('[data-copy-asset]');
+        if (copy) { const value = copy.dataset.copyAsset || ''; navigator.clipboard?.writeText(value).then(() => toast('内容已复制')).catch(() => toast('内容已准备好，可手动复制')); }
+      });
     }
     function marketLanguage(market) {
       return ({ 泰国: '泰语', 越南: '越南语', 马来西亚: '马来语', 新加坡: '英语或马来语', 印度尼西亚: '印度尼西亚语', 菲律宾: '英语或菲律宾语', 柬埔寨: '高棉语', 老挝: '老挝语', 缅甸: '缅甸语' })[market] || '目标市场当地语言';
@@ -1941,52 +2096,65 @@
       fields[0].appendChild(titleNote);
       fields[1].appendChild(bodyNote);
     }
+    function assetSourceFingerprint() {
+      return JSON.stringify({ base: strategySelectionFingerprint(), brief: projectState.strategy?.brief || null, image: projectState.product?.image?.fingerprint || '', currency: currencySnapshot() });
+    }
+    function assetTextBlock(label, value, copyable = false) {
+      const block = document.createElement('div'); block.className = 'asset-detail-block';
+      const title = document.createElement('strong'); title.textContent = label; block.appendChild(title);
+      const paragraph = document.createElement('p'); paragraph.textContent = value || '暂无内容'; block.appendChild(paragraph);
+      if (copyable && value) { const button = document.createElement('button'); button.type = 'button'; button.className = 'ghost-btn'; button.textContent = '复制'; button.dataset.copyAsset = value; button.style.marginTop = '8px'; block.appendChild(button); }
+      return block;
+    }
     function renderAssets(data) {
-      const inputs = document.querySelectorAll('#templateMode input, #templateMode textarea');
-      if (inputs[0]) inputs[0].value = data.adTitle || '';
-      if (inputs[1]) inputs[1].value = data.adBody || '';
-      const language = marketLanguage(projectState.market);
-      const labels = document.querySelectorAll('#templateMode .form-grid:not(.two-col) .field label');
-      if (labels[0]) labels[0].textContent = `广告标题（${language}）`;
-      if (labels[1]) labels[1].textContent = `广告正文（${language}）`;
-      const languageNote = document.getElementById('assetLanguageNote');
-      if (languageNote) languageNote.textContent = `广告文案使用${language}生成，旁边保留中文释义，便于你核对含义。`;
-      const titleTranslation = document.querySelector('#assetTitleTranslation span');
-      const bodyTranslation = document.querySelector('#assetBodyTranslation span');
-      if (titleTranslation) titleTranslation.textContent = data.adTitleZh || 'AI 未提供中文释义，请重新生成素材。';
-      if (bodyTranslation) bodyTranslation.textContent = data.adBodyZh || 'AI 未提供中文释义，请重新生成素材。';
-      const prompt = document.getElementById('promptText');
-      if (prompt) prompt.textContent = `图片提示词：${data.imagePrompt || ''}\n\n视频提示词：${data.videoPrompt || ''}\n\n负面提示词：${data.negativePrompt || ''}`;
-      const assetTags = document.querySelector('#assets-view .panel-side .tag-row');
-      if (assetTags) assetTags.replaceChildren(...selectedDirections().map(direction => { const tag = document.createElement('span'); tag.className = 'tag selected'; tag.textContent = direction.title; return tag; }));
+      if (!data) return;
+      data.schemes = Array.isArray(data.schemes) && data.schemes.length ? data.schemes : [{ id: 'scheme-1', title: '广告素材方案 A', angle: '', adTitle: data.adTitle, adTitleZh: data.adTitleZh, adBody: data.adBody, adBodyZh: data.adBodyZh, sellingPointCopy: data.sellingPointCopy, imageLayout: data.imageLayout, imagePrompt: data.imagePrompt, videoPrompt: data.videoPrompt, negativePrompt: data.negativePrompt, formatAdvice: data.formatAdvice, shotList: [], productionNotes: '', localPrice: data.currency?.displayAmount || '', targetAudience: [], qualityChecks: [] }];
+      if (!data.selectedSchemeId) data.selectedSchemeId = data.schemes[0].id;
+      const status = document.getElementById('assetStatusPill');
+      if (status) status.textContent = '素材已就绪';
+      const context = document.getElementById('assetGenerationContext');
+      if (context) { context.className = 'notice asset-context'; context.innerHTML = ''; const strong = document.createElement('strong'); strong.textContent = `已综合 ${data.schemes.length} 组广告素材方案`; const span = document.createElement('span'); span.textContent = `商品：${projectState.product.name || '未填写'} · 市场：${projectState.market || '未选择'} · 平台：${projectState.platform || 'TikTok Shop'} · 每组方案同时包含图片方案和完整提示词。`; context.append(strong, span); }
+      const currency = data.currency || currencySnapshot();
+      const currencyEl = document.getElementById('assetCurrency');
+      if (currencyEl) currencyEl.innerHTML = currency.available ? `<span>人民币售价：<strong>¥${currency.sourceAmount}</strong></span><span>广告展示价格：<strong>${currency.displayAmount}</strong></span><span>汇率：1 CNY ≈ ${currency.exchangeRate} ${currency.targetCurrency} · ${currency.rateUpdatedAt}</span>` : '<span>当前未生成当地货币价格，请确认人民币售价和汇率配置。</span>';
+      const summary = document.getElementById('assetInputSummary');
+      if (summary) summary.textContent = `已读取商品图片、${selectedSellingPointTitles().length} 个卖点、${selectedDirections().length} 个创意方向和 ${selectedAudience().length} 个核心受众。`;
+      const list = document.getElementById('assetSchemes');
+      if (!list) return;
+      list.replaceChildren();
+      data.schemes.forEach((scheme, index) => {
+        const card = document.createElement('article'); card.className = `asset-scheme ${data.selectedSchemeId === scheme.id ? 'selected' : ''}`;
+        const head = document.createElement('div'); head.className = 'asset-scheme-head';
+        const titleWrap = document.createElement('div'); const title = document.createElement('h3'); title.textContent = scheme.title || `广告素材方案 ${String.fromCharCode(65 + index)}`; const angle = document.createElement('p'); angle.textContent = scheme.angle || ['用户痛点切入', '核心卖点切入', '真实生活场景切入'][index] || '综合创意切入'; titleWrap.append(title, angle);
+        const choose = document.createElement('button'); choose.type = 'button'; choose.className = data.selectedSchemeId === scheme.id ? 'primary-btn' : 'ghost-btn'; choose.textContent = data.selectedSchemeId === scheme.id ? '已选择' : '选择方案'; choose.addEventListener('click', () => { data.selectedSchemeId = scheme.id; saveCurrentProject(); renderAssets(data); }); head.append(titleWrap, choose); card.appendChild(head);
+        const copyGrid = document.createElement('div'); copyGrid.className = 'asset-scheme-grid'; copyGrid.append(assetTextBlock(`广告标题（${marketLanguage(projectState.market)}）`, scheme.adTitle, true), assetTextBlock('中文标题释义', scheme.adTitleZh)); copyGrid.append(assetTextBlock(`广告正文（${marketLanguage(projectState.market)}）`, scheme.adBody, true), assetTextBlock('中文正文释义', scheme.adBodyZh)); card.appendChild(copyGrid);
+        card.append(assetTextBlock('开头吸引点', scheme.hook), assetTextBlock('核心卖点与价格表达', [...(scheme.sellingPointCopy || []), scheme.localPrice ? `广告价格：${scheme.localPrice}` : ''].filter(Boolean).join('\n')));
+        const detailGrid = document.createElement('div'); detailGrid.className = 'asset-scheme-grid'; detailGrid.append(assetTextBlock('画面构图与商品展示', scheme.imageLayout), assetTextBlock('镜头顺序', (scheme.shotList || []).join('\n'))); card.appendChild(detailGrid);
+        if (scheme.imageUrl) { const generated = document.createElement('div'); generated.className = 'asset-reference'; const img = document.createElement('img'); img.src = scheme.imageUrl; img.alt = '生成的广告图片'; const text = document.createElement('span'); text.textContent = '广告图片生成结果'; generated.append(img, text); card.appendChild(generated); }
+        if (projectState.product.image?.dataUrl) { const reference = document.createElement('div'); reference.className = 'asset-reference'; const img = document.createElement('img'); img.src = projectState.product.image.dataUrl; img.alt = '商品图片参考'; const text = document.createElement('span'); text.textContent = '这张商品图片已作为视觉参考，生成提示词要求保持商品外观、颜色、结构和 logo 一致。'; reference.append(img, text); card.appendChild(reference); }
+        const promptGrid = document.createElement('div'); promptGrid.className = 'asset-scheme-grid asset-prompt-block'; promptGrid.append(assetTextBlock('图片生成提示词', scheme.imagePrompt, true), assetTextBlock('视频生成提示词', scheme.videoPrompt, true)); card.appendChild(promptGrid);
+        const lastGrid = document.createElement('div'); lastGrid.className = 'asset-scheme-grid asset-prompt-block'; lastGrid.append(assetTextBlock('负面提示词', scheme.negativePrompt, true), assetTextBlock('画幅与后续制作建议', [...(scheme.formatAdvice || []), scheme.productionNotes].filter(Boolean).join('\n'))); card.appendChild(lastGrid);
+        list.appendChild(card);
+      });
+      const save = document.getElementById('saveAssetsBtn'); if (save) save.disabled = !data.schemes.length;
     }
     function clearAssetsAIResult() {
-      const inputs = document.querySelectorAll('#templateMode input, #templateMode textarea');
-      const language = marketLanguage(projectState.market);
-      if (inputs[0]) inputs[0].value = `AI 正在生成${language}广告标题…`;
-      if (inputs[1]) inputs[1].value = `AI 正在生成${language}广告正文…`;
-      const labels = document.querySelectorAll('#templateMode .form-grid:not(.two-col) .field label');
-      if (labels[0]) labels[0].textContent = `广告标题（${language}）`;
-      if (labels[1]) labels[1].textContent = `广告正文（${language}）`;
-      const languageNote = document.getElementById('assetLanguageNote');
-      if (languageNote) languageNote.textContent = `AI 正在根据${projectState.market || '目标市场'}生成${language}广告文案，请稍候。`;
-      const titleTranslation = document.querySelector('#assetTitleTranslation span');
-      const bodyTranslation = document.querySelector('#assetBodyTranslation span');
-      if (titleTranslation) titleTranslation.textContent = 'AI 正在生成中文释义…';
-      if (bodyTranslation) bodyTranslation.textContent = 'AI 正在生成中文释义…';
-      const prompt = document.getElementById('promptText');
-      if (prompt) prompt.textContent = '等待 AI 生成专业图片提示词、视频提示词和负面提示词。';
-      const assetTags = document.querySelector('#assets-view .panel-side .tag-row');
-      if (assetTags) assetTags.innerHTML = '<span class="tag">等待已选创意</span>';
+      const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 生成中';
+      const context = document.getElementById('assetGenerationContext'); if (context) { context.className = 'notice asset-context'; context.innerHTML = '<strong>AI 正在综合项目资料生成素材…</strong><span>正在读取商品图片、整合商品卖点、匹配目标市场语言、换算当地货币，并生成图片和视频提示词。</span>'; }
+      const currency = document.getElementById('assetCurrency'); if (currency) currency.textContent = '正在计算广告中使用的当地货币价格…';
+      const list = document.getElementById('assetSchemes'); if (list) list.innerHTML = '<div class="asset-empty"><span class="strategy-loading">AI 正在生成三组广告素材方案，请稍候…</span></div>';
+      const save = document.getElementById('saveAssetsBtn'); if (save) save.disabled = true;
     }
-    async function generateAssets() {
-      if (!projectState.confirmed || !projectState.strategy || (projectState.assets && projectState.assets.adTitleZh && projectState.assets.adBodyZh) || projectState.aiLoading) { if (projectState.assets) renderAssets(projectState.assets); return; }
-      projectState.aiLoading = true;
-      clearAssetsAIResult();
-      const status = document.querySelector('#assets-view .status-pill');
-      if (status) status.textContent = 'AI 生成中';
-      try { projectState.assets = await callAI('/api/ad-assets', { product: projectState.product, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience() }); projectState.assets._sourceFingerprint = strategySelectionFingerprint(); saveCurrentProject(); renderAssets(projectState.assets); if (status) status.textContent = '素材已就绪'; }
-      catch (error) { if (status) status.textContent = 'AI 未完成'; toast(error.message); } finally { projectState.aiLoading = false; }
+    async function generateAssets(force = false) {
+      const fingerprint = assetSourceFingerprint();
+      if (!projectState.confirmed || !projectState.strategy || !projectState.strategyComplete) { toast('请先确认创意简报，再进入广告素材生成'); return; }
+      if (!force && projectState.assets?.sourceFingerprint === fingerprint && projectState.assets.schemes?.length) { renderAssets(projectState.assets); return; }
+      if (projectState.aiLoading) { toast('AI 正在生成素材，请稍候'); return; }
+      projectState.aiLoading = true; clearAssetsAIResult();
+      const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
+      try { const result = await callAI('/api/ad-assets', payload); projectState.assets = { ...result, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast('已生成三组广告素材方案'); }
+      catch (error) { const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成'; toast(error.message); }
+      finally { projectState.aiLoading = false; }
     }
     installProductContexts();
     installOverviewControls();
@@ -1996,6 +2164,7 @@
     installProductEditFields();
     installProductPointControls();
     installStrategyLayout();
+    installAssetsLayout();
     installAssetTranslationFields();
     function canOpenView(name) {
       if (['home', 'history', 'setup', 'path', 'overview'].includes(name)) return true;
@@ -2063,14 +2232,10 @@
     document.getElementById('pathBack').addEventListener('click', () => navigate('setup', { projectId: currentProjectId }));
     document.getElementById('chooseDataPath').addEventListener('click', () => choosePath('data-analysis'));
     document.getElementById('chooseCreativePath').addEventListener('click', () => choosePath('creative-generation'));
-    document.getElementById('setupImage').addEventListener('click', () => toast('演示版暂保存图片名称，后续接入真实图片上传'));
     document.getElementById('continueBtn').addEventListener('click', () => { navigate('strategy', { projectId: currentProjectId }); toast('商品信息已确认，进入创意策略'); });
     document.getElementById('saveBtn').addEventListener('click', () => toast('项目已保存到本地演示空间'));
     document.getElementById('demoBtn').addEventListener('click', () => toast('演示数据已停用，请填写当前项目的真实商品资料'));
-    document.getElementById('upload').addEventListener('click', () => toast('演示模式暂不上传文件，已使用商品示例图')); 
     document.querySelectorAll('.tag, .creative-card').forEach(el => el.addEventListener('click', () => el.classList.toggle('selected')));
-    document.querySelectorAll('.mode-tab').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active')); tab.classList.add('active'); const prompt = tab.dataset.mode === 'prompt'; document.getElementById('templateMode').style.display = prompt ? 'none' : 'block'; document.getElementById('promptMode').style.display = prompt ? 'block' : 'none'; }));
-    document.getElementById('copyPrompt').addEventListener('click', async () => { try { await navigator.clipboard.writeText(document.getElementById('promptText').textContent); toast('提示词已复制'); } catch { toast('提示词已准备好，可手动复制'); } });
     const review = document.getElementById('productReview');
     const editor = document.getElementById('productEdit');
     const confirmed = document.getElementById('confirmedProduct');
@@ -2112,15 +2277,12 @@
       toast('商品信息已确认，其他模块已同步');
     });
     function saveAssetsAndComplete(message) {
-      if (!projectState.assets) { toast('请等待 AI 完成素材生成'); return; }
-      const inputs = document.querySelectorAll('#templateMode input, #templateMode textarea');
-      projectState.assets = { ...projectState.assets, adTitle: inputs[0]?.value || projectState.assets.adTitle, adBody: inputs[1]?.value || projectState.assets.adBody };
+      if (!projectState.assets?.schemes?.length) { toast('请等待 AI 完成素材生成'); return; }
+      if (!projectState.assets.selectedSchemeId) projectState.assets.selectedSchemeId = projectState.assets.schemes[0].id;
       saveCurrentProject();
       completeStep('assets', 'complete', '项目完成');
       toast(message);
     }
-    document.getElementById('exportBtn').addEventListener('click', () => saveAssetsAndComplete('广告素材已保存，项目进度已更新'));
-    document.getElementById('promptDone').addEventListener('click', () => saveAssetsAndComplete('提示词已保存，项目进度已更新'));
     ensureDemoProject();
     window.addEventListener('popstate', restoreFromUrl);
     restoreFromUrl();
