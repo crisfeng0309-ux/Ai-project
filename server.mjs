@@ -116,8 +116,8 @@ function normalizeStrategy(raw) {
     targetAudience: audience.map(item => ({
       name: text(item.name || item.audience), need: text(item.need), painPoint: text(item.painPoint || item.pain_point)
     })),
-    creativeDirections: directions.map(item => ({
-      title: text(item.title || item.name, '未命名创意方向'),
+    creativeDirections: directions.map((item, index) => ({
+      title: directionTitle(item, index),
       coreSellingPoints: (item.coreSellingPoints || item.core_selling_points || item.sellingPoints || []).map(point => text(point)),
       usageScene: text(item.usageScene || item.usage_scene || item.scene),
       visualConcept: text(item.visualConcept || item.visual_concept || item.visual),
@@ -147,6 +147,18 @@ function normalizeStrategy(raw) {
   };
 }
 
+function directionTitle(item, index) {
+  const provided = text(item.title || item.name);
+  if (provided && !/^(未命名|unnamed|untitled)/i.test(provided)) return provided;
+  const scene = text(item.usageScene || item.usage_scene || item.scene);
+  const points = item.coreSellingPoints || item.core_selling_points || item.sellingPoints || [];
+  const point = text(points[0]);
+  const angle = text(item.copyAngle || item.copy_angle || item.message);
+  const source = scene || point || angle || `创意方向 ${index + 1}`;
+  const title = scene ? `${source}场景` : point ? `${source}利益点` : source;
+  return title.length > 24 ? `${title.slice(0, 24)}…` : title;
+}
+
 function normalizeAssets(raw) {
   return {
     adTitle: text(raw.adTitle || raw.ad_title),
@@ -172,7 +184,7 @@ async function askDeepSeek(kind, input) {
   const schemaText = kind => JSON.stringify(schemas[kind]);
   const prompts = {
     product: `${shared}\n任务：${input.mode === 'more-selling-points' ? '基于最新商品资料补充 2 到 4 个新的、不重复的卖点候选。不要重复 existingSellingPoints，也不要使用 removedSellingPoints。' : '理解商品并提炼卖点。'}商品资料：${JSON.stringify(input)}。卖点必须附带证据来源，不能把未提供的信息当成事实，场景必须与当前商品匹配。只能返回符合以下结构的 JSON：${schemaText('product')}`,
-    strategy: `${shared}\n任务：${input.mode === 'brief' ? '根据用户最新选择生成一份精细、具体、可执行的创意简报。必须综合 selectedSellingPoints、selectedDirections、selectedAudience、目标市场、广告平台和完整商品资料，不能返回泛泛而谈的描述。若存在 modificationSuggestion，必须在保留有效内容的基础上按用户建议重新生成完整简报；不能只回复修改说明。' : input.mode === 'more-directions' ? '基于最新商品资料和已确认卖点，补充 2 到 3 个新的、不重复的创意方向。不要重复 existingDirections，也不要使用 removedDirections。' : '基于已确认商品信息制定目标市场广告创意策略，生成 2 到 3 个创意方向。'}商品资料：${JSON.stringify(input)}。每个创意方向包含卖点、场景、视觉构思、文案角度和生成依据。${input.mode === 'brief' ? 'creativeBrief 必须包含主题、传播目标、受众、语言表达、用户需求、卖点、场景、画面主体、人物动作、商品展示、视觉风格、构图、文案方向、标题、正文、避免内容、画幅和制作建议。' : ''}只能返回符合以下结构的 JSON：${schemaText('strategy')}`,
+    strategy: `${shared}\n任务：${input.mode === 'brief' ? '根据用户最新选择生成一份精细、具体、可执行的创意简报。必须综合 selectedSellingPoints、selectedDirections、selectedAudience、目标市场、广告平台和完整商品资料，不能返回泛泛而谈的描述。若存在 modificationSuggestion，必须在保留有效内容的基础上按用户建议重新生成完整简报；不能只回复修改说明。' : input.mode === 'more-directions' ? '基于最新商品资料和已确认卖点，补充 2 到 3 个新的、不重复的创意方向。不要重复 existingDirections，也不要使用 removedDirections。' : '基于已确认商品信息制定目标市场广告创意策略，生成 2 到 3 个创意方向。'}商品资料：${JSON.stringify(input)}。每个创意方向必须有一个根据场景、卖点或传播角度生成的清晰中文标题，禁止返回“未命名创意方向”、空标题或泛化占位标题。每个创意方向还要包含卖点、场景、视觉构思、文案角度和生成依据。${input.mode === 'brief' ? 'creativeBrief 必须包含主题、传播目标、受众、语言表达、用户需求、卖点、场景、画面主体、人物动作、商品展示、视觉风格、构图、文案方向、标题、正文、避免内容、画幅和制作建议。' : ''}只能返回符合以下结构的 JSON：${schemaText('strategy')}`,
     assets: `${shared}\n任务：基于已确认商品信息和选中的创意方向生成广告文案及专业图片/视频提示词。输入：${JSON.stringify(input)}。不要虚构商品外观；没有图片时不要假设外观细节。只能返回符合以下结构的 JSON：${schemaText('assets')}`
   };
   const response = await fetch(`${baseUrl}/chat/completions`, {
