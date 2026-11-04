@@ -145,6 +145,24 @@
     .strategy-context-block h3 { margin: 0 0 9px; font-size: 12px; }
     .strategy-context-block p { margin: 0; color: #666870; font-size: 11px; line-height: 1.7; }
     .strategy-context-block .tag-row { margin-top: 8px; }
+    .strategy-loading { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .strategy-loading:before { content: ""; width: 8px; height: 8px; border: 2px solid #cbd8eb; border-top-color: var(--blue); border-radius: 50%; animation: adlab-spin .8s linear infinite; }
+    .audience-list { display: grid; gap: 8px; margin-top: 10px; }
+    .audience-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; align-items: start; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 10px; text-align: left; cursor: pointer; }
+    .audience-card.selected { border-color: #84b4ff; background: var(--blue-soft); }
+    .audience-card strong { display: block; font-size: 11px; margin-bottom: 3px; }
+    .audience-card p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .audience-check { width: 16px; height: 16px; border: 1px solid #cfd4dc; border-radius: 50%; color: transparent; display: grid; place-items: center; font-size: 10px; }
+    .audience-card.selected .audience-check { background: var(--blue); border-color: var(--blue); color: #fff; }
+    .audience-editor { margin-top: 10px; }
+    .audience-add-row { display: flex; gap: 8px; margin-top: 10px; }
+    .audience-add-row input { min-width: 0; flex: 1; }
+    .audience-save-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+    .audience-save-state { color: var(--muted); font-size: 10px; }
+    .audience-save-state.saved { color: var(--green); }
+    .generation-button { position: relative; }
+    .generation-button.is-loading { color: var(--blue); border-color: #a8c7f5; background: var(--blue-soft); }
+    @keyframes adlab-spin { to { transform: rotate(360deg); } }
     .strategy-brief { white-space: pre-line; }
     .strategy-brief.stale { border: 1px solid #f0d8b0; background: #fffaf1; }
     .strategy-brief.stale strong { color: #9a681f; }
@@ -641,10 +659,30 @@
       if (editDescription) editDescription.value = product.description || '';
       const editNotes = document.getElementById('editNotes');
       if (editNotes) editNotes.value = product.notes || '';
-      document.getElementById('productContinue').disabled = !projectState.confirmed || !projectState.productUnderstanding?.selectedSellingPoints?.length;
+      updateProductContinueState();
       document.querySelector('#product-view .status-pill').textContent = projectState.confirmed ? '已确认' : '等待确认';
       const confirmedState = document.getElementById('confirmedProduct');
       if (confirmedState) confirmedState.classList.toggle('show', projectState.confirmed);
+    }
+    function productContinueReason() {
+      if (!projectState.confirmed) return '请先点击“确认无误，继续分析”，确认商品理解。';
+      if (!projectState.productUnderstanding || projectState.productUnderstanding._sourceFingerprint !== productFingerprint(projectState.product)) return '商品信息已变化，请等待 AI 根据最新资料重新整理。';
+      if (!projectState.productUnderstanding.selectedSellingPoints?.length) return '请至少选择一个卖点，再进入创意策略。';
+      return '';
+    }
+    function updateProductContinueState() {
+      const button = document.getElementById('productContinue');
+      if (!button) return;
+      const reason = productContinueReason();
+      button.disabled = false;
+      button.setAttribute('aria-disabled', reason ? 'true' : 'false');
+      button.title = reason || '进入创意策略';
+      button.classList.toggle('blocked', Boolean(reason));
+    }
+    function continueToStrategy() {
+      const reason = productContinueReason();
+      if (reason) { toast(reason); return; }
+      navigate('strategy', { projectId: currentProjectId });
     }
     function installProductEditFields() {
       const edit = document.getElementById('productEdit');
@@ -662,6 +700,7 @@
       if (!projectState.productUnderstanding || projectState.aiLoading) return;
       projectState.aiLoading = true;
       setProductStatus('正在生成更多卖点', '');
+      setSellingPointGenerationState(true);
       const data = projectState.productUnderstanding;
       try {
         const result = await callAI('/api/product-understanding', { product: projectState.product, market: projectState.market, projectName: projectState.projectName, mode: 'more-selling-points', existingSellingPoints: (data.sellingPoints || []).map(point => point.title), selectedSellingPoints: data.selectedSellingPoints || [] });
@@ -674,7 +713,14 @@
         renderProductUnderstanding(data);
         toast(additions.length ? `已增加 ${additions.length} 个卖点候选` : '没有生成新的不重复卖点');
       } catch (error) { toast(error.message); }
-      finally { projectState.aiLoading = false; setProductStatus('等待确认'); }
+      finally { projectState.aiLoading = false; setSellingPointGenerationState(false); setProductStatus('等待确认'); updateProductContinueState(); }
+    }
+    function setSellingPointGenerationState(loading) {
+      const button = document.getElementById('generateMoreSellingPoints');
+      const hint = document.getElementById('sellingPointHint');
+      if (button) { button.disabled = loading; button.classList.toggle('is-loading', loading); button.textContent = loading ? 'AI 正在生成卖点…' : '再生成卖点'; }
+      if (hint && loading) hint.textContent = 'AI 正在根据最新商品信息生成新的卖点，请稍候。';
+      else if (hint && projectState.productUnderstanding) hint.textContent = projectState.productUnderstanding.selectedSellingPoints?.length ? `已选择 ${projectState.productUnderstanding.selectedSellingPoints.length} 个卖点，将用于创意策略。` : '请至少选择一个卖点。';
     }
     function installProductPointControls() {
       const tags = document.getElementById('productTags');
@@ -682,7 +728,7 @@
       const controls = document.createElement('div');
       controls.id = 'sellingPointControls';
       controls.className = 'inline-action-row';
-      controls.innerHTML = '<span class="inline-hint" id="sellingPointHint">请等待 AI 生成卖点。</span><button type="button" class="ghost-btn" id="generateMoreSellingPoints">再生成卖点</button>';
+      controls.innerHTML = '<span class="inline-hint" id="sellingPointHint">请等待 AI 生成卖点。</span><button type="button" class="ghost-btn generation-button" id="generateMoreSellingPoints">再生成卖点</button>';
       tags.insertAdjacentElement('afterend', controls);
       document.getElementById('generateMoreSellingPoints').addEventListener('click', generateMoreSellingPoints);
     }
@@ -967,6 +1013,7 @@
       if (badge) badge.textContent = '等待生成';
       const confirm = document.getElementById('confirmProduct');
       if (confirm) confirm.disabled = true;
+      updateProductContinueState();
     }
     function invalidateStrategyFromProductSelection() {
       projectState.strategy = null;
@@ -1036,6 +1083,8 @@
       if (hint) hint.textContent = data.selectedSellingPoints.length ? `已选择 ${data.selectedSellingPoints.length} 个卖点，将用于创意策略。` : '请至少选择一个卖点。';
       const confirm = document.getElementById('confirmProduct');
       if (confirm) confirm.disabled = !data.selectedSellingPoints.length || data._sourceFingerprint !== productFingerprint(projectState.product);
+      if (!projectState.aiLoading) setSellingPointGenerationState(false);
+      updateProductContinueState();
     }
     function renderProductUnderstanding(data) {
       const functions = data.basicInfo?.confirmedFunctions || [];
@@ -1067,7 +1116,7 @@
       } catch (error) {
         setProductStatus('AI 未完成');
         toast(error.message);
-      } finally { projectState.aiLoading = false; }
+      } finally { projectState.aiLoading = false; setSellingPointGenerationState(false); updateProductContinueState(); }
     }
     function installStrategyLayout() {
       const view = document.getElementById('strategy-view');
@@ -1088,13 +1137,13 @@
       const context = document.createElement('div');
       context.id = 'strategyContextGrid';
       context.className = 'strategy-context-grid';
-      context.innerHTML = '<div class="strategy-context-block"><h3>语言与表达建议</h3><div id="languageAdviceMain"><p>等待 AI 分析。</p></div></div><div class="strategy-context-block"><h3>核心受众</h3><div id="targetAudienceMain" class="tag-row"><span class="tag">等待 AI 分析</span></div></div>';
+      context.innerHTML = '<div class="strategy-context-block"><h3>语言与表达建议</h3><div id="languageAdviceMain"><p class="strategy-loading">AI 正在分析目标市场语言与表达方式…</p></div></div><div class="strategy-context-block"><h3>核心受众</h3><div id="targetAudienceMain" class="audience-editor"><p class="strategy-loading">AI 正在识别潜在核心受众…</p></div></div>';
       form?.insertAdjacentElement('afterend', context);
       const grid = main.querySelector('.creative-grid');
       const controls = document.createElement('div');
       controls.id = 'strategyDirectionControls';
       controls.className = 'inline-action-row';
-      controls.innerHTML = '<span class="inline-hint" id="strategyDirectionHint">请选择一个或多个创意方向。</span><button type="button" class="ghost-btn" id="regenerateDirections">再生成创意方向</button>';
+      controls.innerHTML = '<span class="inline-hint" id="strategyDirectionHint">请选择一个或多个创意方向。</span><button type="button" class="ghost-btn generation-button" id="regenerateDirections">再生成创意方向</button>';
       grid?.insertAdjacentElement('afterend', controls);
       const notices = main.querySelectorAll('.notice');
       const brief = notices[notices.length - 1];
@@ -1121,6 +1170,8 @@
       document.getElementById('generateBrief')?.addEventListener('click', () => generateCreativeBrief());
       document.getElementById('editBrief')?.addEventListener('click', () => {
         if (!projectState.strategy) return;
+        if (!projectState.strategy.brief) { toast('请先生成创意简报'); return; }
+        if ((projectState.strategy.briefFingerprint || projectState.strategy._briefFingerprint) !== currentBriefFingerprint()) { toast('商品或创意选择已变化，请先重新生成最新简报'); return; }
         projectState.strategy.briefStatus = 'needs-revision';
         projectState.strategy._feedbackEditing = true;
         renderStrategy(projectState.strategy);
@@ -1147,6 +1198,49 @@
       document.getElementById('approveBrief')?.addEventListener('click', approveCreativeBrief);
       document.getElementById('useStrategyBrief')?.addEventListener('click', completeStrategyAndContinue);
     }
+    function directionTitle(direction, index = 0) {
+      const current = String(direction?.title || '').trim();
+      if (current && !/^(未命名|unnamed|untitled)/i.test(current)) return current;
+      const scene = String(direction?.usageScene || '').trim();
+      const point = String(direction?.coreSellingPoints?.[0] || '').trim();
+      const angle = String(direction?.copyAngle || '').trim();
+      const source = scene || point || angle || `创意方向 ${index + 1}`;
+      const title = scene ? `${source}场景` : point ? `${source}利益点` : source;
+      return title.length > 24 ? `${title.slice(0, 24)}…` : title;
+    }
+    function normalizeDirectionTitles(data) {
+      const rename = new Map();
+      const used = new Set();
+      data.creativeDirections = (data.creativeDirections || []).map((direction, index) => {
+        const previous = direction.title;
+        let title = directionTitle(direction, index);
+        if (used.has(title)) title = `${title} ${index + 1}`;
+        used.add(title);
+        if (previous && previous !== title) rename.set(previous, title);
+        return { ...direction, title };
+      });
+      data.selectedDirections = (data.selectedDirections || []).map(title => rename.get(title) || title).filter(title => data.creativeDirections.some(direction => direction.title === title));
+    }
+    function audienceName(audience, index = 0) {
+      const name = String(audience?.name || audience?.audience || '').trim();
+      if (name) return name;
+      const need = String(audience?.need || '').trim();
+      return need ? `${need}人群` : `潜在受众 ${index + 1}`;
+    }
+    function normalizeAudienceNames(data) {
+      const rename = new Map();
+      const used = new Set();
+      data.targetAudience = (data.targetAudience || []).map((audience, index) => {
+        const previous = audience.name;
+        let name = audienceName(audience, index);
+        if (used.has(name)) name = `${name} ${index + 1}`;
+        used.add(name);
+        if (previous && previous !== name) rename.set(previous, name);
+        return { ...audience, name };
+      });
+      data.selectedAudience = [...new Set((data.selectedAudience || []).map(name => rename.get(name) || name).filter(name => data.targetAudience.some(audience => audience.name === name)))];
+      data.removedAudience = Array.isArray(data.removedAudience) ? data.removedAudience : [];
+    }
     function selectedDirections() {
       const directions = projectState.strategy?.creativeDirections || [];
       const titles = projectState.strategy?.selectedDirections || [];
@@ -1156,6 +1250,104 @@
       const audience = projectState.strategy?.targetAudience || [];
       const titles = projectState.strategy?.selectedAudience || [];
       return titles.map(value => typeof value === 'number' ? audience[value]?.name : value).filter(Boolean).map(name => audience.find(item => item.name === name)).filter(Boolean);
+    }
+    function renderAudienceEditor(data) {
+      const container = document.getElementById('targetAudienceMain');
+      if (!container) return;
+      normalizeAudienceNames(data);
+      const available = data.targetAudience.filter(audience => !(data.removedAudience || []).includes(audience.name));
+      container.replaceChildren();
+      if (!available.length) {
+        const empty = document.createElement('p');
+        empty.className = 'strategy-loading';
+        empty.textContent = '暂时没有可用受众，请手动添加一个。';
+        container.appendChild(empty);
+      } else {
+        const list = document.createElement('div');
+        list.className = 'audience-list';
+        available.forEach(audience => {
+          const card = document.createElement('article');
+          card.className = `audience-card ${data.selectedAudience.includes(audience.name) ? 'selected' : ''}`;
+          const check = document.createElement('span');
+          check.className = 'audience-check';
+          check.textContent = '✓';
+          const content = document.createElement('div');
+          const title = document.createElement('strong');
+          title.textContent = audience.name;
+          const detail = document.createElement('p');
+          detail.textContent = [audience.need, audience.painPoint].filter(Boolean).join(' · ') || 'AI 根据当前商品资料识别的潜在受众';
+          content.append(title, detail);
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'card-remove';
+          remove.title = '删除这个受众';
+          remove.textContent = '×';
+          remove.addEventListener('click', event => {
+            event.stopPropagation();
+            data.targetAudience = data.targetAudience.filter(item => item.name !== audience.name);
+            data.selectedAudience = data.selectedAudience.filter(name => name !== audience.name);
+            data.removedAudience = [...new Set([...(data.removedAudience || []), audience.name])];
+            data.audienceSaved = false;
+            markStrategySelectionChanged();
+            renderStrategy(data);
+            toast('已删除这个核心受众');
+          });
+          card.append(check, content, remove);
+          card.addEventListener('click', () => {
+            const position = data.selectedAudience.indexOf(audience.name);
+            if (position >= 0) data.selectedAudience.splice(position, 1);
+            else data.selectedAudience.push(audience.name);
+            data.audienceSaved = false;
+            markStrategySelectionChanged();
+            renderStrategy(data);
+          });
+          list.appendChild(card);
+        });
+        container.appendChild(list);
+      }
+      const addRow = document.createElement('div');
+      addRow.className = 'audience-add-row';
+      const input = document.createElement('input');
+      input.id = 'customAudienceInput';
+      input.placeholder = '输入自定义核心受众，例如：经常短途出行的学生';
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'ghost-btn';
+      add.textContent = '添加受众';
+      const addAudience = () => {
+        const name = input.value.trim();
+        if (!name) { toast('请先输入核心受众名称'); return; }
+        if (data.targetAudience.some(audience => audience.name === name)) { toast('这个核心受众已经存在'); return; }
+        data.targetAudience.push({ name, need: '用户手动添加', painPoint: '待补充验证' });
+        data.selectedAudience.push(name);
+        data.audienceSaved = false;
+        markStrategySelectionChanged();
+        renderStrategy(data);
+        toast('已添加自定义核心受众');
+      };
+      add.addEventListener('click', addAudience);
+      input.addEventListener('keydown', event => { if (event.key === 'Enter') addAudience(); });
+      addRow.append(input, add);
+      container.appendChild(addRow);
+      const saveRow = document.createElement('div');
+      saveRow.className = 'audience-save-row';
+      const state = document.createElement('span');
+      state.className = `audience-save-state ${data.audienceSaved ? 'saved' : ''}`;
+      state.textContent = data.audienceSaved ? `已保存 ${data.selectedAudience.length} 个核心受众` : `已选择 ${data.selectedAudience.length} 个，请确认后保存`;
+      const save = document.createElement('button');
+      save.type = 'button';
+      save.className = 'primary-btn';
+      save.textContent = '保存核心受众';
+      save.disabled = !data.selectedAudience.length || projectState.aiLoading;
+      save.addEventListener('click', () => {
+        if (!data.selectedAudience.length) { toast('请至少选择一个核心受众'); return; }
+        data.audienceSaved = true;
+        saveCurrentProject();
+        renderStrategy(data);
+        toast('核心受众已保存');
+      });
+      saveRow.append(state, save);
+      container.appendChild(saveRow);
     }
     function markStrategySelectionChanged() {
       if (!projectState.strategy) return;
@@ -1195,13 +1387,19 @@
       const enter = document.getElementById('useStrategyBrief');
       const note = document.getElementById('briefReviewNote');
       const editing = Boolean(strategy._feedbackEditing);
-      if (generate) { generate.style.display = briefReady && !editing ? 'none' : (strategy.briefStatus === 'not-generated' || !strategy.brief ? 'inline-block' : 'none'); generate.disabled = projectState.aiLoading || !strategy.selectedDirections?.length || !selectedSellingPointTitles().length; generate.textContent = projectState.aiLoading ? 'AI 正在生成简报…' : '根据创意方向生成简报'; }
-      if (review) review.style.display = briefReady && !editing && !strategy.briefApproved ? 'flex' : 'none';
+      const hasBrief = Boolean(strategy.brief);
+      const hasAudience = Boolean(strategy.audienceSaved && selectedAudience().length);
+      const prerequisites = [];
+      if (!selectedSellingPointTitles().length) prerequisites.push('至少选择一个卖点');
+      if (!strategy.selectedDirections?.length) prerequisites.push('至少选择一个创意方向');
+      if (!hasAudience) prerequisites.push('选择并保存至少一个核心受众');
+      if (generate) { generate.style.display = !editing && !strategy.briefApproved && (!hasBrief || !briefReady || strategy.briefStatus === 'not-generated' || strategy.briefStatus === 'needs-revision') ? 'inline-block' : 'none'; generate.disabled = projectState.aiLoading; generate.textContent = projectState.aiLoading ? 'AI 正在生成简报…' : hasBrief && !briefReady ? '根据最新选择重新生成简报' : '根据创意方向生成简报'; generate.title = prerequisites.length ? `生成前还需要：${prerequisites.join('、')}` : '根据当前选择生成专业创意简报'; }
+      if (review) review.style.display = hasBrief && !editing && !strategy.briefApproved ? 'flex' : 'none';
       if (feedback) feedback.style.display = editing ? 'grid' : 'none';
-      if (approve) approve.disabled = !briefReady || projectState.aiLoading;
-      if (edit) edit.disabled = !briefReady || projectState.aiLoading;
+      if (approve) { approve.disabled = !hasBrief || projectState.aiLoading; approve.title = briefReady ? '确认当前创意简报' : '当前简报不是最新版本，点击后会提示原因'; }
+      if (edit) { edit.disabled = !hasBrief || projectState.aiLoading; edit.title = briefReady ? '填写修改建议' : '当前简报不是最新版本，需重新生成'; }
       if (enter) { enter.style.display = strategy.briefApproved && briefReady ? 'inline-block' : 'none'; enter.disabled = !strategy.briefApproved || !briefReady; }
-      if (note) note.textContent = strategy.briefApproved ? '创意简报已确认。' : briefReady ? '请确认这份简报，或提出修改建议。' : strategy.briefStatus === 'generating' ? 'AI 正在生成专业创意简报…' : '先生成一份基于当前选择的创意简报。';
+      if (note) note.textContent = strategy.briefApproved ? '创意简报已确认。' : strategy.briefStatus === 'generating' ? 'AI 正在生成专业创意简报，请稍候…' : briefReady ? '请确认这份简报，或提出修改建议。' : prerequisites.length ? `还需要：${prerequisites.join('、')}。` : hasBrief ? '商品或创意选择发生变化，请重新生成当前版本。' : '先生成一份基于当前选择的创意简报。';
     }
     function formatBriefText(brief) {
       if (!brief) return '选择卖点、创意方向和核心受众后，点击“根据创意方向生成简报”。';
@@ -1213,11 +1411,12 @@
     function renderStrategy(data) {
       const grid = document.querySelector('#strategy-view .creative-grid');
       if (!grid) return;
+      normalizeDirectionTitles(data);
+      normalizeAudienceNames(data);
       const directions = data.creativeDirections || [];
       const rawSelected = Array.isArray(data.selectedDirections) ? data.selectedDirections : [];
       data.selectedDirections = rawSelected.map(value => typeof value === 'number' ? directions[value]?.title : value).filter(title => directions.some(direction => direction.title === title));
-      if (!Array.isArray(data.selectedAudience)) data.selectedAudience = (data.targetAudience || []).slice(0, 2).map(item => item.name);
-      data.selectedAudience = data.selectedAudience.filter(name => (data.targetAudience || []).some(item => item.name === name));
+      data.selectedAudience = (data.selectedAudience || []).filter(name => (data.targetAudience || []).some(item => item.name === name));
       grid.innerHTML = '';
       directions.forEach(direction => {
         const card = document.createElement('article');
@@ -1260,18 +1459,7 @@
       if (platform) platform.value = projectState.platform || 'TikTok Shop';
       const advice = document.getElementById('languageAdviceMain');
       if (advice) advice.innerHTML = `<p><strong>${data.languageAdvice?.recommendedLanguage || '目标市场语言建议'}</strong><br>${[data.languageAdvice?.tone, ...(data.languageAdvice?.localizationNotes || [])].filter(Boolean).join('；')}</p>`;
-      const audienceTags = document.getElementById('targetAudienceMain');
-      if (audienceTags) {
-        audienceTags.replaceChildren(...(data.targetAudience || []).map(audience => {
-          const tag = document.createElement('button');
-          tag.type = 'button';
-          tag.className = `tag audience-tag ${data.selectedAudience.includes(audience.name) ? 'selected' : ''}`;
-          tag.textContent = audience.name;
-          tag.title = `${audience.need || ''} ${audience.painPoint || ''}`;
-          tag.addEventListener('click', () => { const position = data.selectedAudience.indexOf(audience.name); if (position >= 0) data.selectedAudience.splice(position, 1); else data.selectedAudience.push(audience.name); markStrategySelectionChanged(); renderStrategy(data); });
-          return tag;
-        }));
-      }
+      renderAudienceEditor(data);
       const brief = document.getElementById('strategyBrief');
       const currentBriefFingerprint = JSON.stringify({ base: data._sourceFingerprint, sellingPoints: selectedSellingPointTitles(), directions: data.selectedDirections, audience: data.selectedAudience, platform: projectState.platform });
       ensureBriefState(data);
@@ -1287,11 +1475,13 @@
     }
     function clearStrategyAIResult() {
       const grid = document.querySelector('#strategy-view .creative-grid');
-      if (grid) grid.innerHTML = '<div class="notice"><strong>等待 AI 生成创意方向</strong>确认商品理解后，AdLab 才会根据当前商品、卖点和目标市场生成策略。</div>';
+      if (grid) grid.innerHTML = '<div class="notice"><strong class="strategy-loading">AI 正在生成创意方向…</strong><span>AdLab 正在根据当前商品、卖点和目标市场生成策略，请稍候。</span></div>';
       const brief = document.getElementById('strategyBrief');
-      if (brief) { const title = document.createElement('strong'); title.textContent = '等待 AI 生成创意简报'; brief.replaceChildren(title, document.createTextNode('选择创意方向后，这里会显示组合后的广告简报。')); }
+      if (brief) { const title = document.createElement('strong'); title.textContent = '创意简报'; brief.replaceChildren(title, document.createTextNode('AI 完成创意方向和核心受众分析后，这里会显示组合后的广告简报。')); }
+      const advice = document.getElementById('languageAdviceMain');
+      if (advice) advice.innerHTML = '<p class="strategy-loading">AI 正在分析目标市场语言与表达方式…</p>';
       const audienceTags = document.getElementById('targetAudienceMain');
-      if (audienceTags) audienceTags.innerHTML = '<span class="tag">等待 AI 分析</span>';
+      if (audienceTags) audienceTags.innerHTML = '<p class="strategy-loading">AI 正在识别潜在核心受众…</p>';
       const generate = document.getElementById('generateBrief');
       const review = document.getElementById('briefReviewActions');
       const feedback = document.getElementById('briefFeedback');
@@ -1312,17 +1502,28 @@
       clearStrategyAIResult();
       try {
         const data = await callAI('/api/creative-strategy', { product: projectState.product, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), mode: 'initial' });
-        projectState.strategy = { ...data, selectedDirections: [], selectedAudience: [], removedDirections: [], _sourceFingerprint: fingerprint, sourceFingerprint: fingerprint, brief: null, briefStatus: 'not-generated', briefApproved: false, briefVersion: 0, briefFeedback: [], briefApprovedAt: '', briefFingerprint: '', _briefFingerprint: '' };
+        projectState.strategy = { ...data, selectedDirections: [], selectedAudience: [], audienceSaved: false, removedAudience: [], removedDirections: [], _sourceFingerprint: fingerprint, sourceFingerprint: fingerprint, brief: null, briefStatus: 'not-generated', briefApproved: false, briefVersion: 0, briefFeedback: [], briefApprovedAt: '', briefFingerprint: '', _briefFingerprint: '' };
         saveCurrentProject();
         renderStrategy(projectState.strategy);
         if (status) status.textContent = '可多选组合';
-      } catch (error) { if (status) status.textContent = 'AI 未完成'; toast(error.message); } finally { projectState.aiLoading = false; }
+      } catch (error) {
+        if (status) status.textContent = 'AI 未完成';
+        const grid = document.querySelector('#strategy-view .creative-grid');
+        if (grid) grid.innerHTML = '<div class="notice"><strong>AI 暂时未完成生成</strong><span>请稍后重新进入本模块，或检查 AI 服务配置。</span></div>';
+        const advice = document.getElementById('languageAdviceMain');
+        if (advice) advice.innerHTML = '<p>AI 暂时未完成语言建议，请稍后重试。</p>';
+        const audience = document.getElementById('targetAudienceMain');
+        if (audience) audience.innerHTML = '<p>AI 暂时未完成核心受众分析，请稍后重试。</p>';
+        toast(error.message);
+      } finally { projectState.aiLoading = false; if (projectState.strategy) renderStrategy(projectState.strategy); }
     }
     async function regenerateStrategyDirections() {
       if (!projectState.strategy || projectState.aiLoading) return;
       projectState.aiLoading = true;
       const status = document.querySelector('#strategy-view .status-pill');
+      const button = document.getElementById('regenerateDirections');
       if (status) status.textContent = '正在生成新方向';
+      if (button) { button.disabled = true; button.classList.add('is-loading'); button.textContent = 'AI 正在生成方向…'; }
       try {
         const result = await callAI('/api/creative-strategy', { product: projectState.product, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), existingDirections: projectState.strategy.creativeDirections || [], removedDirections: projectState.strategy.removedDirections || [], mode: 'more-directions' });
         const existingTitles = new Set((projectState.strategy.creativeDirections || []).map(direction => direction.title));
@@ -1332,14 +1533,14 @@
         renderStrategy(projectState.strategy);
         toast(additions.length ? `已增加 ${additions.length} 个创意方向` : '没有生成新的不重复方向');
       } catch (error) { toast(error.message); }
-      finally { projectState.aiLoading = false; if (status) status.textContent = '可多选组合'; }
+      finally { projectState.aiLoading = false; if (status) status.textContent = '可多选组合'; if (button) { button.disabled = false; button.classList.remove('is-loading'); button.textContent = '再生成创意方向'; } renderStrategy(projectState.strategy); }
     }
     function currentBriefFingerprint() {
       return JSON.stringify({ base: projectState.strategy?._sourceFingerprint || strategyFingerprint(), sellingPoints: selectedSellingPointTitles(), directions: projectState.strategy?.selectedDirections || [], audience: projectState.strategy?.selectedAudience || [], platform: projectState.platform || 'TikTok Shop' });
     }
     function approveCreativeBrief() {
       const strategy = projectState.strategy;
-      if (!strategy || !strategy.brief || strategy.briefFingerprint !== currentBriefFingerprint()) { toast('请先生成基于当前选择的创意简报'); return; }
+      if (!strategy || !strategy.brief || (strategy.briefFingerprint || strategy._briefFingerprint) !== currentBriefFingerprint()) { toast('商品或创意选择已变化，请先重新生成当前版本的创意简报'); return; }
       ensureBriefState(strategy);
       strategy.briefApproved = true;
       strategy.briefStatus = 'approved';
@@ -1358,6 +1559,7 @@
     async function generateCreativeBrief(options = {}) {
       if (projectState.aiLoading) { toast('AI 正在处理中，请稍候'); return; }
       if (!projectState.strategy || !selectedSellingPointTitles().length || !projectState.strategy.selectedDirections?.length) { toast('请至少选择一个卖点和一个创意方向'); return; }
+      if (!projectState.strategy.audienceSaved || !selectedAudience().length) { toast('请先选择至少一个核心受众，并点击“保存核心受众”'); return; }
       const strategy = projectState.strategy;
       const feedback = options.feedback || strategy._pendingBriefFeedback || '';
       strategy.briefStatus = 'generating';
@@ -1385,7 +1587,7 @@
         succeeded = true;
         toast(feedback ? `创意简报第 ${nextVersion} 版已生成` : '创意简报已生成，请确认是否满意');
       } catch (error) { toast(error.message); }
-      finally { projectState.aiLoading = false; if (status) status.textContent = '可多选组合'; if (!succeeded) { strategy.briefStatus = strategy.brief ? 'needs-revision' : 'not-generated'; renderStrategy(strategy); } }
+      finally { projectState.aiLoading = false; if (status) status.textContent = '可多选组合'; if (!succeeded) strategy.briefStatus = strategy.brief ? 'needs-revision' : 'not-generated'; renderStrategy(strategy); }
     }
     function renderAssets(data) {
       const inputs = document.querySelectorAll('#templateMode input, #templateMode textarea');
@@ -1473,7 +1675,7 @@
     titleBlock.prepend(workspaceBack);
     document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', () => navigate(item.dataset.view, { projectId: currentProjectId })));
     document.querySelectorAll('.step').forEach(step => step.addEventListener('click', () => navigate(step.dataset.step, { projectId: currentProjectId })));
-    document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => navigate(btn.dataset.go, { projectId: currentProjectId })));
+    document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => { if (btn.id === 'productContinue') return; navigate(btn.dataset.go, { projectId: currentProjectId }); }));
     document.getElementById('newProjectBtn').addEventListener('click', startNewProject);
     document.getElementById('historyBtn').addEventListener('click', () => { returnView = 'home'; navigate('history'); });
     document.getElementById('historyBack').addEventListener('click', () => navigate('home'));
@@ -1499,6 +1701,7 @@
     const editor = document.getElementById('productEdit');
     const confirmed = document.getElementById('confirmedProduct');
     const continueProduct = document.getElementById('productContinue');
+    continueProduct.addEventListener('click', continueToStrategy);
     document.querySelector('label[for="editPrice"]').textContent = '人民币售价（元）';
     document.getElementById('editCurrency').closest('.field').style.display = 'none';
     document.getElementById('editProduct').addEventListener('click', () => { review.style.display = 'none'; editor.style.display = 'block'; confirmed.classList.remove('show'); });
@@ -1528,7 +1731,7 @@
       projectState.confirmed = true;
       projectState.productUnderstanding = { ...projectState.productUnderstanding, confirmed: true };
       confirmed.classList.add('show');
-      continueProduct.disabled = false;
+      updateProductContinueState();
       document.querySelector('#product-view .status-pill').textContent = '已确认';
       completeStep('product', 'strategy', '创意策略');
       syncProjectState();
