@@ -13,7 +13,7 @@ https://github.com/crisfeng0309-ux/Ai-project
 GitHub `main` 当前最新提交：
 
 ```text
-381f79fe21f791fd209cf486122dce1fcc600d81
+df9ac10bebd410a91b66e30284d2be83e5409f1c
 ```
 
 线上网站：
@@ -173,7 +173,8 @@ ARK_IMAGE_STATUS_API_URL
 355e401  建立广告设计知识库并接入豆包生图
 4960ef7  修复广告图片模板生成按钮卡顿
 d226a9f  改用异步任务轮询生成广告图片
-381f79f  兼容豆包任务状态返回格式（当前 main）
+381f79f  兼容豆包任务状态返回格式
+df9ac10  添加 AdLab 项目交接文档（当前 main）
 ```
 
 字体优化版本后来按用户要求回退了。当前版本保留知识库和生图稳定性/异步轮询相关改动，但不包含后来撤销的字体优化内容。
