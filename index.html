@@ -1482,7 +1482,12 @@
       try {
         const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal });
         const body = await response.json().catch(() => ({}));
-        if (!response.ok || !body.ok) throw new Error(body.message || `AI 请求失败（HTTP ${response.status}）`);
+        if (!response.ok || !body.ok) {
+          const failure = new Error(body.message || `AI 请求失败（HTTP ${response.status}）`);
+          failure.code = body.code || `AI_HTTP_${response.status}`;
+          failure.status = response.status;
+          throw failure;
+        }
         return body.data;
       } catch (error) {
         if (timedOut || error?.name === 'AbortError') {
@@ -2287,7 +2292,7 @@
            const note = document.createElement('p'); note.textContent = data.generatedImageModel ? `模型：${data.generatedImageModel}` : '图片已保存到当前项目。'; preview.appendChild(note);
          } else if (!options.promptOnly && data.generatingImage) {
            preview.className = 'asset-generated-preview';
-           const note = document.createElement('p'); note.textContent = '豆包正在生成广告图片，请稍候…'; preview.appendChild(note);
+           const note = document.createElement('p'); note.textContent = data.generationProgress || '豆包正在生成广告图片，请稍候…'; preview.appendChild(note);
          } else if (!options.promptOnly && data.imageGenerationError) {
            preview.className = 'asset-generated-preview asset-generation-error';
            const heading = document.createElement('strong'); heading.textContent = '图片生成失败'; preview.appendChild(heading);
@@ -2382,17 +2387,30 @@
        if (previousMode === mode && projectState.assets.schemes?.length && projectState.assets.sourceFingerprint === fingerprint) { renderAssets(projectState.assets); return; }
       generateAssets(true, mode);
     }
+     async function pollGeneratedImageTask(taskId) {
+       const startedAt = Date.now();
+       const maxWaitMs = 180000;
+       while (Date.now() - startedAt < maxWaitMs) {
+         const result = await callAI('/api/generate-image-status', { taskId }, { timeoutMs: 20000 });
+         if (result.imageUrl) return result;
+         const waitedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+         projectState.assets = { ...projectState.assets, generationProgress: `豆包正在生成广告图片，已等待 ${waitedSeconds} 秒…` };
+         renderAssets(projectState.assets);
+         await new Promise(resolve => window.setTimeout(resolve, 3000));
+       }
+       throw new Error('图片任务等待时间过长，请稍后查看任务状态或重新生成。');
+     }
      async function generateImageFromTemplate(templateId) {
        if (projectState.aiLoading) { toast('AI 正在生成，请稍候'); return; }
        const data = projectState.assets;
        const scheme = data?.schemes?.find(item => item.id === templateId);
        if (!scheme) { toast('没有找到这个素材模板'); return; }
        projectState.aiLoading = true;
-       projectState.assets = { ...data, selectedSchemeId: templateId, generatedImage: '', generatedImageModel: '', imageGenerationError: '', generatingImage: true };
+       projectState.assets = { ...data, selectedSchemeId: templateId, generatedImage: '', generatedImageModel: '', imageGenerationError: '', generationProgress: '正在提交豆包生图任务…', generatingImage: true };
        saveCurrentProject();
        renderAssets(projectState.assets);
        try {
-         const result = await callAI('/api/generate-image', {
+         const payload = {
            projectName: projectState.projectName,
            market: projectState.market,
            platform: projectState.platform || 'TikTok Shop',
@@ -2409,9 +2427,20 @@
            prompt: scheme.imagePrompt,
            negativePrompt: scheme.negativePrompt,
            size: '1024x1024'
-         }, { timeoutMs: 58000 });
+         };
+         let result;
+         try {
+           result = await callAI('/api/generate-image-task', payload, { timeoutMs: 20000 });
+           if (result.taskId && !result.imageUrl) result = await pollGeneratedImageTask(result.taskId);
+         } catch (taskError) {
+           const canFallbackToSync = ['AI_HTTP_404', 'AI_HTTP_405', 'IMAGE_API_HTTP_404', 'IMAGE_API_HTTP_405'].includes(taskError.code);
+           if (!canFallbackToSync) throw taskError;
+           projectState.assets = { ...projectState.assets, generationProgress: '异步接口不可用，正在使用同步生图接口…' };
+           renderAssets(projectState.assets);
+           result = await callAI('/api/generate-image', payload, { timeoutMs: 58000 });
+         }
          if (!result.imageUrl) throw new Error(result.taskId ? '豆包已创建生图任务，但当前接口未返回可直接展示的图片地址，请将豆包接口配置为同步返回图片，或补充任务查询接口。' : '豆包没有返回图片地址，请检查生图模型和接口配置。');
-         projectState.assets = { ...projectState.assets, generatedImage: result.imageUrl, generatedImageModel: result.model || '', imageGenerationError: '', generatingImage: false, generatedAt: new Date().toISOString() };
+         projectState.assets = { ...projectState.assets, generatedImage: result.imageUrl, generatedImageModel: result.model || '', imageGenerationError: '', generationProgress: '', generatingImage: false, generatedAt: new Date().toISOString() };
          projectState.aiLoading = false;
          saveCurrentProject();
          renderAssets(projectState.assets);

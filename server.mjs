@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveCurrency } from './lib/currency.mjs';
-import { generateDoubaoImage, imageGenerationErrorMessage } from './lib/image-generation.mjs';
+import { generateDoubaoImage, startDoubaoImageTask, getDoubaoImageTaskStatus, imageGenerationErrorMessage } from './lib/image-generation.mjs';
 import { buildImageGenerationRules } from './lib/image-prompt-rules.mjs';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
@@ -342,6 +342,20 @@ async function handleApi(req, res, path) {
       return json(res, status, { ok: false, code: error.message, message: imageGenerationErrorMessage(error) });
     }
   }
+  if (path === '/api/generate-image-task') {
+    try { return json(res, 200, { ok: true, data: await startDoubaoImageTask(body) }); }
+    catch (error) {
+      const status = ['IMAGE_API_NOT_CONFIGURED', 'IMAGE_MODEL_NOT_CONFIGURED'].includes(error.message) ? 503 : error.message === 'IMAGE_API_TIMEOUT' ? 504 : 502;
+      return json(res, status, { ok: false, code: error.message, message: imageGenerationErrorMessage(error) });
+    }
+  }
+  if (path === '/api/generate-image-status') {
+    try { return json(res, 200, { ok: true, data: await getDoubaoImageTaskStatus(body.taskId) }); }
+    catch (error) {
+      const status = error.message === 'IMAGE_TASK_ID_REQUIRED' ? 400 : error.message === 'IMAGE_API_TIMEOUT' ? 504 : 502;
+      return json(res, status, { ok: false, code: error.message, message: imageGenerationErrorMessage(error) });
+    }
+  }
   const kind = path.endsWith('product-understanding') ? 'product' : path.endsWith('creative-strategy') ? 'strategy' : path.endsWith('data-analysis') ? 'dataAnalysis' : path.endsWith('prompt-translations') ? 'promptTranslations' : 'assets';
   try { json(res, 200, { ok: true, data: await askDeepSeek(kind, body) }); }
   catch (error) {
@@ -355,7 +369,7 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     if (url.pathname.startsWith('/api/')) {
-       if (req.method !== 'POST' || !['/api/product-understanding', '/api/creative-strategy', '/api/ad-assets', '/api/data-analysis', '/api/prompt-translations', '/api/generate-image'].includes(url.pathname)) return json(res, 404, { ok: false, message: 'Not found' });
+       if (req.method !== 'POST' || !['/api/product-understanding', '/api/creative-strategy', '/api/ad-assets', '/api/data-analysis', '/api/prompt-translations', '/api/generate-image', '/api/generate-image-task', '/api/generate-image-status'].includes(url.pathname)) return json(res, 404, { ok: false, message: 'Not found' });
       return await handleApi(req, res, url.pathname);
     }
     const requested = url.pathname === '/' ? '/index.html' : url.pathname;
