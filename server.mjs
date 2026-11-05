@@ -338,7 +338,7 @@ async function handleApi(req, res, path) {
   if (path === '/api/generate-image') {
     try { return json(res, 200, { ok: true, data: await generateDoubaoImage(body) }); }
     catch (error) {
-      const status = ['IMAGE_API_NOT_CONFIGURED', 'IMAGE_MODEL_NOT_CONFIGURED'].includes(error.message) ? 503 : error.message === 'IMAGE_API_TIMEOUT' ? 504 : 502;
+      const status = ['IMAGE_API_NOT_CONFIGURED', 'IMAGE_MODEL_NOT_CONFIGURED'].includes(error.message) ? 503 : 502;
       return json(res, status, { ok: false, code: error.message, message: imageGenerationErrorMessage(error) });
     }
   }
