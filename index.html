@@ -2433,7 +2433,7 @@
            result = await callAI('/api/generate-image-task', payload, { timeoutMs: 20000 });
            if (result.taskId && !result.imageUrl) result = await pollGeneratedImageTask(result.taskId);
          } catch (taskError) {
-           const canFallbackToSync = ['AI_HTTP_404', 'AI_HTTP_405', 'IMAGE_API_HTTP_404', 'IMAGE_API_HTTP_405'].includes(taskError.code);
+           const canFallbackToSync = ['AI_HTTP_400', 'AI_HTTP_404', 'AI_HTTP_405', 'IMAGE_API_HTTP_400', 'IMAGE_API_HTTP_404', 'IMAGE_API_HTTP_405'].includes(taskError.code);
            if (!canFallbackToSync) throw taskError;
            projectState.assets = { ...projectState.assets, generationProgress: '异步接口不可用，正在使用同步生图接口…' };
            renderAssets(projectState.assets);
