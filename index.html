@@ -515,22 +515,124 @@
     .progress-next p { margin: 0; color: var(--muted); font-size: 11px; }
     .progress-next strong { display: block; color: var(--ink); font-size: 13px; margin-bottom: 4px; }
     @media (max-width: 620px) { .progress-head { flex-direction: column; } .progress-percent { text-align: left; } .progress-next { align-items: flex-start; flex-direction: column; } .progress-next .primary-btn { width: 100%; } }
+    /* ===== 首页视觉：电影感 · 高级极简 · 杂志式排版（纯样式，不改结构） ===== */
     .app-shell.home-mode { display: block; }
     .app-shell.home-mode .sidebar, .app-shell.home-mode .topbar, .app-shell.home-mode .progress-wrap, .app-shell.home-mode .footer-bar { display: none; }
     .app-shell.home-mode .main { min-height: 100vh; padding: 0; }
-    .home-view { min-height: 100vh; display: grid; place-items: center; padding: 44px 24px; position: relative; overflow: hidden; isolation: isolate; background: #dbe8ea url("./assets/adlab-mountain.jpg") center center / cover no-repeat; }
-    .home-view:after { content: ""; position: absolute; inset: 0; z-index: 0; background: rgba(255,255,255,.62); pointer-events: none; }
-    .home-view:before { content: ""; position: absolute; width: 1px; height: 120px; background: rgba(40,49,58,.18); left: 50%; top: 0; z-index: 1; }
-    .home-content { width: min(720px, 100%); text-align: center; position: relative; z-index: 2; }
-    .home-kicker { color: #125fc0; font-size: 10px; letter-spacing: .15em; text-transform: uppercase; font-weight: 750; margin-bottom: 24px; text-shadow: 0 1px 10px rgba(255,255,255,.7); }
-    .home-brand { margin: 0; color: #101214; font-family: Georgia, "Times New Roman", serif; font-size: clamp(76px, 13vw, 172px); font-weight: 400; letter-spacing: -.095em; line-height: .88; text-shadow: 0 2px 18px rgba(255,255,255,.48); }
-    .home-brand span { font-style: italic; }
-    .home-tagline { margin: 27px auto 0; color: #2d343a; font-size: 15px; letter-spacing: .05em; text-shadow: 0 1px 12px rgba(255,255,255,.8); }
-    .home-actions { display: flex; justify-content: center; gap: 10px; margin-top: 55px; }
-    .home-actions button { min-width: 142px; padding: 13px 18px; border-radius: 10px; font-size: 12px; }
-    .home-actions .primary-btn { border-radius: 10px; }
-    .home-actions .ghost-btn { background: rgba(255,255,255,.84); border-color: rgba(26,35,43,.18); }
-    .home-footnote { color: #4f5961; font-size: 10px; margin-top: 30px; text-shadow: 0 1px 10px rgba(255,255,255,.75); }
+    .home-view {
+      min-height: 100vh;
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: clamp(40px, 7vh, 84px) clamp(20px, 4vw, 48px);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      background-color: #cfdadd;
+      /* 多层叠加：中心柔光托字 → 上下电影渐变 → 暖调暗角 → 原始背景图 */
+      background-image:
+        radial-gradient(50% 72% at 50% 50%, rgba(255,251,245,.84) 0%, rgba(255,251,245,.60) 38%, rgba(255,251,245,.18) 68%, rgba(255,251,245,0) 82%),
+        linear-gradient(180deg, rgba(14,20,26,.18) 0%, rgba(14,20,26,.02) 22%, rgba(14,20,26,0) 55%, rgba(10,15,20,.30) 100%),
+        radial-gradient(125% 95% at 50% 46%, rgba(255,208,148,.10) 0%, rgba(255,208,148,0) 52%, rgba(8,13,18,.20) 100%),
+        url("./assets/adlab-mountain.jpg");
+      background-position: center center;
+      background-size: cover;
+      background-repeat: no-repeat;
+    }
+    /* 顶部版心细线 */
+    .home-view::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 1px;
+      height: clamp(48px, 9vh, 96px);
+      background: linear-gradient(180deg, rgba(26,35,43,.34), rgba(26,35,43,0));
+      z-index: 1;
+      pointer-events: none;
+    }
+    .home-content { width: min(760px, 100%); text-align: center; position: relative; z-index: 2; }
+    /* 辅助文字：两端细线 + 宽字距 */
+    .home-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      color: #0f4f9e;
+      font-size: 10px;
+      letter-spacing: .34em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin: 0 auto 26px;
+    }
+    .home-kicker::before, .home-kicker::after { content: ""; width: clamp(18px, 4vw, 44px); height: 1px; background: currentColor; opacity: .38; }
+    /* 主标题 */
+    .home-brand {
+      margin: 0;
+      color: #0c0e10;
+      font-family: "Didot", "Bodoni 72", "Playfair Display", Georgia, "Times New Roman", "Songti SC", serif;
+      font-size: clamp(66px, 12.5vw, 168px);
+      font-weight: 400;
+      letter-spacing: -.055em;
+      line-height: .86;
+      font-variant-ligatures: common-ligatures;
+      text-wrap: balance;
+    }
+    .home-brand span { font-style: italic; letter-spacing: -.02em; }
+    .home-tagline {
+      margin: clamp(20px, 3vh, 30px) auto 0;
+      color: #2b3238;
+      font-size: clamp(14px, 1.3vw, 16px);
+      letter-spacing: .1em;
+      line-height: 1.8;
+      text-wrap: balance;
+    }
+    /* 按钮 */
+    .home-actions { display: flex; justify-content: center; gap: 12px; margin-top: clamp(34px, 5.4vh, 58px); }
+    .home-actions button {
+      min-width: 150px;
+      padding: 14px 22px;
+      border-radius: 9px;
+      font-size: 12.5px;
+      letter-spacing: .08em;
+      transition: transform .18s cubic-bezier(.2,.7,.2,1), background-color .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .home-actions .primary-btn { border-color: #101214; background: #101214; color: #f7f5f1; box-shadow: 0 14px 26px -18px rgba(10,14,18,.85); }
+    .home-actions .primary-btn:hover { background: #1d2329; border-color: #1d2329; transform: translateY(-2px); box-shadow: 0 20px 32px -20px rgba(10,14,18,.9); }
+    .home-actions .primary-btn:active { transform: translateY(0); box-shadow: 0 8px 16px -14px rgba(10,14,18,.8); }
+    .home-actions .ghost-btn {
+      background: rgba(255,255,255,.58);
+      border-color: rgba(24,33,41,.24);
+      color: #1a222a;
+      backdrop-filter: blur(9px) saturate(1.06);
+      -webkit-backdrop-filter: blur(9px) saturate(1.06);
+    }
+    .home-actions .ghost-btn:hover { background: rgba(255,255,255,.82); border-color: rgba(24,33,41,.32); transform: translateY(-2px); }
+    .home-actions .ghost-btn:active { transform: translateY(0); }
+    .home-actions button:focus-visible { outline: 2px solid #0f4f9e; outline-offset: 3px; }
+    .home-footnote { color: #414b53; font-size: 10.5px; letter-spacing: .12em; margin-top: clamp(22px, 3.4vh, 34px); }
+    /* 入场：只动 opacity / transform，不影响点击 */
+    @keyframes homeFade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes homeRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .home-view { animation: homeFade .8s ease-out both; }
+    .home-kicker, .home-brand, .home-tagline, .home-actions, .home-footnote { animation: homeRise .85s cubic-bezier(.2,.7,.2,1) both; }
+    .home-kicker { animation-delay: .04s; }
+    .home-brand { animation-delay: .12s; }
+    .home-tagline { animation-delay: .22s; }
+    .home-actions { animation-delay: .32s; }
+    .home-footnote { animation-delay: .42s; }
+    @media (prefers-reduced-motion: reduce) {
+      .home-view, .home-kicker, .home-brand, .home-tagline, .home-actions, .home-footnote { animation: none; }
+      .home-actions button { transition: none; }
+    }
+    @media (max-width: 900px) {
+      .home-kicker { letter-spacing: .28em; }
+      .home-brand { letter-spacing: -.05em; }
+    }
+    @media (max-height: 560px) and (min-width: 700px) {
+      .home-brand { font-size: clamp(56px, 9vw, 96px); }
+      .home-actions { margin-top: 24px; }
+      .home-footnote { margin-top: 16px; }
+    }
     .history-view { min-height: 100vh; display: none; padding: 48px max(24px, 5vw) 60px; background: #fbfbfc; }
     .app-shell.home-mode .history-view { display: block; }
     .history-view.active { display: block; }
@@ -551,7 +653,7 @@
     .history-empty strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 8px; }
     .history-empty p { margin: 0 0 20px; font-size: 12px; }
     .home-mode .view:not(.active) { display: none; }
-    @media (max-width: 620px) { .home-actions { flex-direction: column; align-items: stretch; margin-top: 42px; } .home-actions button { width: 100%; } .history-top { flex-direction: column; } .history-item { align-items: flex-start; flex-direction: column; gap: 14px; } }
+    @media (max-width: 620px) { .home-view { padding: clamp(56px, 9vh, 84px) 18px clamp(36px, 6vh, 56px); } .home-view::before { height: 40px; } .home-kicker { margin-bottom: 20px; letter-spacing: .2em; gap: 10px; } .home-kicker::before, .home-kicker::after { width: 14px; } .home-brand { letter-spacing: -.045em; } .home-tagline { letter-spacing: .06em; } .home-actions { flex-direction: column; align-items: stretch; margin-top: 32px; gap: 10px; } .home-actions button { width: 100%; } .home-footnote { margin-top: 20px; font-size: 10px; letter-spacing: .06em; } .history-top { flex-direction: column; } .history-item { align-items: flex-start; flex-direction: column; gap: 14px; } }
     @media (max-width: 980px) { .overview-grid { grid-template-columns: 1fr; } .workflow-strip { overflow-x: auto; grid-template-columns: repeat(5, minmax(130px,1fr)); } }
     @media (max-width: 620px) { .quick-grid { grid-template-columns: 1fr; } }
     @media (max-width: 620px) { .data-entry, .evidence-grid, .data-input-tabs, .data-field-grid, .data-review-grid { grid-template-columns: 1fr; } .metric-grid, .data-metric-grid { grid-template-columns: 1fr 1fr; } .data-file { align-items: flex-start; flex-direction: column; } .data-file input { max-width: none; width: 100%; } }
