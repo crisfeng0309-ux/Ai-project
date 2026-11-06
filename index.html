@@ -2823,7 +2823,7 @@
       projectState.assets = { ...data, translatingPrompts: true };
       renderAssets(projectState.assets);
       try {
-        const result = await callAI('/api/prompt-translations', { schemes: data.schemes.map(item => ({ id: item.id, title: item.title, imagePrompt: imagePromptText(item), videoPrompt: videoPromptText(item) })) });
+        const result = await callAI('/api/prompt-translations', { schemes: data.schemes.map(item => ({ id: item.id, title: item.title, imagePrompt: imagePromptText(item), videoPrompt: videoPromptText(item) })) }, { timeoutMs: 90000 });
         const translations = new Map((result.translations || []).map(item => [item.id, item]));
         const schemes = data.schemes.map(item => ({ ...item, ...(translations.get(item.id) || {}) }));
         projectState.assets = { ...data, schemes, translatingPrompts: false, promptFormatVersion: 2, _translationRequested: false };
@@ -2939,7 +2939,7 @@
            currency: currencySnapshot(),
            scheme,
            userFeedback: feedback
-         }, { timeoutMs: 110000 });
+         }, { timeoutMs: 150000 });
          const revised = result.schemes?.[0];
          if (!revised) throw new Error('AI 没有返回修改后的提示词');
          const revisedSchemes = data.schemes.map(item => item.id === templateId ? { ...item, ...revised, revisionHistory: [...(item.revisionHistory || []), { feedback: feedback.trim(), createdAt: new Date().toISOString() }] } : item);
@@ -3064,7 +3064,7 @@
       if (projectState.aiLoading) { toast('AI 正在生成素材，请稍候'); return; }
       projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint }; clearAssetsAIResult(mode);
       const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
-       try { const result = await callAI('/api/ad-assets', payload, { timeoutMs: 110000 }); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
+       try { const result = await callAI('/api/ad-assets', payload, { timeoutMs: 150000 }); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
       catch (error) { const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成'; toast(error.message); }
       finally { projectState.aiLoading = false; }
     }
@@ -3103,7 +3103,7 @@
       document.querySelector('.main').classList.toggle('data-mode', dataMode);
       document.querySelector('.main').classList.toggle('entry-mode', name === 'setup' || name === 'path');
       document.getElementById('eyebrow').textContent = name === 'data' ? '广告实验室 / 独立分析工具' : name === 'setup' ? '广告实验室 / 项目背景' : name === 'path' ? '广告实验室 / 路径选择' : '广告实验室 / 项目工作区';
-      document.getElementById('pageTitle').textContent = name === 'data' ? '让每一笔投放，都有依据。' : name === 'setup' ? '先把这次实验说清楚。' : name === 'path' ? '选择你的下一步。' : '把商品，变成更好的广告。';
+      document.getElementById('pageTitle').textContent = name === 'data' ? '让每一笔投放，都有依据。' : name === 'setup' ? '开始我们的第一步。' : name === 'path' ? '选择你的下一步。' : '把商品，变成更好的广告。';
       if (name === 'history') renderHistory();
       if (name === 'setup') loadSetupForm();
       if (name === 'path') updatePathSummary();
