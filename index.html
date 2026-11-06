@@ -1124,7 +1124,7 @@
       ].filter(Boolean).join(' · ');
       const spendLabel = `${data.metrics?.spendCurrency || 'CNY'}${data.metrics?.revenueCurrency && data.metrics.revenueCurrency !== data.metrics?.spendCurrency ? ` / 销售额 ${data.metrics.revenueCurrency}` : ''}`;
       // 讲解顺序：结论 → 数字 → 图 → 展开 → 依据说明
-      return `<div class="data-entry-panel"><div class="notice"><strong>数据讲解</strong>下面用大白话把你这份数据过一遍：先给结论，再说依据，最后说下一步。所有结论只依据你上传的这张表。</div>${headline ? `<div class="analysis-label" style="margin-top:20px">先说结论</div>${headline}` : ''}<div class="analysis-label" style="margin-top:20px">你的核心数字</div>${dataMetricCards(data.metrics)}${renderDataCharts(data.metrics)}<div class="analysis-label" style="margin-top:22px">展开讲讲</div>${listBlock('这份数据说明了什么', review.keyFindings, 'supported')}${listBlock('问题可能出在哪（推测）', review.likelyCauses)}${listBlock('接下来可以做这三件事', review.nextSteps, '', true)}${listBlock('这组数据还回答不了什么', review.limitations, 'limit')}<div class="data-hint" style="margin-top:18px">以上内容基于：${escapeDataHtml(footprint)}。花费币种 ${escapeDataHtml(spendLabel)}。</div><div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存讲解，完成项目 →</button></div></div>`;
+      return `<div class="data-entry-panel"><div class="notice"><strong>数据讲解</strong>下面用大白话把你这份数据过一遍：先给结论，再说依据，最后说下一步。所有结论只依据你上传的这张表。</div>${headline ? `<div class="analysis-label" style="margin-top:20px">先说结论</div>${headline}` : ''}<div class="analysis-label" style="margin-top:20px">你的核心数字</div>${dataMetricCards(data.metrics)}${renderDataCharts(data.metrics)}<div class="analysis-label" style="margin-top:22px">展开讲讲</div>${listBlock('这份数据说明了什么', review.keyFindings, 'supported')}${listBlock('问题可能出在哪（推测）', review.likelyCauses)}${listBlock('接下来可以做这三件事', review.nextSteps, '', true)}${review.limitations.length ? `<div class="data-hint" style="margin-top:14px">这份表没覆盖到：${escapeDataHtml(review.limitations.join('；'))}</div>` : ''}<div class="data-hint" style="margin-top:18px">以上内容基于：${escapeDataHtml(footprint)}。花费币种 ${escapeDataHtml(spendLabel)}。</div><div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存讲解，完成项目 →</button></div></div>`;
     }
     const dataGlossaryFields = [
       ['CSV', '一种纯文本表格文件。在 Excel 里用「另存为 → CSV」就能得到，广告后台导出的表通常就是这种格式，识别最稳。'],
@@ -1243,8 +1243,8 @@
         likelyCauses: ['表现差异可能与标题、首图、卖点表达或投放人群有关，但这份数据证明不了具体是哪一项。'],
         nextSteps: plain.todos.slice(0, 3),
         limitations: missing.length
-          ? [`缺少「${missing.join('、')}」，因此相关指标算不出来，也无法判断投入产出是否赚钱。`]
-          : ['这份数据无法证明优势完全来自广告创意，还需要受众、投放时段和落地页信息。']
+          ? [`缺「${missing.join('、')}」`]
+          : ['没有受众、投放时段和落地页信息']
       };
     }
     async function generateDataReview() {
