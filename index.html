@@ -351,6 +351,22 @@
     .data-conclusion .conclusion-title { font-size: 15px; font-weight: 700; margin: 0 0 6px; color: var(--ink); }
     .data-conclusion .conclusion-detail { font-size: 12px; line-height: 1.75; color: #64666d; margin: 0 0 10px; }
     .data-conclusion .conclusion-todos { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.9; color: var(--ink); }
+    .data-chart-card { border: 1px solid var(--line); border-radius: 11px; padding: 16px 18px; background: #fff; }
+    .data-chart-card + .data-chart-card { margin-top: 14px; }
+    .data-chart-card .chart-title { font-size: 12px; font-weight: 700; color: var(--ink); margin: 0 0 14px; }
+    .funnel-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .funnel-step { border: 1px solid var(--line); border-radius: 10px; padding: 13px 10px; text-align: center; background: #fbfbfc; }
+    .funnel-step .fs-value { font-size: 19px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .funnel-step .fs-label { font-size: 11px; color: #64666d; margin-top: 5px; }
+    .funnel-step .fs-rate { font-size: 11px; color: var(--green); margin-top: 7px; font-weight: 650; }
+    .chart-block + .chart-block { margin-top: 18px; }
+    .chart-block .chart-sub { font-size: 11px; color: #8a8d95; margin: -6px 0 10px; }
+    .chart-row { display: grid; grid-template-columns: 74px minmax(0, 1fr) 86px; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 11px; color: #64666d; }
+    .chart-bar { height: 10px; border-radius: 5px; background: #eef0f3; overflow: hidden; }
+    .chart-bar > span { display: block; height: 100%; border-radius: 5px; background: #9aa0aa; }
+    .chart-bar.is-best > span { background: #1f9d55; }
+    .chart-bar.is-worst > span { background: #d9534f; }
+    .chart-value { text-align: right; color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
     .data-review-section { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 18px; }
     .data-review-section h3 { margin: 0 0 10px; font-size: 13px; }
     .data-review-list { display: grid; gap: 8px; margin: 0; padding-left: 18px; color: #5f6168; font-size: 11px; line-height: 1.7; }
@@ -1032,6 +1048,46 @@
       const metrics = data.metrics || calculateDataMetrics(data.rows || [], data.context);
       return `<div class="data-entry-panel"><div class="notice"><strong>请确认整理后的数据</strong>系统已根据你上传或粘贴的内容识别字段并计算可用指标。请先检查数据是否准确。</div><div class="analysis-label" style="margin-top:20px">结论与建议</div>${renderPlainConclusion(metrics)}<div class="analysis-label">数据质量检查</div>${dataStatusList(data)}${data.warnings?.length ? `<div class="notice" style="margin-top:12px"><strong>需要注意</strong>${data.warnings.map(warning => `<div>${escapeDataHtml(warning)}</div>`).join('')}</div>` : ''}<div class="analysis-label" style="margin-top:20px">原始数据预览</div>${dataRowsTable(data.rows || [])}<div class="analysis-label" style="margin-top:20px">核心指标预览</div>${dataMetricCards(metrics)}<div class="data-hint" style="margin-top:12px">缺失字段不会直接报错，但对应指标会显示“无法计算”。</div><div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToUpload">返回修改数据</button><button type="button" class="primary-btn" id="confirmDataSummary">确认数据无误，开始专业复盘 →</button></div></div>`;
     }
+    // 图表：纯 CSS 绘制，不引入任何图表库，保证零依赖与加载速度
+    function renderDataFunnel(metrics) {
+      const total = metrics?.total || {};
+      const impressions = Number(total.impressions) || 0;
+      const clicks = Number(total.clicks) || 0;
+      const purchases = Number(total.purchases) || 0;
+      if (!impressions) return '';
+      const steps = [
+        { label: '展示', value: impressions, rate: null },
+        { label: '点击', value: clicks, rate: impressions ? clicks / impressions : null },
+        { label: '购买', value: purchases, rate: clicks ? purchases / clicks : null }
+      ];
+      const cells = steps.map(step => `<div class="funnel-step"><div class="fs-value">${step.value.toLocaleString('zh-CN')}</div><div class="fs-label">${step.label}</div>${step.rate === null ? '<div class="fs-rate">起点</div>' : `<div class="fs-rate">↓ 较上一环节 ${(step.rate * 100).toFixed(2)}%</div>`}</div>`).join('');
+      return `<div class="data-chart-card"><div class="chart-title">转化漏斗：人是从哪一步漏掉的</div><div class="funnel-row">${cells}</div></div>`;
+    }
+    function renderChartBars(metrics, key, title, hint, formatter, lowerIsBetter) {
+      const rows = (metrics?.byAd || []).filter(row => row[key] !== null && row[key] !== undefined && Number.isFinite(Number(row[key])));
+      if (rows.length < 2) return '';
+      const values = rows.map(row => Number(row[key]));
+      const max = Math.max(...values);
+      if (!(max > 0)) return '';
+      const best = lowerIsBetter ? Math.min(...values) : Math.max(...values);
+      const worst = lowerIsBetter ? Math.max(...values) : Math.min(...values);
+      const bars = rows.map(row => {
+        const value = Number(row[key]);
+        const width = Math.max(3, Math.round(value / max * 100));
+        const tone = value === best ? ' is-best' : value === worst ? ' is-worst' : '';
+        return `<div class="chart-row"><span>${escapeDataHtml(row.adName)}</span><span class="chart-bar${tone}"><span style="width:${width}%"></span></span><span class="chart-value">${escapeDataHtml(formatter(value))}</span></div>`;
+      }).join('');
+      return `<div class="chart-block"><div class="chart-title">${escapeDataHtml(title)}</div><div class="chart-sub">${escapeDataHtml(hint)}</div>${bars}</div>`;
+    }
+    function renderDataCharts(metrics) {
+      const funnel = renderDataFunnel(metrics);
+      const cpa = renderChartBars(metrics, 'cpa', '每单成本 CPA', '绿色最省钱，红色最贵', value => formatMoney(value, metrics?.spendCurrency || 'CNY'), true);
+      const ctr = renderChartBars(metrics, 'ctr', '点击率 CTR', '绿色最吸引点击', value => `${(value * 100).toFixed(2)}%`, false);
+      const cvr = renderChartBars(metrics, 'cvr', '转化率 CVR', '绿色最容易成交', value => `${(value * 100).toFixed(2)}%`, false);
+      const compare = (cpa || ctr || cvr) ? `<div class="data-chart-card"><div class="chart-title">各广告版本横向对比</div>${cpa}${ctr}${cvr}</div>` : '';
+      if (!funnel && !compare) return '';
+      return `<div class="analysis-label" style="margin-top:22px">数据图表</div>${funnel}${compare}`;
+    }
     // 兼容旧项目里已保存的 7 板块复盘：统一压成 5 个板块再渲染
     function normalizeReviewForDisplay(review) {
       if (!review) return null;
@@ -1056,7 +1112,7 @@
         ? `<div class="data-review-section"><h3>${title}</h3><div class="data-review-card ${className}">${ordered ? '<ol' : '<ul'} class="data-review-list">${items.map(item => `<li>${escapeDataHtml(item)}</li>`).join('')}${ordered ? '</ol>' : '</ul>'}</div></div>`
         : '';
       const headline = review.headline ? `<div class="data-conclusion"><div class="conclusion-title">${escapeDataHtml(review.headline)}</div></div>` : '';
-      return `<div class="data-entry-panel"><div class="notice"><strong>专业复盘已生成</strong>下面的结论只依据你上传的数据；数据证明不了的，会单独写出来。</div><div class="analysis-label">核心指标总览</div>${dataMetricCards(data.metrics)}<div class="analysis-label" style="margin-top:20px">AI 的复盘</div>${headline}${listBlock('数据说明了什么', review.keyFindings, 'supported')}${listBlock('可能的原因（推测）', review.likelyCauses)}${listBlock('接下来做这三件事', review.nextSteps, '', true)}${listBlock('这份数据判断不了的', review.limitations, 'limit')}<div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存专业复盘，完成项目 →</button></div></div>`;
+      return `<div class="data-entry-panel"><div class="notice"><strong>专业复盘已生成</strong>下面的结论只依据你上传的数据；数据证明不了的，会单独写出来。</div><div class="analysis-label">核心指标总览</div>${dataMetricCards(data.metrics)}${renderDataCharts(data.metrics)}<div class="analysis-label" style="margin-top:20px">AI 的复盘</div>${headline}${listBlock('数据说明了什么', review.keyFindings, 'supported')}${listBlock('可能的原因（推测）', review.likelyCauses)}${listBlock('接下来做这三件事', review.nextSteps, '', true)}${listBlock('这份数据判断不了的', review.limitations, 'limit')}<div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存专业复盘，完成项目 →</button></div></div>`;
     }
     const dataGlossaryFields = [
       ['CSV', '一种纯文本表格文件。在 Excel 里用「另存为 → CSV」就能得到，广告后台导出的表通常就是这种格式，识别最稳。'],
