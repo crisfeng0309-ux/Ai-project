@@ -119,6 +119,13 @@
     .side-list { display: grid; gap: 11px; }
     .side-list-item { display: flex; gap: 9px; align-items: flex-start; color: #64666d; font-size: 11px; line-height: 1.55; }
     .side-list-item b { color: var(--ink); font-weight: 650; }
+    #dataSidePanel { max-height: calc(100vh - 44px); overflow-y: auto; }
+    .data-glossary { display: grid; gap: 12px; }
+    .data-glossary .glossary-item { border-bottom: 1px dashed var(--line); padding-bottom: 11px; }
+    .data-glossary .glossary-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .data-glossary .glossary-term { font-size: 11px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .data-glossary .glossary-desc { font-size: 11px; line-height: 1.6; color: #64666d; }
+    .data-glossary .glossary-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink); background: #f4f5f7; border-radius: 5px; padding: 1px 5px; }
     .number { flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: #f1f2f4; color: #74767e; font-size: 10px; }
     .footer-bar { max-width: 1240px; margin: 18px auto 0; display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11px; }
     .flow-note { display: flex; align-items: center; gap: 7px; }
@@ -942,12 +949,40 @@
       const cards = (title, key, className = '') => `<div class="data-review-section"><h3>${title}</h3><div class="data-review-card ${className}">${list(review[key])}</div></div>`;
       return `<div class="data-entry-panel"><div class="notice"><strong>专业复盘已生成</strong>以下内容区分了数据直接支持的结论、合理推测和当前无法判断的部分。</div><div class="analysis-label">核心指标总览</div>${dataMetricCards(data.metrics)}${cards('数据完整性检查', 'dataIntegrity')}${cards('数据直接支持', 'supportedConclusions', 'supported')}${cards('合理推测', 'hypotheses')}${cards('当前无法判断', 'unknowns', 'limit')}${cards('可能的问题原因', 'possibleCauses')}${cards('下一轮实验建议', 'experiments')}${cards('可执行的改进任务', 'tasks')}<div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存专业复盘，完成项目 →</button></div></div>`;
     }
+    const dataGlossaryFields = [
+      ['CSV', '一种纯文本表格文件。在 Excel 里用「另存为 → CSV」就能得到，广告后台导出的表通常就是这种格式，识别最稳。'],
+      ['Excel（XLS / XLSX）', '就是 Excel 表格文件。当前版本建议先另存为 CSV 再上传，字段识别更准确。'],
+      ['展示次数（曝光）', '广告被看到多少次。'],
+      ['点击次数', '有人点进广告多少次。'],
+      ['广告花费', '这段时间这些广告一共花了多少钱。'],
+      ['购买次数（转化）', '点过广告并且完成下单多少次。'],
+      ['销售额', '这些订单一共卖了多少钱。填了这一列才能算 ROAS；拿不到就留空，不要填 0。']
+    ];
+    const dataGlossaryMetrics = [
+      ['CTR 点击率', '点击次数 ÷ 展示次数', '越高说明素材越吸引人点。'],
+      ['CPC 单次点击成本', '广告花费 ÷ 点击次数', '每获得一次点击要花多少钱，越低越好。'],
+      ['CVR 转化率', '购买次数 ÷ 点击次数', '点进来的人里有多少真的买了。'],
+      ['CPA 单次购买成本', '广告花费 ÷ 购买次数', '每卖出一单要花多少钱，越低越好。'],
+      ['ROAS 投入产出比', '销售额 ÷ 广告花费', '等于 2 表示花 1 元广告费收回 2 元销售额。没有销售额时显示「待补充」，不会算成 0。'],
+      ['平均客单价', '销售额 ÷ 购买次数', '一单平均成交多少钱。']
+    ];
+    const dataGlossaryExtra = [
+      ['落地页', '点了广告之后跳转到的页面。'],
+      ['加购 / 结账', '把商品加入购物车、进入结算流程的次数。'],
+      ['A/B 测试', '一次只改一个变量（例如只换首图），对比两个版本哪个更好。']
+    ];
     function renderDataSidePanel() {
       const side = document.getElementById('dataSidePanel');
       if (!side) return;
-      const data = projectState.dataAnalysis;
       const current = dataCurrentStep();
-      side.innerHTML = current === 'upload' ? '<div class="side-title">数据上传建议</div><div class="notice"><strong>推荐 CSV 或 Excel</strong>表格字段越完整，复盘越准确。</div><div class="side-section"><div class="side-title">必需字段</div><div class="side-list"><div class="side-list-item"><span class="number">1</span><span>广告名称或版本</span></div><div class="side-list-item"><span class="number">2</span><span>展示、点击、花费、购买</span></div></div></div><div class="side-section"><div class="side-title">可选补充</div><div class="notice">销售额、加购、受众、广告位、落地页和促销信息。</div></div>' : `<div class="side-title">当前数据状态</div><div class="notice"><strong>${current === 'summary' ? '请确认汇总结果' : current === 'complete' ? '项目已完成' : '已进入专业复盘'}</strong>${data.rows?.length || 0} 条广告数据 · ${data.missingFields?.length || 0} 个字段待补充。</div><div class="side-section"><div class="side-title">结论边界</div><div class="notice">缺少受众、时段或落地页信息时，系统会明确标记“当前无法判断”。</div></div>`;
+      const fieldItem = ([term, desc]) => `<div class="glossary-item"><div class="glossary-term">${escapeDataHtml(term)}</div><div class="glossary-desc">${escapeDataHtml(desc)}</div></div>`;
+      const metricItem = ([term, formula, desc]) => `<div class="glossary-item"><div class="glossary-term">${escapeDataHtml(term)}</div><div class="glossary-desc"><span class="glossary-formula">${escapeDataHtml(formula)}</span><br />${escapeDataHtml(desc)}</div></div>`;
+      const fieldSection = `<div class="side-section"><div class="side-title">数据怎么填</div><div class="notice"><strong>必需列</strong>广告名称、展示次数、点击次数、广告花费、购买次数。再加一列「销售额」就能算出 ROAS 和平均客单价。</div><div class="data-glossary" style="margin-top:14px">${dataGlossaryFields.map(fieldItem).join('')}</div></div>`;
+      const metricSection = `<div class="side-section"><div class="side-title">指标怎么算</div><div class="data-glossary">${dataGlossaryMetrics.map(metricItem).join('')}</div></div>`;
+      const extraSection = `<div class="side-section"><div class="side-title">其他名词</div><div class="data-glossary">${dataGlossaryExtra.map(fieldItem).join('')}</div></div>`;
+      const header = '<div class="side-title">名词解释</div><div class="notice">看不懂的指标和字段都列在这里，每条都写清了含义和计算方式。</div>';
+      // 上传步骤先讲怎么填，进入汇总以后先讲指标怎么算
+      side.innerHTML = current === 'upload' ? `${header}${fieldSection}${metricSection}${extraSection}` : `${header}${metricSection}${fieldSection}${extraSection}`;
     }
     function renderDataView() {
       const view = document.getElementById('data-view');
