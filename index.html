@@ -2438,7 +2438,7 @@
            if (!canFallbackToSync) throw taskError;
            projectState.assets = { ...projectState.assets, generationProgress: '异步接口不可用，正在使用同步生图接口…' };
            renderAssets(projectState.assets);
-           result = await callAI('/api/generate-image', payload, { timeoutMs: 58000 });
+           result = await callAI('/api/generate-image', payload, { timeoutMs: 165000 });
          }
          if (!result.imageUrl) throw new Error(result.taskId ? '豆包已创建生图任务，但当前接口未返回可直接展示的图片地址，请将豆包接口配置为同步返回图片，或补充任务查询接口。' : '豆包没有返回图片地址，请检查生图模型和接口配置。');
          projectState.assets = { ...projectState.assets, generatedImage: result.imageUrl, generatedImageModel: result.model || '', imageGenerationError: '', generationProgress: '', generatingImage: false, generatedAt: new Date().toISOString() };
