@@ -2354,7 +2354,7 @@
            currency: currencySnapshot(),
            scheme,
            userFeedback: feedback
-         });
+         }, { timeoutMs: 110000 });
          const revised = result.schemes?.[0];
          if (!revised) throw new Error('AI 没有返回修改后的提示词');
          const revisedSchemes = data.schemes.map(item => item.id === templateId ? { ...item, ...revised, revisionHistory: [...(item.revisionHistory || []), { feedback: feedback.trim(), createdAt: new Date().toISOString() }] } : item);
@@ -2433,7 +2433,8 @@
            result = await callAI('/api/generate-image-task', payload, { timeoutMs: 20000 });
            if (result.taskId && !result.imageUrl) result = await pollGeneratedImageTask(result.taskId);
          } catch (taskError) {
-           const canFallbackToSync = ['AI_HTTP_400', 'AI_HTTP_404', 'AI_HTTP_405', 'IMAGE_API_HTTP_400', 'IMAGE_API_HTTP_404', 'IMAGE_API_HTTP_405'].includes(taskError.code);
+           const fallbackPrefixes = ['AI_HTTP_400', 'AI_HTTP_404', 'AI_HTTP_405', 'IMAGE_API_HTTP_400', 'IMAGE_API_HTTP_404', 'IMAGE_API_HTTP_405'];
+           const canFallbackToSync = fallbackPrefixes.some(prefix => String(taskError.code || '').startsWith(prefix));
            if (!canFallbackToSync) throw taskError;
            projectState.assets = { ...projectState.assets, generationProgress: '异步接口不可用，正在使用同步生图接口…' };
            renderAssets(projectState.assets);
@@ -2478,7 +2479,7 @@
       if (projectState.aiLoading) { toast('AI 正在生成素材，请稍候'); return; }
       projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint }; clearAssetsAIResult(mode);
       const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
-       try { const result = await callAI('/api/ad-assets', payload); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
+       try { const result = await callAI('/api/ad-assets', payload, { timeoutMs: 110000 }); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
       catch (error) { const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成'; toast(error.message); }
       finally { projectState.aiLoading = false; }
     }
