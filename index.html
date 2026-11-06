@@ -1117,7 +1117,7 @@
       const priciest = [...priced].sort((a, b) => b.cpa - a.cpa)[0];
       const pct = value => `${(Number(value) * 100).toFixed(2)}%`;
       const money = value => formatMoney(value, spendCurrency);
-      const caveat = purchases > 0 && purchases < 50 ? `目前只有 ${purchases} 单成交，下面的判断仅供参考。` : '';
+      const caveat = purchases > 0 && purchases < 50 ? `目前只有 ${purchases} 单成交，以上判断仅供参考。` : '';
 
       if (!purchases) {
         return { tag: '还没成交', headline: '这次没有成交，先确认下单链路是通的', evidence: ['购买次数是 0，成本类指标都算不出来'], focus: [{ metric: '数据', action: '先确认「购买次数」这一列有没有对到正确的表格列' }, { metric: '下单流程', action: '自己下一单，确认能正常付款' }], experiment: '手动走一遍从点击到付款的流程，把卡住的步骤记下来。', caveat: '' };
