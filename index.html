@@ -1270,16 +1270,16 @@
         return { warn: true, title: '数据量还偏小，下面的结论只能当参考', detail: `目前总共只有 ${purchases} 次购买。样本太少时，好与坏很可能只是偶然波动，不建议据此大改投放。`, todos: ['再跑 3–7 天，或把预算集中到表现较好的版本上积累样本', '这期间不要大改素材，否则前后没法对比', '先停掉每单成本明显最高的那个版本'] };
       }
       if (ctr !== null && ctr < 0.01) {
-        return { warn: false, title: '广告不太有人愿意点', detail: `点击率只有 ${showCtr}（经验参考：1% 以上算正常）。曝光是够的，说明首图或标题没吸引到人。`, todos: ['换一版首图，让商品本体和最大的卖点一眼可见', '标题写具体利益点，不要写品牌口号', '一次只改一个变量，跑 3 天再对比'] };
+        return { warn: false, title: `点击率只有 ${showCtr}，素材没吸引到人`, detail: `曝光是够的，问题出在首图或标题没抓住人（经验参考：点击率 1% 以上算正常）。`, todos: ['换一版首图，让商品本体和最大的卖点一眼可见', '标题写具体利益点，不要写品牌口号', '一次只改一个变量，跑 3 天再对比'] };
       }
       if (cvr !== null && cvr < 0.02) {
-        return { warn: false, title: '能吸引人点进来，但进来的人不太买', detail: `点击率 ${showCtr} 还可以，但转化率只有 ${showCvr}（经验参考：2% 以上算正常）。问题多半出在点击之后。`, todos: ['用手机走一遍下单流程，看加载速度和卡在哪一步', '把价格、运费、退换说明放到首屏就能看到的位置', '把表现最好那支广告的落地页文案套到其他版本上对比'] };
+        return { warn: false, title: `点击率 ${showCtr} 还行，转化率只有 ${showCvr}`, detail: `人点进来了却没买，问题多半出在点击之后（经验参考：转化率 2% 以上算正常）。`, todos: ['用手机走一遍下单流程，看加载速度和卡在哪一步', '把价格、运费、退换说明放到首屏就能看到的位置', '把表现最好那支广告的落地页文案套到其他版本上对比'] };
       }
       if (roas !== null && roas < 2) {
-        return { warn: false, title: '卖得动，但广告投入产出偏低', detail: `转化率 ${showCvr} 正常，但 ROAS 只有 ${roas.toFixed(2)}——花 1 元广告费收回 ${roas.toFixed(2)} 元。是否亏钱要看保本 ROAS，取决于毛利率。`, todos: ['在补充信息里填毛利率，系统会算出保本 ROAS 作对照', '提高客单价：捆绑装、满减、加购优惠', '把预算集中到每单成本最低的版本上'] };
+        return { warn: false, title: `花 1 元广告费只收回 ${roas.toFixed(2)} 元`, detail: `转化率 ${showCvr} 正常，但 ROAS 只有 ${roas.toFixed(2)}——花 1 元广告费收回 ${roas.toFixed(2)} 元。是否亏钱要看保本 ROAS，取决于毛利率。`, todos: ['在补充信息里填毛利率，系统会算出保本 ROAS 作对照', '提高客单价：捆绑装、满减、加购优惠', '把预算集中到每单成本最低的版本上'] };
       }
       const gap = cheapest && priciest && cheapest.cpa > 0 ? `成本最低的「${cheapest.adName}」每单 ${formatDataMetric(cheapest.cpa, 'money')}，最高的是「${priciest.adName}」${formatDataMetric(priciest.cpa, 'money')}，相差 ${(priciest.cpa / cheapest.cpa).toFixed(1)} 倍。` : '';
-      return { warn: false, title: '整体表现还算健康，可以继续加量', detail: `点击率 ${showCtr}、转化率 ${showCvr}${roas === null ? '、ROAS 待补充' : `、ROAS ${roas.toFixed(2)}`}。${gap}`, todos: ['把预算往每单成本最低的版本倾斜，同时盯住成本有没有随预算上涨', '按这套素材的套路再做 2 个变体继续测', '其他变量先不要动，避免同时改太多说不清原因'] };
+      return { warn: false, title: `点击率 ${showCtr}、转化率 ${showCvr}，没看到明显问题`, detail: `点击率 ${showCtr}、转化率 ${showCvr}${roas === null ? '、ROAS 待补充' : `、ROAS ${roas.toFixed(2)}`}。${gap}`, todos: ['把预算往每单成本最低的版本倾斜，同时盯住成本有没有随预算上涨', '按这套素材的套路再做 2 个变体继续测', '其他变量先不要动，避免同时改太多说不清原因'] };
     }
     function renderPlainConclusion(metrics) {
       const result = buildPlainConclusion(metrics);
