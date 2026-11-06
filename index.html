@@ -367,6 +367,12 @@
     .chart-bar.is-best > span { background: #1f9d55; }
     .chart-bar.is-worst > span { background: #d9534f; }
     .chart-value { text-align: right; color: var(--ink); font-weight: 650; font-variant-numeric: tabular-nums; }
+    .improve-list { display: grid; gap: 9px; margin: 14px 0; }
+    .improve-item { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; align-items: start; font-size: 12px; line-height: 1.7; }
+    .improve-metric { display: inline-block; text-align: center; font-size: 11px; font-weight: 650; color: #fff; background: var(--ink); border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+    .improve-action { color: var(--ink); }
+    .improve-expt { border-top: 1px dashed var(--line); padding-top: 12px; font-size: 12px; line-height: 1.75; color: #64666d; }
+    .improve-expt strong { color: var(--ink); margin-right: 8px; }
     .data-review-section { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 18px; }
     .data-review-section h3 { margin: 0 0 10px; font-size: 13px; }
     .data-review-list { display: grid; gap: 8px; margin: 0; padding-left: 18px; color: #5f6168; font-size: 11px; line-height: 1.7; }
@@ -1091,6 +1097,52 @@
       if (!funnel && !compare) return '';
       return `<div class="analysis-label" style="margin-top:22px">数据长什么样</div>${funnel}${compare}`;
     }
+    // 改进清单：纯规则、可复现，不调用 AI，也不依赖任何外部数据。
+    // 判断顺序：没有成交 → 版本差距大 → 点击之前 → 点击之后 → 成本结构 → 基本正常
+    function buildImprovementPlan(metrics, context = {}) {
+      const total = metrics?.total || {};
+      const byAd = metrics?.byAd || [];
+      const purchases = Number(total.purchases) || 0;
+      const num = value => (value === null || value === undefined ? null : Number(value));
+      const ctr = num(total.ctr);
+      const cvr = num(total.cvr);
+      const cpa = num(total.cpa);
+      const spendCurrency = metrics?.spendCurrency || 'CNY';
+      const revenueCurrency = metrics?.revenueCurrency || dataRevenueCurrency(context);
+      const aovRaw = num(total.aov);
+      const aovInSpend = aovRaw === null ? null : (revenueCurrency === spendCurrency ? aovRaw : convertDataAmount(aovRaw, revenueCurrency, spendCurrency));
+      const costRatio = cpa !== null && aovInSpend ? cpa / aovInSpend : null;
+      const priced = byAd.filter(row => row.cpa !== null && row.cpa !== undefined);
+      const cheapest = [...priced].sort((a, b) => a.cpa - b.cpa)[0];
+      const priciest = [...priced].sort((a, b) => b.cpa - a.cpa)[0];
+      const pct = value => `${(Number(value) * 100).toFixed(2)}%`;
+      const money = value => formatMoney(value, spendCurrency);
+      const caveat = purchases > 0 && purchases < 50 ? `目前只有 ${purchases} 单成交，下面的判断仅供参考。` : '';
+
+      if (!purchases) {
+        return { tag: '还没成交', headline: '这次没有成交，先确认下单链路是通的', evidence: ['购买次数是 0，成本类指标都算不出来'], focus: [{ metric: '数据', action: '先确认「购买次数」这一列有没有对到正确的表格列' }, { metric: '下单流程', action: '自己下一单，确认能正常付款' }], experiment: '手动走一遍从点击到付款的流程，把卡住的步骤记下来。', caveat: '' };
+      }
+      if (priced.length >= 2 && cheapest && priciest && cheapest.cpa > 0 && priciest.cpa >= cheapest.cpa * 1.8) {
+        return { tag: '版本差距大', headline: '版本之间差距很大，先把预算集中到最省的那个', evidence: [`「${cheapest.adName}」每单 ${money(cheapest.cpa)}，是当前最省的`, `「${priciest.adName}」每单 ${money(priciest.cpa)}，贵了 ${(priciest.cpa / cheapest.cpa).toFixed(1)} 倍`], focus: [{ metric: '预算分配', action: `把「${priciest.adName}」的预算挪给「${cheapest.adName}」` }, { metric: '素材方向', action: `按「${cheapest.adName}」的切入角度再做 2 个变体` }], experiment: `暂停「${priciest.adName}」3 天，看整体每单成本有没有下降。`, caveat };
+      }
+      if (ctr !== null && ctr < 0.01) {
+        return { tag: '点击之前', headline: '问题在点击之前：素材没吸引到人', evidence: [`点击率 ${pct(ctr)}：每 100 次展示只有 ${(ctr * 100).toFixed(1)} 次点击`], focus: [{ metric: '首图', action: '换一版，让商品本体和最大卖点一眼可见' }, { metric: '标题', action: '把利益点写进前 8 个字，删掉品牌口号' }], experiment: '复制当前版本，只换首图，其他都不动，跑 3 天看点击率是否超过 1%。', caveat };
+      }
+      if (cvr !== null && cvr < 0.02) {
+        return { tag: '点击之后', headline: '问题在点击之后：人点进来了却没买', evidence: [`点击率 ${pct(ctr)} 不算差`, `转化率只有 ${pct(cvr)}：每 100 次点击约 ${(cvr * 100).toFixed(1)} 次下单`], focus: [{ metric: '落地页首屏', action: '把价格、运费、退换说明放到第一屏' }, { metric: '信任信息', action: '补评价、实拍图和售后承诺' }], experiment: '同一套素材，只改落地页首屏，跑 3 天看转化率是否翻倍。', caveat };
+      }
+      if (costRatio !== null && costRatio >= 0.5) {
+        return { tag: '成本吃紧', headline: '广告费已经吃掉客单价的一大半', evidence: [`每单广告费 ${money(cpa)}，客单价约 ${money(aovInSpend)}`, `占比约 ${(costRatio * 100).toFixed(0)}%，先确认这个比例在你的毛利之内`], focus: [{ metric: '客单价', action: '加一个捆绑装或满减，把单值提上去' }, { metric: '每单成本', action: '收窄受众范围，或换更精准的素材' }], experiment: '上一个「加 1 元换购」的套餐，跑 3 天看客单价能不能提升 20%。', caveat };
+      }
+      return { tag: '基本正常', headline: '链路和数据都还算健康，可以小步加量', evidence: [`点击率 ${ctr === null ? '无法计算' : pct(ctr)}，转化率 ${cvr === null ? '无法计算' : pct(cvr)}`, costRatio === null ? '缺少销售额，成本结构暂时算不出来' : `每单广告费约占客单价 ${(costRatio * 100).toFixed(0)}%`], focus: [{ metric: '预算', action: '每次加 20%，加完盯住每单成本' }, { metric: '素材变体', action: '按现在最好的角度再做 2 个' }], experiment: '预算 +20% 跑 3 天，看每单成本是否稳定。', caveat };
+    }
+    function renderImprovementPlan(data) {
+      const plan = buildImprovementPlan(data.metrics, data.context || {});
+      if (!plan) return '';
+      const evidence = plan.evidence.map(text => `<li>${escapeDataHtml(text)}</li>`).join('');
+      const focus = plan.focus.map(item => `<div class="improve-item"><span class="improve-metric">${escapeDataHtml(item.metric)}</span><span class="improve-action">${escapeDataHtml(item.action)}</span></div>`).join('');
+      return `<div class="analysis-label" style="margin-top:22px">该往哪改</div><div class="data-chart-card"><div class="chart-title">${escapeDataHtml(plan.tag)} · ${escapeDataHtml(plan.headline)}</div><ul class="data-review-list">${evidence}</ul><div class="improve-list">${focus}</div><div class="improve-expt"><strong>这周就能做的一次测试</strong><span>${escapeDataHtml(plan.experiment)}</span></div>${plan.caveat ? `<div class="data-hint">${escapeDataHtml(plan.caveat)}</div>` : ''}</div>`;
+    }
     // 兼容旧项目里已保存的 7 板块复盘：统一压成 5 个板块再渲染
     function normalizeReviewForDisplay(review) {
       if (!review) return null;
@@ -1124,7 +1176,7 @@
       ].filter(Boolean).join(' · ');
       const spendLabel = `${data.metrics?.spendCurrency || 'CNY'}${data.metrics?.revenueCurrency && data.metrics.revenueCurrency !== data.metrics?.spendCurrency ? ` / 销售额 ${data.metrics.revenueCurrency}` : ''}`;
       // 讲解顺序：结论 → 数字 → 图 → 展开 → 依据说明
-      return `<div class="data-entry-panel"><div class="notice"><strong>数据讲解</strong>下面用大白话把你这份数据过一遍：先给结论，再说依据，最后说下一步。所有结论只依据你上传的这张表。</div>${headline ? `<div class="analysis-label" style="margin-top:20px">先说结论</div>${headline}` : ''}<div class="analysis-label" style="margin-top:20px">你的核心数字</div>${dataMetricCards(data.metrics)}${renderDataCharts(data.metrics)}<div class="analysis-label" style="margin-top:22px">展开讲讲</div>${listBlock('这份数据说明了什么', review.keyFindings, 'supported')}${listBlock('问题可能出在哪（推测）', review.likelyCauses)}${listBlock('接下来可以做这三件事', review.nextSteps, '', true)}${review.limitations.length ? `<div class="data-hint" style="margin-top:14px">这份表没覆盖到：${escapeDataHtml(review.limitations.join('；'))}</div>` : ''}<div class="data-hint" style="margin-top:18px">以上内容基于：${escapeDataHtml(footprint)}。花费币种 ${escapeDataHtml(spendLabel)}。</div><div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存讲解，完成项目 →</button></div></div>`;
+      return `<div class="data-entry-panel"><div class="notice"><strong>数据讲解</strong>下面用大白话把你这份数据过一遍：先给结论，再说依据，最后说下一步。所有结论只依据你上传的这张表。</div>${headline ? `<div class="analysis-label" style="margin-top:20px">先说结论</div>${headline}` : ''}<div class="analysis-label" style="margin-top:20px">你的核心数字</div>${dataMetricCards(data.metrics)}${renderDataCharts(data.metrics)}${renderImprovementPlan(data)}<div class="analysis-label" style="margin-top:22px">展开讲讲</div>${listBlock('这份数据说明了什么', review.keyFindings, 'supported')}${listBlock('问题可能出在哪（推测）', review.likelyCauses)}${listBlock('接下来可以做这三件事', review.nextSteps, '', true)}${review.limitations.length ? `<div class="data-hint" style="margin-top:14px">这份表没覆盖到：${escapeDataHtml(review.limitations.join('；'))}</div>` : ''}<div class="data-hint" style="margin-top:18px">以上内容基于：${escapeDataHtml(footprint)}。花费币种 ${escapeDataHtml(spendLabel)}。</div><div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存讲解，完成项目 →</button></div></div>`;
     }
     const dataGlossaryFields = [
       ['CSV', '一种纯文本表格文件。在 Excel 里用「另存为 → CSV」就能得到，广告后台导出的表通常就是这种格式，识别最稳。'],
@@ -1252,7 +1304,8 @@
       data.review = null;
       renderDataView();
       try {
-        data.review = await callAI('/api/data-analysis', { projectName: projectState.projectName, market: projectState.market, product: projectState.product, data: { rows: data.rows, metrics: data.metrics, missingFields: data.missingFields, warnings: data.warnings }, context: data.context });
+        const plan = buildImprovementPlan(data.metrics, data.context);
+        data.review = await callAI('/api/data-analysis', { projectName: projectState.projectName, market: projectState.market, product: projectState.product, data: { rows: data.rows, metrics: data.metrics, missingFields: data.missingFields, warnings: data.warnings }, context: data.context, improvementPlan: { tag: plan.tag, headline: plan.headline, focus: plan.focus.map(item => `${item.metric}：${item.action}`), experiment: plan.experiment } });
       } catch (error) { data.review = buildLocalDataReview(data); toast('AI 复盘暂不可用，已先生成程序化数据复盘'); }
       data.updatedAt = new Date().toLocaleString('zh-CN', { hour12: false });
       saveCurrentProject();
