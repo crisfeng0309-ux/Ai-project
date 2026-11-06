@@ -1158,11 +1158,11 @@
       const rawSections = Array.isArray(review.analysis) ? review.analysis : [];
       const analysis = rawSections.map(item => (typeof item === 'string'
         ? { title: '', detail: item.trim() }
-        : { title: String(item?.title || '').trim(), detail: String(item?.detail || item?.text || '').trim() })).filter(item => item.detail).slice(0, 4);
+        : { title: String(item?.title || '').trim(), detail: String(item?.detail || item?.text || '').trim() })).filter(item => item.detail).slice(0, 5);
       // 旧项目里存的是四段式结构，合并成一节，避免打开后空白
       if (!analysis.length) {
         const legacy = [...pick('keyFindings', 'supportedConclusions'), ...pick('likelyCauses', 'possibleCauses'), ...pick('nextSteps', 'tasks')];
-        if (legacy.length) analysis.push({ title: '这份数据说明了什么', detail: legacy.join('；') });
+        if (legacy.length) analysis.push({ title: '这份数据说明了什么', detail: legacy.map(text => text.replace(/[。；;]\s*$/, '')).join('；') + '。' });
       }
       return {
         headline: String(review.headline || '').trim(),
@@ -1312,7 +1312,7 @@
       const missing = (data.missingFields || []).map(field => dataFieldLabels[field] || field);
       return {
         headline: plain.title,
-        analysis: sections.slice(0, 4),
+        analysis: sections.slice(0, 5),
         limitations: missing.length ? [`缺「${missing.join('、')}」`] : ['没有受众、投放时段和落地页信息']
       };
     }
