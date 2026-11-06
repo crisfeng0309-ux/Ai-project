@@ -330,7 +330,7 @@
     .data-status-row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #eef0f3; padding: 8px 0; color: #5f6168; font-size: 11px; }
     .data-status-row strong { color: var(--green); }
     .data-status-row strong.missing { color: #c2764f; }
-    .data-metric-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; }
+    .data-metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: 9px; }
     .data-review-section { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 18px; }
     .data-review-section h3 { margin: 0 0 10px; font-size: 13px; }
     .data-review-list { display: grid; gap: 8px; margin: 0; padding-left: 18px; color: #5f6168; font-size: 11px; line-height: 1.7; }
@@ -846,46 +846,92 @@
         return normalized;
       }).filter(row => Object.values(row).some(value => value !== null && value !== '' && value !== '未命名广告'));
     }
-    function calculateDataMetrics(rows) {
+    function calculateDataMetrics(rows = [], context = {}) {
       const sum = field => rows.reduce((total, row) => total + (Number(row[field]) || 0), 0);
       const rate = (numerator, denominator) => denominator ? numerator / denominator : null;
       const total = { impressions: sum('impressions'), clicks: sum('clicks'), spend: sum('spend'), purchases: sum('purchases'), revenue: sum('revenue'), addToCart: sum('addToCart'), checkouts: sum('checkouts') };
+      // 销售额缺失时不能当成 0：0/spend 会算出 ROAS=0，误导为“投放完全没有回报”。
+      // 只有用户提供成交单价时，才按「购买次数 × 单价」估算，并标记来源为 estimated。
+      const avgOrderValue = parseDataNumber(context.avgOrderValue) || 0;
+      const hasRevenue = rows.some(row => row.revenue !== null && row.revenue !== undefined);
+      const revenueSource = hasRevenue ? 'provided' : (avgOrderValue > 0 && total.purchases > 0 ? 'estimated' : 'missing');
+      if (revenueSource === 'estimated') total.revenue = total.purchases * avgOrderValue;
+      if (revenueSource === 'missing') total.revenue = null;
       const providedCtr = rows.filter(row => row.ctr !== null).map(row => row.ctr);
-      total.ctr = rate(total.clicks, total.impressions) ?? (providedCtr.length ? providedCtr.reduce((sumValue, value) => sumValue + value, 0) / providedCtr.length : null); total.cpc = rate(total.spend, total.clicks); total.cvr = rate(total.purchases, total.clicks); total.cpa = rate(total.spend, total.purchases); total.roas = total.spend ? total.revenue / total.spend : null; total.addToCartRate = rate(total.addToCart, total.clicks); total.checkoutRate = rate(total.checkouts, total.addToCart);
-      const byAd = rows.map(row => ({ ...row, ctr: rate(row.clicks, row.impressions) ?? row.ctr, cpc: rate(row.spend, row.clicks), cvr: rate(row.purchases, row.clicks), cpa: rate(row.spend, row.purchases), roas: row.spend ? row.revenue / row.spend : null }));
+      total.ctr = rate(total.clicks, total.impressions) ?? (providedCtr.length ? providedCtr.reduce((sumValue, value) => sumValue + value, 0) / providedCtr.length : null); total.cpc = rate(total.spend, total.clicks); total.cvr = rate(total.purchases, total.clicks); total.cpa = rate(total.spend, total.purchases); total.roas = total.revenue !== null && total.spend ? total.revenue / total.spend : null; total.aov = total.revenue !== null && total.purchases ? total.revenue / total.purchases : null; total.addToCartRate = rate(total.addToCart, total.clicks); total.checkoutRate = rate(total.checkouts, total.addToCart);
+      const rowRevenue = row => (row.revenue !== null && row.revenue !== undefined) ? row.revenue : (avgOrderValue > 0 && row.purchases ? row.purchases * avgOrderValue : null);
+      const byAd = rows.map(row => { const revenue = rowRevenue(row); return { ...row, revenue, ctr: rate(row.clicks, row.impressions) ?? row.ctr, cpc: rate(row.spend, row.clicks), cvr: rate(row.purchases, row.clicks), cpa: rate(row.spend, row.purchases), roas: revenue !== null && row.spend ? revenue / row.spend : null, aov: revenue !== null && row.purchases ? revenue / row.purchases : null }; });
       const missingFields = dataRequiredFields.filter(field => !rows.some(row => row[field] !== null && row[field] !== undefined));
-      if (!rows.some(row => row.revenue !== null)) missingFields.push('revenue');
-      return { total, byAd, missingFields: [...new Set(missingFields)], available: Object.keys(total).filter(key => total[key] !== null && total[key] !== 0) };
+      if (revenueSource === 'missing') missingFields.push('revenue');
+      return { total, byAd, missingFields: [...new Set(missingFields)], available: Object.keys(total).filter(key => total[key] !== null && total[key] !== 0), revenueSource, revenueCurrency: dataRevenueCurrency() };
     }
-    function formatDataMetric(value, type = 'number') { if (value === null || value === undefined || Number.isNaN(value)) return '无法计算'; if (type === 'percent') return `${(value * 100).toFixed(2)}%`; if (type === 'money') return `¥${value.toFixed(2)}`; return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 }); }
+    function formatDataMetric(value, type = 'number', symbol = '¥') { if (value === null || value === undefined || Number.isNaN(value)) return '无法计算'; if (type === 'percent') return `${(value * 100).toFixed(2)}%`; if (type === 'money') return `${symbol}${value.toFixed(2)}`; return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 }); }
+    const dataCurrencySymbols = { CNY: '¥', THB: '฿', VND: '₫', MYR: 'RM', SGD: 'S$', IDR: 'Rp', PHP: '₱', KHR: '៛', LAK: '₭', MMK: 'K', USD: '$' };
+    // 销售额币种：优先用用户在补充信息里填的，其次跟随目标市场，最后回落人民币。
+    function dataRevenueCurrency() {
+      const explicit = String(projectState.dataAnalysis?.context?.revenueCurrency || '').trim().toUpperCase();
+      if (explicit && dataCurrencySymbols[explicit]) return explicit;
+      const market = projectState.dataAnalysis?.context?.market || projectState.market;
+      return clientCurrencyInfo?.[market]?.code || 'CNY';
+    }
+    function formatRevenue(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return '待补充';
+      return formatDataMetric(value, 'money', dataCurrencySymbols[dataRevenueCurrency()] || '¥');
+    }
+    function revenueSourceLabel(source) {
+      if (source === 'provided') return '来自数据表';
+      if (source === 'estimated') return '按购买次数 × 平均成交单价估算';
+      return '待补充销售额';
+    }
     function dataContextFromForm() {
       const context = { ...(projectState.dataAnalysis.context || {}) };
-      ['platform', 'dateRange', 'market', 'audience', 'objective', 'budget', 'landingPage', 'productPrice', 'margin', 'promotion'].forEach(key => { const field = document.getElementById(`dataContext${key[0].toUpperCase()}${key.slice(1)}`); if (field) context[key] = field.value.trim(); });
+      ['platform', 'dateRange', 'market', 'audience', 'objective', 'budget', 'landingPage', 'productPrice', 'margin', 'promotion', 'avgOrderValue', 'revenueCurrency'].forEach(key => { const field = document.getElementById(`dataContext${key[0].toUpperCase()}${key.slice(1)}`); if (field) context[key] = field.value.trim(); });
       return context;
     }
     function dataRowsTable(rows) {
       const columns = ['adName', 'impressions', 'clicks', 'spend', 'purchases', 'revenue'];
-      return `<div class="data-summary-table"><table class="data-table"><thead><tr>${columns.map(column => `<th>${dataFieldLabels[column] || column}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${columns.map(column => `<td>${escapeDataHtml(row[column] === null || row[column] === undefined ? '—' : column === 'spend' || column === 'revenue' ? formatDataMetric(row[column], 'money') : row[column])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+      const cell = (row, column) => {
+        const value = row[column];
+        if (value === null || value === undefined) return '—';
+        if (column === 'revenue') return formatRevenue(value);
+        if (column === 'spend') return formatDataMetric(value, 'money');
+        return value;
+      };
+      return `<div class="data-summary-table"><table class="data-table"><thead><tr>${columns.map(column => `<th>${dataFieldLabels[column] || column}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${columns.map(column => `<td>${escapeDataHtml(cell(row, column))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
     }
     function dataStatusList(data) {
       const required = dataRequiredFields.map(field => `<div class="data-status-row"><span>${dataFieldLabels[field]}</span><strong class="${data.missingFields.includes(field) ? 'missing' : ''}">${data.missingFields.includes(field) ? '缺失' : '已识别'}</strong></div>`).join('');
-      return `<div class="data-status-list">${required}<div class="data-status-row"><span>销售额 / ROAS</span><strong class="${data.missingFields.includes('revenue') ? 'missing' : ''}">${data.missingFields.includes('revenue') ? '未提供，无法计算' : '已识别'}</strong></div></div>`;
+      const revenueKnown = !data.missingFields.includes('revenue') && data.metrics?.total?.revenue !== null;
+      const currency = data.metrics?.revenueCurrency || dataRevenueCurrency();
+      const revenueState = !revenueKnown ? revenueSourceLabel(data.metrics?.revenueSource) : data.metrics?.revenueSource === 'estimated' ? `已估算（${currency}）` : `已识别（${currency}）`;
+      const revenueRow = `<div class="data-status-row"><span>销售额 / ROAS</span><strong class="${revenueKnown ? '' : 'missing'}">${revenueState}</strong></div>`;
+      return `<div class="data-status-list">${required}${revenueRow}</div>`;
     }
     function dataMetricCards(metrics) {
       const total = metrics?.total || {};
-      return `<div class="data-metric-grid"><div class="metric-card"><div class="stat-value">${formatDataMetric(total.ctr, 'percent')}</div><div class="stat-label">整体 CTR</div></div><div class="metric-card"><div class="stat-value">${formatDataMetric(total.cpc, 'money')}</div><div class="stat-label">整体 CPC</div></div><div class="metric-card"><div class="stat-value">${formatDataMetric(total.cvr, 'percent')}</div><div class="stat-label">整体 CVR</div></div><div class="metric-card"><div class="stat-value">${formatDataMetric(total.cpa, 'money')}</div><div class="stat-label">整体 CPA</div></div><div class="metric-card"><div class="stat-value">${formatDataMetric(total.roas, 'number')}</div><div class="stat-label">整体 ROAS</div></div></div>`;
+      const pending = value => value === null || value === undefined;
+      const cards = [
+        [formatDataMetric(total.ctr, 'percent'), '整体 CTR', ''],
+        [formatDataMetric(total.cpc, 'money'), '整体 CPC', ''],
+        [formatDataMetric(total.cvr, 'percent'), '整体 CVR', ''],
+        [formatDataMetric(total.cpa, 'money'), '整体 CPA', ''],
+        [formatRevenue(total.revenue), '整体销售额', pending(total.revenue) ? revenueSourceLabel('missing') : revenueSourceLabel(metrics?.revenueSource)],
+        [pending(total.roas) ? '待补充' : Number(total.roas).toFixed(2), '整体 ROAS', pending(total.roas) ? '缺少销售额，无法计算' : ''],
+        [formatRevenue(total.aov), '平均客单价', pending(total.aov) ? '缺少销售额，无法计算' : '']
+      ];
+      return `<div class="data-metric-grid">${cards.map(([value, label, note]) => `<div class="metric-card"><div class="stat-value">${escapeDataHtml(value)}</div><div class="stat-label">${label}</div>${note ? `<div class="metric-note">${escapeDataHtml(note)}</div>` : ''}</div>`).join('')}</div>`;
     }
     function renderDataUpload() {
       const data = projectState.dataAnalysis;
       const mode = data.inputMode === 'paste' ? 'paste' : 'file';
       const inputPanel = mode === 'file'
         ? `<div class="data-file"><div><strong>选择广告数据文件</strong><div class="data-hint">支持 CSV、XLS、XLSX、PNG、JPG。截图识别后需要确认。</div></div><input id="dataFileInput" type="file" accept=".csv,.xls,.xlsx,.png,.jpg,.jpeg" /></div><div id="dataFileNote" class="data-hint">${data.fileName ? `已选择：${escapeDataHtml(data.fileName)}。` : '还没有选择广告数据文件。'}</div>`
-        : `<textarea id="dataPasteInput" placeholder="请粘贴广告表格或内容，例如：广告版本,展示次数,点击次数,广告花费,购买次数\nA版本,10000,250,125,20">${escapeDataHtml(data.pasteText || (data.inputType === 'paste' ? data.rawText : '') || '')}</textarea><div id="dataFileNote" class="data-hint">${data.pasteText || data.inputType === 'paste' ? '已粘贴数据，请检查内容后保存。' : '还没有粘贴广告表格或内容。'}</div>`;
-      return `<div class="data-entry-panel"><div class="data-input-tabs"><button type="button" class="data-input-tab ${mode === 'file' ? 'active' : ''}" data-input-tab="file"><strong>上传文件</strong><span>推荐 CSV 或 Excel，也可以上传广告后台截图。</span></button><button type="button" class="data-input-tab ${mode === 'paste' ? 'active' : ''}" data-input-tab="paste"><strong>粘贴表格或内容</strong><span>可粘贴 CSV、Excel 复制的表格或广告后台文字。</span></button></div><div class="data-input-pane">${inputPanel}</div><div class="data-field-section"><h3>补充分析信息</h3><p>这些信息不会阻止你继续，但会帮助复盘更准确。</p><div class="data-field-grid"><div class="field"><label for="dataContextPlatform">广告平台</label><input id="dataContextPlatform" placeholder="例如：TikTok Ads" value="${escapeDataHtml(data.context.platform || '')}" /></div><div class="field"><label for="dataContextDateRange">投放日期或时间段</label><input id="dataContextDateRange" placeholder="例如：2026-10-01 至 2026-10-07" value="${escapeDataHtml(data.context.dateRange || '')}" /></div><div class="field"><label for="dataContextMarket">目标市场</label><input id="dataContextMarket" placeholder="例如：泰国" value="${escapeDataHtml(data.context.market || projectState.market || '')}" /></div><div class="field"><label for="dataContextAudience">目标受众</label><input id="dataContextAudience" placeholder="例如：城市通勤人群" value="${escapeDataHtml(data.context.audience || '')}" /></div><div class="field"><label for="dataContextObjective">投放目标</label><input id="dataContextObjective" placeholder="例如：获得购买" value="${escapeDataHtml(data.context.objective || '')}" /></div><div class="field"><label for="dataContextBudget">预算或预算分配</label><input id="dataContextBudget" placeholder="例如：每天 500 元" value="${escapeDataHtml(data.context.budget || '')}" /></div><div class="field"><label for="dataContextLandingPage">落地页信息</label><input id="dataContextLandingPage" placeholder="链接、页面类型或主要问题" value="${escapeDataHtml(data.context.landingPage || '')}" /></div><div class="field"><label for="dataContextPromotion">促销信息</label><input id="dataContextPromotion" placeholder="例如：大促、优惠券、无促销" value="${escapeDataHtml(data.context.promotion || '')}" /></div></div></div><div class="notice"><strong>建议上传完整数据</strong>必需字段是广告名称、展示次数、点击次数、广告花费和购买次数。只有 CTR 时，只能分析点击表现，无法完整计算 CPC、CVR、CPA 和 ROAS。</div><div class="data-primary-actions"><button type="button" class="primary-btn" id="dataSaveBtn">保存数据，进入数据汇总 →</button></div></div>`;
+        : `<textarea id="dataPasteInput" placeholder="请粘贴广告表格或内容，例如：广告版本,展示次数,点击次数,广告花费,购买次数,销售额,币种\nA版本,10000,250,125,20,5600,VND">${escapeDataHtml(data.pasteText || (data.inputType === 'paste' ? data.rawText : '') || '')}</textarea><div id="dataFileNote" class="data-hint">${data.pasteText || data.inputType === 'paste' ? '已粘贴数据，请检查内容后保存。' : '还没有粘贴广告表格或内容。'}</div>`;
+      return `<div class="data-entry-panel"><div class="data-input-tabs"><button type="button" class="data-input-tab ${mode === 'file' ? 'active' : ''}" data-input-tab="file"><strong>上传文件</strong><span>推荐 CSV 或 Excel，也可以上传广告后台截图。</span></button><button type="button" class="data-input-tab ${mode === 'paste' ? 'active' : ''}" data-input-tab="paste"><strong>粘贴表格或内容</strong><span>可粘贴 CSV、Excel 复制的表格或广告后台文字。</span></button></div><div class="data-input-pane">${inputPanel}</div><div class="data-field-section"><h3>补充分析信息</h3><p>这些信息不会阻止你继续，但会帮助复盘更准确。</p><div class="data-field-grid"><div class="field"><label for="dataContextPlatform">广告平台</label><input id="dataContextPlatform" placeholder="例如：TikTok Ads" value="${escapeDataHtml(data.context.platform || '')}" /></div><div class="field"><label for="dataContextDateRange">投放日期或时间段</label><input id="dataContextDateRange" placeholder="例如：2026-10-01 至 2026-10-07" value="${escapeDataHtml(data.context.dateRange || '')}" /></div><div class="field"><label for="dataContextMarket">目标市场</label><input id="dataContextMarket" placeholder="例如：泰国" value="${escapeDataHtml(data.context.market || projectState.market || '')}" /></div><div class="field"><label for="dataContextAudience">目标受众</label><input id="dataContextAudience" placeholder="例如：城市通勤人群" value="${escapeDataHtml(data.context.audience || '')}" /></div><div class="field"><label for="dataContextObjective">投放目标</label><input id="dataContextObjective" placeholder="例如：获得购买" value="${escapeDataHtml(data.context.objective || '')}" /></div><div class="field"><label for="dataContextBudget">预算或预算分配</label><input id="dataContextBudget" placeholder="例如：每天 500 元" value="${escapeDataHtml(data.context.budget || '')}" /></div><div class="field"><label for="dataContextLandingPage">落地页信息</label><input id="dataContextLandingPage" placeholder="链接、页面类型或主要问题" value="${escapeDataHtml(data.context.landingPage || '')}" /></div><div class="field"><label for="dataContextPromotion">促销信息</label><input id="dataContextPromotion" placeholder="例如：大促、优惠券、无促销" value="${escapeDataHtml(data.context.promotion || '')}" /></div><div class="field"><label for="dataContextAvgOrderValue">平均成交单价（可选）</label><input id="dataContextAvgOrderValue" placeholder="仅用于估算销售额，例如：200" value="${escapeDataHtml(data.context.avgOrderValue || '')}" /></div><div class="field"><label for="dataContextRevenueCurrency">销售额币种</label><input id="dataContextRevenueCurrency" placeholder="例如：VND；留空则跟随目标市场" value="${escapeDataHtml(data.context.revenueCurrency || '')}" /></div></div></div><div class="notice"><strong>建议上传完整数据</strong>必需字段是广告名称、展示次数、点击次数、广告花费和购买次数。再加一列「销售额」就能算出 ROAS 和平均客单价；如果拿不到销售额，可在下方填写「平均成交单价」，系统会标注为估算值。</div><div class="data-primary-actions"><button type="button" class="primary-btn" id="dataSaveBtn">保存数据，进入数据汇总 →</button></div></div>`;
     }
     function renderDataSummary() {
       const data = projectState.dataAnalysis;
-      const metrics = data.metrics || calculateDataMetrics(data.rows || []);
+      const metrics = data.metrics || calculateDataMetrics(data.rows || [], data.context);
       return `<div class="data-entry-panel"><div class="notice"><strong>请确认整理后的数据</strong>系统已根据你上传或粘贴的内容识别字段并计算可用指标。请先检查数据是否准确。</div><div class="analysis-label">数据质量检查</div>${dataStatusList(data)}${data.warnings?.length ? `<div class="notice" style="margin-top:12px"><strong>需要注意</strong>${data.warnings.map(warning => `<div>${escapeDataHtml(warning)}</div>`).join('')}</div>` : ''}<div class="analysis-label" style="margin-top:20px">原始数据预览</div>${dataRowsTable(data.rows || [])}<div class="analysis-label" style="margin-top:20px">核心指标预览</div>${dataMetricCards(metrics)}<div class="data-hint" style="margin-top:12px">缺失字段不会直接报错，但对应指标会显示“无法计算”。</div><div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToUpload">返回修改数据</button><button type="button" class="primary-btn" id="confirmDataSummary">确认数据无误，开始专业复盘 →</button></div></div>`;
     }
     function renderDataReview() {
@@ -930,10 +976,11 @@
       renderOverview();
     }
     function buildLocalDataReview(data) {
-      const metrics = data.metrics || calculateDataMetrics(data.rows || []);
+      const metrics = data.metrics || calculateDataMetrics(data.rows || [], data.context);
       const best = [...(metrics.byAd || [])].filter(row => row.cpa !== null || row.ctr !== null).sort((a, b) => (a.cpa ?? Infinity) - (b.cpa ?? Infinity))[0];
       const highestCtr = [...(metrics.byAd || [])].filter(row => row.ctr !== null).sort((a, b) => b.ctr - a.ctr)[0];
-      return { dataIntegrity: [`已读取 ${data.rows?.length || 0} 条广告版本数据`, data.missingFields?.length ? `缺少字段：${data.missingFields.map(field => dataFieldLabels[field] || field).join('、')}` : '核心计算字段完整'], supportedConclusions: [highestCtr ? `${highestCtr.adName} 的 CTR 为 ${formatDataMetric(highestCtr.ctr, 'percent')}，在当前数据范围内更容易获得点击。` : '当前数据不足以比较点击效率。', best ? `${best.adName} 的 CPA 为 ${formatDataMetric(best.cpa, 'money')}，可作为下一轮实验的参考版本。` : '当前数据不足以比较购买成本。'], hypotheses: ['表现差异可能与广告标题、首图、卖点表达或投放人群有关。'], unknowns: ['当前数据无法单独证明优势完全来自广告创意；还需要受众、投放时段、广告位和落地页信息。', data.missingFields?.includes('revenue') ? '缺少销售额，无法判断 ROAS 和收入效率。' : '当前数据未提供更多成本与利润背景。'], possibleCauses: ['点击高但购买低时，问题可能出现在落地页、价格、信任信息或商品匹配度。', '不同版本的预算、受众或投放时段不一致时，横向比较可能受到干扰。'], experiments: ['固定受众、预算、广告位和落地页，只替换一个创意变量进行 A/B 测试。', '优先保留点击效率或购买成本更好的版本，再测试新的标题或首图。'], tasks: ['保存当前数据作为基准版本。', '补充销售额、受众、投放时段和落地页信息。', '为下一轮实验定义唯一变化变量和成功指标。'] };
+      const bestRoas = [...(metrics.byAd || [])].filter(row => row.roas !== null).sort((a, b) => b.roas - a.roas)[0];
+      return { dataIntegrity: [`已读取 ${data.rows?.length || 0} 条广告版本数据`, data.missingFields?.length ? `缺少字段：${data.missingFields.map(field => dataFieldLabels[field] || field).join('、')}` : '核心计算字段完整', `销售额来源：${revenueSourceLabel(metrics.revenueSource)}`], supportedConclusions: [highestCtr ? `${highestCtr.adName} 的 CTR 为 ${formatDataMetric(highestCtr.ctr, 'percent')}，在当前数据范围内更容易获得点击。` : '当前数据不足以比较点击效率。', best ? `${best.adName} 的 CPA 为 ${formatDataMetric(best.cpa, 'money')}，可作为下一轮实验的参考版本。` : '当前数据不足以比较购买成本。', ...(bestRoas ? [`${bestRoas.adName} 的 ROAS 为 ${Number(bestRoas.roas).toFixed(2)}（${revenueSourceLabel(metrics.revenueSource)}），投入产出表现最好。`] : [])], hypotheses: ['表现差异可能与广告标题、首图、卖点表达或投放人群有关。'], unknowns: ['当前数据无法单独证明优势完全来自广告创意；还需要受众、投放时段、广告位和落地页信息。', data.missingFields?.includes('revenue') ? '缺少销售额，无法判断 ROAS 和收入效率。' : '当前数据未提供更多成本与利润背景。'], possibleCauses: ['点击高但购买低时，问题可能出现在落地页、价格、信任信息或商品匹配度。', '不同版本的预算、受众或投放时段不一致时，横向比较可能受到干扰。'], experiments: ['固定受众、预算、广告位和落地页，只替换一个创意变量进行 A/B 测试。', '优先保留点击效率或购买成本更好的版本，再测试新的标题或首图。'], tasks: ['保存当前数据作为基准版本。', '补充销售额、受众、投放时段和落地页信息。', '为下一轮实验定义唯一变化变量和成功指标。'] };
     }
     async function generateDataReview() {
       const data = projectState.dataAnalysis;
@@ -961,10 +1008,11 @@
       if (text) { const parsed = parseDelimited(text); data.columns = parsed.headers; data.fieldMapping = inferDataMapping(parsed.headers); data.rows = normalizeDataRows(parsed, data.fieldMapping); }
       data.context = dataContextFromForm();
       if (!data.rows.length) { toast('请先上传或粘贴包含表头和数据行的广告数据'); return; }
-      data.metrics = calculateDataMetrics(data.rows);
+      data.metrics = calculateDataMetrics(data.rows, data.context);
       data.missingFields = data.metrics.missingFields;
       data.warnings = [];
       if (data.missingFields.length) data.warnings.push(`当前缺少：${data.missingFields.map(field => dataFieldLabels[field] || field).join('、')}，相关指标将无法计算。`);
+      if (data.metrics.revenueSource === 'estimated') data.warnings.push('销售额是根据「购买次数 × 平均成交单价」估算的，ROAS 与平均客单价都是估算值，请勿当作真实收入。');
       if (data.rows.some(row => row.clicks !== null && row.impressions !== null && row.clicks > row.impressions)) data.warnings.push('发现点击次数大于展示次数的记录，请确认字段是否映射正确。');
       data.summaryConfirmed = false;
       updateDataState('summary', '数据汇总');
