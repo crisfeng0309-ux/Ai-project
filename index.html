@@ -1027,8 +1027,46 @@
       const currencyFactor = spendCurrency === revenueCurrency ? 1 : convertDataAmount(1, spendCurrency, revenueCurrency);
       const providedCtr = rows.filter(row => row.ctr !== null).map(row => row.ctr);
       total.ctr = rate(total.clicks, total.impressions) ?? (providedCtr.length ? providedCtr.reduce((sumValue, value) => sumValue + value, 0) / providedCtr.length : null); total.cpc = rate(total.spend, total.clicks); total.cvr = rate(total.purchases, total.clicks); total.cpa = rate(total.spend, total.purchases); total.roas = total.revenue !== null && total.spend && currencyFactor !== null ? total.revenue / (total.spend * currencyFactor) : null; total.aov = total.revenue !== null && total.purchases ? total.revenue / total.purchases : null; total.addToCartRate = rate(total.addToCart, total.clicks); total.checkoutRate = rate(total.checkouts, total.addToCart);
+      // 同一个广告版本在真实广告后台里通常按天导出成多行（3 个版本 × 7 天 = 21 行）。
+      // 所以先按广告名聚合，再算每个版本的指标；否则对比图会把每一天当成一个版本。
       const rowRevenue = row => (row.revenue !== null && row.revenue !== undefined) ? row.revenue : (avgOrderValue > 0 && row.purchases ? row.purchases * avgOrderValue : null);
-      const byAd = rows.map(row => { const revenue = rowRevenue(row); return { ...row, revenue, ctr: rate(row.clicks, row.impressions) ?? row.ctr, cpc: rate(row.spend, row.clicks), cvr: rate(row.purchases, row.clicks), cpa: rate(row.spend, row.purchases), roas: revenue !== null && row.spend && currencyFactor !== null ? revenue / (row.spend * currencyFactor) : null, aov: revenue !== null && row.purchases ? revenue / row.purchases : null }; });
+      const grouped = new Map();
+      rows.forEach(row => {
+        const key = String(row.adName || '未命名广告');
+        const bucket = grouped.get(key) || { adName: key, dates: [], ctrs: [], impressions: 0, clicks: 0, spend: 0, purchases: 0, revenue: 0, addToCart: 0, checkouts: 0, hasRevenue: false };
+        bucket.impressions += Number(row.impressions) || 0;
+        bucket.clicks += Number(row.clicks) || 0;
+        bucket.spend += Number(row.spend) || 0;
+        bucket.purchases += Number(row.purchases) || 0;
+        bucket.addToCart += Number(row.addToCart) || 0;
+        bucket.checkouts += Number(row.checkouts) || 0;
+        const rowRevenueValue = rowRevenue(row);
+        if (rowRevenueValue !== null && rowRevenueValue !== undefined) { bucket.revenue += Number(rowRevenueValue) || 0; bucket.hasRevenue = true; }
+        if (row.ctr !== null && row.ctr !== undefined) bucket.ctrs.push(Number(row.ctr));
+        if (row.date) bucket.dates.push(String(row.date));
+        grouped.set(key, bucket);
+      });
+      const byAd = [...grouped.values()].map(bucket => {
+        const revenue = bucket.hasRevenue ? bucket.revenue : null;
+        const providedCtrAvg = bucket.ctrs.length ? bucket.ctrs.reduce((sumValue, value) => sumValue + value, 0) / bucket.ctrs.length : null;
+        return {
+          adName: bucket.adName,
+          date: bucket.dates.length === 1 ? bucket.dates[0] : (bucket.dates.length ? `${bucket.dates[0]} 起 ${bucket.dates.length} 天` : ''),
+          impressions: bucket.impressions,
+          clicks: bucket.clicks,
+          spend: bucket.spend,
+          purchases: bucket.purchases,
+          revenue,
+          addToCart: bucket.addToCart,
+          checkouts: bucket.checkouts,
+          ctr: rate(bucket.clicks, bucket.impressions) ?? providedCtrAvg,
+          cpc: rate(bucket.spend, bucket.clicks),
+          cvr: rate(bucket.purchases, bucket.clicks),
+          cpa: rate(bucket.spend, bucket.purchases),
+          roas: revenue !== null && bucket.spend && currencyFactor !== null ? revenue / (bucket.spend * currencyFactor) : null,
+          aov: revenue !== null && bucket.purchases ? revenue / bucket.purchases : null
+        };
+      });
       const missingFields = dataRequiredFields.filter(field => !rows.some(row => row[field] !== null && row[field] !== undefined));
       if (revenueSource === 'missing') missingFields.push('revenue');
       return { total, byAd, missingFields: [...new Set(missingFields)], available: Object.keys(total).filter(key => total[key] !== null && total[key] !== 0), revenueSource, revenueCurrency, spendCurrency, currencyFactor };
@@ -1389,6 +1427,11 @@
       }
       if (roas !== null && roas < 2) {
         return { warn: false, title: `花 1 元广告费只收回 ${roas.toFixed(2)} 元`, detail: `转化率 ${showCvr} 正常，但 ROAS 只有 ${roas.toFixed(2)}——花 1 元广告费收回 ${roas.toFixed(2)} 元。是否亏钱要看保本 ROAS，取决于毛利率。`, todos: ['在补充信息里填毛利率，系统会算出保本 ROAS 作对照', '提高客单价：捆绑装、满减、加购优惠', '把预算集中到每单成本最低的版本上'] };
+      }
+      if (roas === null) {
+        // 没有销售额时，说「没看到明显问题」是越界的：连赚不赚钱都算不出来。
+        const showCpa = total.cpa === null || total.cpa === undefined ? '无法计算' : formatDataMetric(total.cpa, 'money');
+        return { warn: false, title: `点击率 ${showCtr}、转化率 ${showCvr}，但缺销售额，判断不了是否赚钱`, detail: `每单广告费约 ${showCpa}，点击和转化这两环是通的；但这份表里没有销售额，ROAS 和客单价都算不出来，所以不能说「表现没问题」。`, todos: ['补上「销售额」这一列，或在「平均成交单价」里填一个数让系统估算', '补上之前，先只看点击率、转化率和每单成本这三项', '拿到销售额后再决定要不要加预算'] };
       }
       const gap = cheapest && priciest && cheapest.cpa > 0 ? `成本最低的「${cheapest.adName}」每单 ${formatDataMetric(cheapest.cpa, 'money')}，最高的是「${priciest.adName}」${formatDataMetric(priciest.cpa, 'money')}，相差 ${(priciest.cpa / cheapest.cpa).toFixed(1)} 倍。` : '';
       return { warn: false, title: `点击率 ${showCtr}、转化率 ${showCvr}，没看到明显问题`, detail: `点击率 ${showCtr}、转化率 ${showCvr}${roas === null ? '、ROAS 待补充' : `、ROAS ${roas.toFixed(2)}`}。${gap}`, todos: ['把预算往每单成本最低的版本倾斜，同时盯住成本有没有随预算上涨', '按这套素材的套路再做 2 个变体继续测', '其他变量先不要动，避免同时改太多说不清原因'] };
