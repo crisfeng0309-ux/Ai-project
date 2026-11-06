@@ -373,6 +373,10 @@
     .improve-action { color: var(--ink); }
     .improve-expt { border-top: 1px dashed var(--line); padding-top: 12px; font-size: 12px; line-height: 1.75; color: #64666d; }
     .improve-expt strong { color: var(--ink); margin-right: 8px; }
+    .analysis-block { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px; }
+    .analysis-block:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+    .analysis-block .ab-title { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 7px; }
+    .analysis-block .ab-text { margin: 0; font-size: 12.5px; line-height: 1.95; color: #4a4d54; }
     .data-review-section { border-top: 1px solid var(--line); padding-top: 18px; margin-top: 18px; }
     .data-review-section h3 { margin: 0 0 10px; font-size: 13px; }
     .data-review-list { display: grid; gap: 8px; margin: 0; padding-left: 18px; color: #5f6168; font-size: 11px; line-height: 1.7; }
@@ -1151,11 +1155,18 @@
         return String(item?.detail || item?.title || item?.text || '').trim();
       }).filter(Boolean);
       const pick = (...keys) => { for (const key of keys) { const got = arr(review[key]); if (got.length) return got; } return []; };
+      const rawSections = Array.isArray(review.analysis) ? review.analysis : [];
+      const analysis = rawSections.map(item => (typeof item === 'string'
+        ? { title: '', detail: item.trim() }
+        : { title: String(item?.title || '').trim(), detail: String(item?.detail || item?.text || '').trim() })).filter(item => item.detail).slice(0, 4);
+      // 旧项目里存的是四段式结构，合并成一节，避免打开后空白
+      if (!analysis.length) {
+        const legacy = [...pick('keyFindings', 'supportedConclusions'), ...pick('likelyCauses', 'possibleCauses'), ...pick('nextSteps', 'tasks')];
+        if (legacy.length) analysis.push({ title: '这份数据说明了什么', detail: legacy.join('；') });
+      }
       return {
         headline: String(review.headline || '').trim(),
-        keyFindings: pick('keyFindings', 'supportedConclusions').slice(0, 3),
-        likelyCauses: pick('likelyCauses', 'possibleCauses', 'hypotheses').slice(0, 2),
-        nextSteps: pick('nextSteps', 'tasks', 'experiments').slice(0, 3),
+        analysis,
         limitations: pick('limitations', 'unknowns').slice(0, 2)
       };
     }
@@ -1163,9 +1174,6 @@
       const data = projectState.dataAnalysis;
       if (!data.review) return '<div class="data-loading">正在讲解你的数据，请稍候…</div>';
       const review = normalizeReviewForDisplay(data.review);
-      const listBlock = (title, items, className = '', ordered = false) => items.length
-        ? `<div class="data-review-section"><h3>${title}</h3><div class="data-review-card ${className}">${ordered ? '<ol' : '<ul'} class="data-review-list">${items.map(item => `<li>${escapeDataHtml(item)}</li>`).join('')}${ordered ? '</ol>' : '</ul>'}</div></div>`
-        : '';
       const headline = review.headline ? `<div class="data-conclusion"><div class="conclusion-title">${escapeDataHtml(review.headline)}</div></div>` : '';
       const context = data.context || {};
       const footprint = [
@@ -1176,7 +1184,7 @@
       ].filter(Boolean).join(' · ');
       const spendLabel = `${data.metrics?.spendCurrency || 'CNY'}${data.metrics?.revenueCurrency && data.metrics.revenueCurrency !== data.metrics?.spendCurrency ? ` / 销售额 ${data.metrics.revenueCurrency}` : ''}`;
       // 讲解顺序：结论 → 数字 → 图 → 展开 → 依据说明
-      return `<div class="data-entry-panel"><div class="notice"><strong>数据讲解</strong>下面用大白话把你这份数据过一遍：先给结论，再说依据，最后说下一步。所有结论只依据你上传的这张表。</div>${headline ? `<div class="analysis-label" style="margin-top:20px">先说结论</div>${headline}` : ''}<div class="analysis-label" style="margin-top:20px">你的核心数字</div>${dataMetricCards(data.metrics)}${renderDataCharts(data.metrics)}${renderImprovementPlan(data)}<div class="analysis-label" style="margin-top:22px">展开讲讲</div>${listBlock('这份数据说明了什么', review.keyFindings, 'supported')}${listBlock('问题可能出在哪（推测）', review.likelyCauses)}${listBlock('接下来可以做这三件事', review.nextSteps, '', true)}${review.limitations.length ? `<div class="data-hint" style="margin-top:14px">这份表没覆盖到：${escapeDataHtml(review.limitations.join('；'))}</div>` : ''}<div class="data-hint" style="margin-top:18px">以上内容基于：${escapeDataHtml(footprint)}。花费币种 ${escapeDataHtml(spendLabel)}。</div><div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存讲解，完成项目 →</button></div></div>`;
+      return `<div class="data-entry-panel"><div class="notice"><strong>数据讲解</strong>下面用大白话把你这份数据过一遍：先给结论，再说依据，最后说下一步。所有结论只依据你上传的这张表。</div>${headline ? `<div class="analysis-label" style="margin-top:20px">先说结论</div>${headline}` : ''}<div class="analysis-label" style="margin-top:20px">你的核心数字</div>${dataMetricCards(data.metrics)}${renderDataCharts(data.metrics)}${renderImprovementPlan(data)}${review.analysis.length ? `<div class="analysis-label" style="margin-top:22px">展开讲讲</div><div class="data-chart-card">${review.analysis.map(section => `<div class="analysis-block">${section.title ? `<div class="ab-title">${escapeDataHtml(section.title)}</div>` : ''}<p class="ab-text">${escapeDataHtml(section.detail)}</p></div>`).join('')}</div>` : ''}${review.limitations.length ? `<div class="data-hint" style="margin-top:14px">这份表没覆盖到：${escapeDataHtml(review.limitations.join('；'))}</div>` : ''}<div class="data-hint" style="margin-top:18px">以上内容基于：${escapeDataHtml(footprint)}。花费币种 ${escapeDataHtml(spendLabel)}。</div><div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存讲解，完成项目 →</button></div></div>`;
     }
     const dataGlossaryFields = [
       ['CSV', '一种纯文本表格文件。在 Excel 里用「另存为 → CSV」就能得到，广告后台导出的表通常就是这种格式，识别最稳。'],
@@ -1278,25 +1286,34 @@
       return `<div class="data-conclusion${result.warn ? ' is-warn' : ''}"><div class="conclusion-title">${escapeDataHtml(result.title)}</div><div class="conclusion-detail">${escapeDataHtml(result.detail)}</div><ol class="conclusion-todos">${result.todos.map(todo => `<li>${escapeDataHtml(todo)}</li>`).join('')}</ol></div>`;
     }
     function buildLocalDataReview(data) {
+      // AI 不可用时按规则生成同样的三段式分析，保证页面结构一致
       const metrics = data.metrics || calculateDataMetrics(data.rows || [], data.context);
       const plain = buildPlainConclusion(metrics);
-      const byAd = (metrics.byAd || []).filter(row => row.cpa !== null && row.cpa !== undefined);
-      const cheapest = [...byAd].sort((a, b) => a.cpa - b.cpa)[0];
-      const priciest = [...byAd].sort((a, b) => b.cpa - a.cpa)[0];
-      const highestCtr = [...(metrics.byAd || [])].filter(row => row.ctr !== null).sort((a, b) => b.ctr - a.ctr)[0];
-      const findings = [];
-      if (highestCtr) findings.push(`${highestCtr.adName} 的点击率最高（${formatDataMetric(highestCtr.ctr, 'percent')}），更容易吸引人点。`);
-      if (cheapest) findings.push(`${cheapest.adName} 每单成本最低（${formatDataMetric(cheapest.cpa, 'money')}）。`);
-      if (priciest && cheapest && priciest !== cheapest) findings.push(`${priciest.adName} 每单成本最高（${formatDataMetric(priciest.cpa, 'money')}），是 ${cheapest.adName} 的 ${(priciest.cpa / cheapest.cpa).toFixed(1)} 倍。`);
+      const total = metrics.total || {};
+      const spendCurrency = metrics.spendCurrency || 'CNY';
+      const revenueCurrency = metrics.revenueCurrency || dataRevenueCurrency(data.context || {});
+      const pct = value => `${(Number(value) * 100).toFixed(2)}%`;
+      const versions = (metrics.byAd || []).length;
+      const sections = [];
+      sections.push({ title: '整体表现', detail: `这批数据共 ${data.rows?.length || 0} 行、${versions} 个广告版本，广告花费 ${formatMoney(total.spend, spendCurrency)}，成交 ${Number(total.purchases) || 0} 单。` });
+      if (total.impressions && total.clicks && total.ctr !== null) {
+        sections.push({ title: '从看到买，每一环的效率', detail: `展示 ${Number(total.impressions).toLocaleString()} 次带来 ${Number(total.clicks).toLocaleString()} 次点击，点击率 ${pct(total.ctr)}（每 100 次展示约 ${(Number(total.ctr) * 100).toFixed(1)} 次点击）；其中 ${Number(total.purchases) || 0} 单成交，转化率 ${total.cvr === null ? '无法计算' : pct(total.cvr)}。` });
+      }
+      const aovInSpend = total.aov === null || total.aov === undefined ? null : (revenueCurrency === spendCurrency ? Number(total.aov) : convertDataAmount(Number(total.aov), revenueCurrency, spendCurrency));
+      if (total.cpa !== null && total.cpa !== undefined && aovInSpend) {
+        sections.push({ title: '钱花得值不值', detail: `每单广告费 ${formatMoney(total.cpa, spendCurrency)}，平均客单价约 ${formatMoney(aovInSpend, spendCurrency)}，广告成本约占客单价的 ${Math.round(Number(total.cpa) / aovInSpend * 100)}%。` });
+      }
+      const priced = (metrics.byAd || []).filter(row => row.cpa !== null && row.cpa !== undefined);
+      if (priced.length >= 2) {
+        const cheapest = [...priced].sort((a, b) => a.cpa - b.cpa)[0];
+        const priciest = [...priced].sort((a, b) => b.cpa - a.cpa)[0];
+        sections.push({ title: '几个版本差在哪', detail: `「${cheapest.adName}」每单 ${formatMoney(cheapest.cpa, spendCurrency)} 最省，「${priciest.adName}」每单 ${formatMoney(priciest.cpa, spendCurrency)} 最贵，相差 ${(priciest.cpa / cheapest.cpa).toFixed(1)} 倍。` });
+      }
       const missing = (data.missingFields || []).map(field => dataFieldLabels[field] || field);
       return {
         headline: plain.title,
-        keyFindings: findings.slice(0, 3),
-        likelyCauses: ['表现差异可能与标题、首图、卖点表达或投放人群有关，但这份数据证明不了具体是哪一项。'],
-        nextSteps: plain.todos.slice(0, 3),
-        limitations: missing.length
-          ? [`缺「${missing.join('、')}」`]
-          : ['没有受众、投放时段和落地页信息']
+        analysis: sections.slice(0, 4),
+        limitations: missing.length ? [`缺「${missing.join('、')}」`] : ['没有受众、投放时段和落地页信息']
       };
     }
     async function generateDataReview() {
