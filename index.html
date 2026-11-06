@@ -951,13 +951,31 @@
       const metrics = data.metrics || calculateDataMetrics(data.rows || [], data.context);
       return `<div class="data-entry-panel"><div class="notice"><strong>请确认整理后的数据</strong>系统已根据你上传或粘贴的内容识别字段并计算可用指标。请先检查数据是否准确。</div><div class="analysis-label" style="margin-top:20px">结论与建议</div>${renderPlainConclusion(metrics)}<div class="analysis-label">数据质量检查</div>${dataStatusList(data)}${data.warnings?.length ? `<div class="notice" style="margin-top:12px"><strong>需要注意</strong>${data.warnings.map(warning => `<div>${escapeDataHtml(warning)}</div>`).join('')}</div>` : ''}<div class="analysis-label" style="margin-top:20px">原始数据预览</div>${dataRowsTable(data.rows || [])}<div class="analysis-label" style="margin-top:20px">核心指标预览</div>${dataMetricCards(metrics)}<div class="data-hint" style="margin-top:12px">缺失字段不会直接报错，但对应指标会显示“无法计算”。</div><div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToUpload">返回修改数据</button><button type="button" class="primary-btn" id="confirmDataSummary">确认数据无误，开始专业复盘 →</button></div></div>`;
     }
+    // 兼容旧项目里已保存的 7 板块复盘：统一压成 5 个板块再渲染
+    function normalizeReviewForDisplay(review) {
+      if (!review) return null;
+      const arr = value => (Array.isArray(value) ? value : []).map(item => {
+        if (typeof item === 'string') return item.trim();
+        return String(item?.detail || item?.title || item?.text || '').trim();
+      }).filter(Boolean);
+      const pick = (...keys) => { for (const key of keys) { const got = arr(review[key]); if (got.length) return got; } return []; };
+      return {
+        headline: String(review.headline || '').trim(),
+        keyFindings: pick('keyFindings', 'supportedConclusions').slice(0, 3),
+        likelyCauses: pick('likelyCauses', 'possibleCauses', 'hypotheses').slice(0, 2),
+        nextSteps: pick('nextSteps', 'tasks', 'experiments').slice(0, 3),
+        limitations: pick('limitations', 'unknowns').slice(0, 2)
+      };
+    }
     function renderDataReview() {
       const data = projectState.dataAnalysis;
       if (!data.review) return '<div class="data-loading">正在生成专业复盘，请稍候…</div>';
-      const review = data.review;
-      const list = value => Array.isArray(value) && value.length ? `<ul class="data-review-list">${value.map(item => `<li>${escapeDataHtml(typeof item === 'string' ? item : item.detail || item.title || JSON.stringify(item))}</li>`).join('')}</ul>` : '<p class="data-hint">当前数据暂未支持这一项判断。</p>';
-      const cards = (title, key, className = '') => `<div class="data-review-section"><h3>${title}</h3><div class="data-review-card ${className}">${list(review[key])}</div></div>`;
-      return `<div class="data-entry-panel"><div class="notice"><strong>专业复盘已生成</strong>以下内容区分了数据直接支持的结论、合理推测和当前无法判断的部分。</div><div class="analysis-label">核心指标总览</div>${dataMetricCards(data.metrics)}${cards('数据完整性检查', 'dataIntegrity')}${cards('数据直接支持', 'supportedConclusions', 'supported')}${cards('合理推测', 'hypotheses')}${cards('当前无法判断', 'unknowns', 'limit')}${cards('可能的问题原因', 'possibleCauses')}${cards('下一轮实验建议', 'experiments')}${cards('可执行的改进任务', 'tasks')}<div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存专业复盘，完成项目 →</button></div></div>`;
+      const review = normalizeReviewForDisplay(data.review);
+      const listBlock = (title, items, className = '', ordered = false) => items.length
+        ? `<div class="data-review-section"><h3>${title}</h3><div class="data-review-card ${className}">${ordered ? '<ol' : '<ul'} class="data-review-list">${items.map(item => `<li>${escapeDataHtml(item)}</li>`).join('')}${ordered ? '</ol>' : '</ul>'}</div></div>`
+        : '';
+      const headline = review.headline ? `<div class="data-conclusion"><div class="conclusion-title">${escapeDataHtml(review.headline)}</div></div>` : '';
+      return `<div class="data-entry-panel"><div class="notice"><strong>专业复盘已生成</strong>下面的结论只依据你上传的数据；数据证明不了的，会单独写出来。</div><div class="analysis-label">核心指标总览</div>${dataMetricCards(data.metrics)}<div class="analysis-label" style="margin-top:20px">AI 的复盘</div>${headline}${listBlock('数据说明了什么', review.keyFindings, 'supported')}${listBlock('可能的原因（推测）', review.likelyCauses)}${listBlock('接下来做这三件事', review.nextSteps, '', true)}${listBlock('这份数据判断不了的', review.limitations, 'limit')}<div class="data-primary-actions"><button type="button" class="ghost-btn" id="dataBackToSummary">返回数据汇总</button><button type="button" class="primary-btn" id="completeDataReview">保存专业复盘，完成项目 →</button></div></div>`;
     }
     const dataGlossaryFields = [
       ['CSV', '一种纯文本表格文件。在 Excel 里用「另存为 → CSV」就能得到，广告后台导出的表通常就是这种格式，识别最稳。'],
@@ -1059,10 +1077,25 @@
     }
     function buildLocalDataReview(data) {
       const metrics = data.metrics || calculateDataMetrics(data.rows || [], data.context);
-      const best = [...(metrics.byAd || [])].filter(row => row.cpa !== null || row.ctr !== null).sort((a, b) => (a.cpa ?? Infinity) - (b.cpa ?? Infinity))[0];
+      const plain = buildPlainConclusion(metrics);
+      const byAd = (metrics.byAd || []).filter(row => row.cpa !== null && row.cpa !== undefined);
+      const cheapest = [...byAd].sort((a, b) => a.cpa - b.cpa)[0];
+      const priciest = [...byAd].sort((a, b) => b.cpa - a.cpa)[0];
       const highestCtr = [...(metrics.byAd || [])].filter(row => row.ctr !== null).sort((a, b) => b.ctr - a.ctr)[0];
-      const bestRoas = [...(metrics.byAd || [])].filter(row => row.roas !== null).sort((a, b) => b.roas - a.roas)[0];
-      return { dataIntegrity: [`已读取 ${data.rows?.length || 0} 条广告版本数据`, data.missingFields?.length ? `缺少字段：${data.missingFields.map(field => dataFieldLabels[field] || field).join('、')}` : '核心计算字段完整', `销售额来源：${revenueSourceLabel(metrics.revenueSource)}`], supportedConclusions: [highestCtr ? `${highestCtr.adName} 的 CTR 为 ${formatDataMetric(highestCtr.ctr, 'percent')}，在当前数据范围内更容易获得点击。` : '当前数据不足以比较点击效率。', best ? `${best.adName} 的 CPA 为 ${formatDataMetric(best.cpa, 'money')}，可作为下一轮实验的参考版本。` : '当前数据不足以比较购买成本。', ...(bestRoas ? [`${bestRoas.adName} 的 ROAS 为 ${Number(bestRoas.roas).toFixed(2)}（${revenueSourceLabel(metrics.revenueSource)}），投入产出表现最好。`] : [])], hypotheses: ['表现差异可能与广告标题、首图、卖点表达或投放人群有关。'], unknowns: ['当前数据无法单独证明优势完全来自广告创意；还需要受众、投放时段、广告位和落地页信息。', data.missingFields?.includes('revenue') ? '缺少销售额，无法判断 ROAS 和收入效率。' : '当前数据未提供更多成本与利润背景。'], possibleCauses: ['点击高但购买低时，问题可能出现在落地页、价格、信任信息或商品匹配度。', '不同版本的预算、受众或投放时段不一致时，横向比较可能受到干扰。'], experiments: ['固定受众、预算、广告位和落地页，只替换一个创意变量进行 A/B 测试。', '优先保留点击效率或购买成本更好的版本，再测试新的标题或首图。'], tasks: ['保存当前数据作为基准版本。', '补充销售额、受众、投放时段和落地页信息。', '为下一轮实验定义唯一变化变量和成功指标。'] };
+      const findings = [];
+      if (highestCtr) findings.push(`${highestCtr.adName} 的点击率最高（${formatDataMetric(highestCtr.ctr, 'percent')}），更容易吸引人点。`);
+      if (cheapest) findings.push(`${cheapest.adName} 每单成本最低（${formatDataMetric(cheapest.cpa, 'money')}）。`);
+      if (priciest && cheapest && priciest !== cheapest) findings.push(`${priciest.adName} 每单成本最高（${formatDataMetric(priciest.cpa, 'money')}），是 ${cheapest.adName} 的 ${(priciest.cpa / cheapest.cpa).toFixed(1)} 倍。`);
+      const missing = (data.missingFields || []).map(field => dataFieldLabels[field] || field);
+      return {
+        headline: plain.title,
+        keyFindings: findings.slice(0, 3),
+        likelyCauses: ['表现差异可能与标题、首图、卖点表达或投放人群有关，但这份数据证明不了具体是哪一项。'],
+        nextSteps: plain.todos.slice(0, 3),
+        limitations: missing.length
+          ? [`缺少「${missing.join('、')}」，因此相关指标算不出来，也无法判断投入产出是否赚钱。`]
+          : ['这份数据无法证明优势完全来自广告创意，还需要受众、投放时段和落地页信息。']
+      };
     }
     async function generateDataReview() {
       const data = projectState.dataAnalysis;
