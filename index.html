@@ -75,6 +75,12 @@
     .panel-heading h2 { font-size: 20px; line-height: 1.2; letter-spacing: -.04em; margin: 0 0 7px; }
     .panel-heading p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
     .status-pill { color: #196b4d; background: #eaf7f1; border-radius: 999px; padding: 6px 9px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+    /* AI 分析中的转圈提示：光有文字容易被当成卡住 */
+    @keyframes adlab-spin { to { transform: rotate(360deg); } }
+    .ai-spinner { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border: 1.6px solid rgba(76,137,230,.28); border-top-color: #4c89e6; border-radius: 50%; animation: adlab-spin .8s linear infinite; vertical-align: -1px; flex: none; }
+    .status-pill .ai-spinner { border-color: rgba(25,107,77,.3); border-top-color: #196b4d; }
+    .tag .ai-spinner { border-color: rgba(76,137,230,.3); border-top-color: #4c89e6; }
+    @media (prefers-reduced-motion: reduce) { .ai-spinner { animation-duration: 2.4s; } }
     .form-grid { display: grid; gap: 16px; }
     .two-col { grid-template-columns: 1fr 1fr; }
     .field { display: grid; gap: 7px; }
@@ -2289,19 +2295,51 @@
         window.clearTimeout(timeoutId);
       }
     }
-    function setProductStatus(text, tone = '') {
+    function setProductStatus(text, tone = '', loading = false) {
       const status = document.querySelector('#product-view .status-pill');
-      if (status) { status.textContent = text; status.className = `status-pill ${tone}`; }
+      if (!status) return;
+      status.className = `status-pill ${tone}`;
+      status.replaceChildren();
+      if (loading) status.appendChild(spinnerNode());
+      status.appendChild(document.createTextNode(text));
     }
-    function clearProductAIResult(message = '等待 AI 结果') {
+    function spinnerNode() {
+      const spin = document.createElement('span');
+      spin.className = 'ai-spinner';
+      spin.setAttribute('aria-hidden', 'true');
+      return spin;
+    }
+    function clearProductAIResult(message = '等待 AI 结果', loading = false) {
       const functions = document.getElementById('reviewFeatures');
       const scene = document.querySelector('#product-view .review-item:nth-child(6) div');
       const tags = document.getElementById('productTags');
       const notice = document.querySelector('#product-view .panel-main .notice');
-      if (functions) functions.textContent = message;
-      if (scene) scene.textContent = message;
-      if (tags) tags.innerHTML = `<span class="tag">${message}</span>`;
-      if (notice) { const title = document.createElement('strong'); title.textContent = '信息可信度核查'; notice.replaceChildren(title, document.createTextNode('AI 正在根据当前项目资料生成核查结果。')); }
+      // loading 时在文字前加一个转圈，避免用户以为页面卡死
+      const paint = target => {
+        if (!target) return;
+        target.replaceChildren();
+        if (loading) target.appendChild(spinnerNode());
+        target.appendChild(document.createTextNode(message));
+      };
+      paint(functions);
+      paint(scene);
+      if (tags) {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        if (loading) tag.appendChild(spinnerNode());
+        tag.appendChild(document.createTextNode(message));
+        tags.replaceChildren(tag);
+      }
+      if (notice) {
+        const title = document.createElement('strong');
+        title.textContent = '信息可信度核查';
+        notice.replaceChildren();
+        notice.appendChild(title);
+        const line = document.createElement('span');
+        if (loading) line.appendChild(spinnerNode());
+        line.appendChild(document.createTextNode('AI 正在根据当前项目资料生成核查结果。'));
+        notice.appendChild(line);
+      }
       const badge = document.querySelector('#product-view .review-badge');
       if (badge) badge.textContent = '等待生成';
       const confirm = document.getElementById('confirmProduct');
@@ -2454,9 +2492,9 @@
       if (projectState.productUnderstanding?._sourceFingerprint === fingerprint) { renderProductUnderstanding(projectState.productUnderstanding); return; }
       projectState.productUnderstanding = null;
       projectState.aiLoading = true;
-      clearProductAIResult('AI 分析中');
+      clearProductAIResult('AI 分析中', true);
       document.getElementById('confirmProduct').disabled = true;
-      setProductStatus('AI 分析中');
+      setProductStatus('AI 分析中', '', true);
       try {
         const data = await callAI('/api/product-understanding', { product: projectState.product, productImage: projectState.product.image, productImages: productImages(), market: projectState.market, projectName: projectState.projectName, mode: 'initial' });
         projectState.productUnderstanding = { ...data, selectedSellingPoints: null, removedSellingPoints: [], _selectionInitialized: false, _sourceFingerprint: fingerprint };
@@ -2879,7 +2917,11 @@
       projectState.strategy = null;
       projectState.aiLoading = true;
       const status = document.querySelector('#strategy-view .status-pill');
-      if (status) status.textContent = 'AI 分析中';
+      if (status) {
+        status.replaceChildren();
+        status.appendChild(spinnerNode());
+        status.appendChild(document.createTextNode('AI 分析中'));
+      }
       clearStrategyAIResult();
       try {
         const data = await callAI('/api/creative-strategy', { product: projectState.product, productImage: projectState.product.image, productImages: productImages(), productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), mode: 'initial' });
