@@ -2718,8 +2718,36 @@
          const action = event.target.closest('[data-asset-action]');
          if (action) { const feedbackInput = action.closest('.asset-prompt-revision')?.querySelector('[data-prompt-feedback]'); handleAssetAction(action.dataset.assetAction, action.dataset.templateId || '', feedbackInput?.value || ''); return; }
         const copy = event.target.closest('[data-copy-asset]');
-        if (copy) { const value = copy.dataset.copyAsset || ''; navigator.clipboard?.writeText(value).then(() => toast('内容已复制')).catch(() => toast('内容已准备好，可手动复制')); }
+        if (copy) { copyText(copy.dataset.copyAsset || ''); }
       });
+    }
+    // http:// 属于非安全上下文，navigator.clipboard 不可用（Chrome 会直接返回 undefined），
+    // 所以必须保留一个 textarea + execCommand 的兜底，否则复制按钮点了没有任何反应。
+    function copyTextFallback(text) {
+      try {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', 'readonly');
+        area.style.position = 'fixed';
+        area.style.top = '-1000px';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        area.setSelectionRange(0, text.length);
+        const succeeded = document.execCommand('copy');
+        document.body.removeChild(area);
+        return succeeded;
+      } catch (error) { return false; }
+    }
+    function copyText(text) {
+      const done = () => toast('内容已复制');
+      const failed = () => toast('浏览器不允许自动复制，请手动选中提示词文本复制');
+      if (!text) { failed(); return; }
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(() => (copyTextFallback(text) ? done() : failed()));
+        return;
+      }
+      if (copyTextFallback(text)) done(); else failed();
     }
     function marketLanguage(market) {
       return ({ 泰国: '泰语', 越南: '越南语', 马来西亚: '马来语', 新加坡: '英语或马来语', 印度尼西亚: '印度尼西亚语', 菲律宾: '英语或菲律宾语', 柬埔寨: '高棉语', 老挝: '老挝语', 缅甸: '缅甸语' })[market] || '目标市场当地语言';
@@ -3062,11 +3090,14 @@
       if (!projectState.confirmed || !projectState.strategy || !projectState.strategyComplete) { toast('请先确认创意简报，再进入广告素材生成'); return; }
       if (!force && projectState.assets?.sourceFingerprint === fingerprint && projectState.assets?.mode === mode && projectState.assets.schemes?.length) { renderAssets(projectState.assets); return; }
       if (projectState.aiLoading) { toast('AI 正在生成素材，请稍候'); return; }
-      projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint }; clearAssetsAIResult(mode);
+      projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, _translationRequested: false, translatingPrompts: false }; clearAssetsAIResult(mode);
       const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
        try { const result = await callAI('/api/ad-assets', payload, { timeoutMs: 150000 }); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
       catch (error) { const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成'; toast(error.message); }
       finally { projectState.aiLoading = false; }
+      // 卡片是在 aiLoading=true 期间渲染的，那一版里「根据我的建议重新生成」是禁用态，
+      // 翻译自动补齐也会被 aiLoading 挡住。所以结束时必须再渲染一次。
+      if (projectState.assets?.schemes?.length) renderAssets(projectState.assets);
     }
     installProductContexts();
     installOverviewControls();
