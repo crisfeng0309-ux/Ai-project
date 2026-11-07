@@ -3340,7 +3340,7 @@
          const revision = document.createElement('div'); revision.className = 'asset-prompt-revision'; const revisionLabel = document.createElement('label'); revisionLabel.textContent = '对这套提示词不满意？告诉 AI 你想怎么改'; const revisionInput = document.createElement('textarea'); revisionInput.placeholder = '例如：人物动作更自然，突出防水功能，把画面改成越南上班族雨天通勤场景……'; revisionInput.dataset.promptFeedback = scheme.id; const revisionButton = document.createElement('button'); revisionButton.type = 'button'; revisionButton.className = 'ghost-btn'; revisionButton.dataset.assetAction = 'revise-prompt'; revisionButton.dataset.templateId = scheme.id; revisionButton.disabled = Boolean(projectState.aiLoading); revisionButton.textContent = data.revisingSchemeId === scheme.id ? 'AI 正在根据建议修改…' : '根据我的建议重新生成'; revision.append(revisionLabel, revisionInput, revisionButton); card.appendChild(revision);
         list.appendChild(card);
       });
-      const actions = document.getElementById('assetBranchActions'); if (actions) actions.innerHTML = '<button type="button" class="ghost-btn" data-asset-action="back-mode">重新选择产出方式</button><button type="button" class="primary-btn" data-asset-action="save-prompt">保存提示词，完成素材环节 →</button>';
+      const actions = document.getElementById('assetBranchActions'); if (actions) actions.innerHTML = '<button type="button" class="ghost-btn" data-asset-action="back-mode">重新选择产出方式</button><button type="button" class="primary-btn" data-asset-action="save-prompt">已完成项目，回到主页</button>';
     }
     function renderImageBranch(data) {
       renderAssetSchemeCards(data, { imageMode: true });
@@ -3500,7 +3500,7 @@
         return;
       }
       if (action === 'select-template') { if (!projectState.assets) return; projectState.assets.selectedSchemeId = templateId; saveCurrentProject(); renderAssets(projectState.assets); return; }
-      if (action === 'save-prompt') { saveAssetsAndComplete('提示词已保存，项目进度已更新'); return; }
+      if (action === 'save-prompt') { saveAssetsAndComplete('项目已完成，已保存到项目历史', { goHome: true }); return; }
        if (action === 'generate-image') { generateImageFromTemplate(templateId); return; }
        if (action === 'revise-prompt') { reviseAssetPrompt(templateId, feedback); return; }
        if (action === 'save-image') {
@@ -3729,13 +3729,16 @@
         toast('已在新标签页打开图片，右键或长按可以另存为');
       }
     }
-    function saveAssetsAndComplete(message) {
+    function saveAssetsAndComplete(message, options = {}) {
       if (!projectState.assets?.schemes?.length) { toast('请等待 AI 完成素材生成'); return; }
       if (projectState.assets.mode === 'image' && !projectState.assets.generatedImage) { toast('请先选择图片模板。接入生图 API 后才能生成最终广告图片。'); return; }
       if (!projectState.assets.selectedSchemeId) projectState.assets.selectedSchemeId = projectState.assets.schemes[0].id;
       saveCurrentProject();
+      // 先把项目标记为完成并写进历史，再决定去哪一页
       completeStep('assets', 'complete', '项目完成');
       toast(message);
+      // 提示词流程到这里整个项目就结束了，直接回首页；图片流程仍停在完成页
+      if (options.goHome) navigate('home');
     }
     ensureDemoProject();
     window.addEventListener('popstate', restoreFromUrl);
