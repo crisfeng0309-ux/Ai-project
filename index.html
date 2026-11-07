@@ -673,6 +673,11 @@
     .history-item-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
     .history-item-meta span { border: 1px solid var(--line); color: #71747c; border-radius: 999px; padding: 5px 8px; font-size: 10px; }
     .history-item-action { color: var(--blue); font-size: 11px; white-space: nowrap; font-weight: 700; }
+    .history-item { cursor: pointer; }
+    .history-item:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .history-item-side { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+    .history-item-delete { border: 1px solid #f0c9c6; color: #c0392b; background: #fff; border-radius: 8px; padding: 7px 12px; font-size: 11px; cursor: pointer; transition: background-color .18s ease, border-color .18s ease; white-space: nowrap; }
+    .history-item-delete:hover { background: #fdf2f1; border-color: #e0a39f; }
     .history-empty { border: 1px dashed #d4d6dc; border-radius: 15px; padding: 70px 24px; text-align: center; color: var(--muted); }
     .history-empty strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 8px; }
     .history-empty p { margin: 0 0 20px; font-size: 12px; }
@@ -781,6 +786,24 @@
       const demo = makeProject();
       return projects;
     }
+    function deleteProject(projectId) {
+      const projects = readProjects();
+      const target = projects.find(item => item.id === projectId);
+      if (!target) return;
+      if (!window.confirm(`确定删除「${target.name}」吗？删除后无法恢复。`)) return;
+      writeProjects(projects.filter(item => item.id !== projectId));
+      const wasCurrent = currentProjectId === projectId;
+      if (wasCurrent) {
+        // 必须清掉当前项目 id，否则下一次保存会把刚删掉的项目重新写回来
+        currentProjectId = null;
+        renderHistory();
+        toast('当前项目已删除，已回到首页');
+        navigate('home');
+        return;
+      }
+      renderHistory();
+      toast('项目已删除');
+    }
     function renderHistory() {
       const list = document.getElementById('historyList');
       const empty = document.getElementById('historyEmpty');
@@ -788,8 +811,12 @@
       list.innerHTML = '';
       empty.style.display = projects.length ? 'none' : 'block';
       projects.forEach(project => {
-        const item = document.createElement('button');
+        // 用 div 而不是 button：里面还要放「删除」按钮，button 里嵌 button 是非法结构，
+        // 点击也会互相串扰。
+        const item = document.createElement('div');
         item.className = 'history-item';
+        item.setAttribute('role', 'button');
+        item.setAttribute('tabindex', '0');
         item.dataset.projectId = project.id;
         const info = document.createElement('span');
         const title = document.createElement('h3');
@@ -803,7 +830,16 @@
         const action = document.createElement('span');
         action.className = 'history-item-action';
         action.textContent = '继续编辑 →';
-        item.append(info, action);
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'history-item-delete';
+        remove.dataset.deleteProject = project.id;
+        remove.textContent = '删除';
+        remove.title = '删除这个项目';
+        const side = document.createElement('span');
+        side.className = 'history-item-side';
+        side.append(action, remove);
+        item.append(info, side);
         list.appendChild(item);
       });
     }
@@ -3015,6 +3051,13 @@
            const heading = document.createElement('strong'); heading.textContent = '已生成广告图片'; preview.appendChild(heading);
            const image = document.createElement('img'); image.src = data.generatedImage; image.alt = `${data.schemes.find(item => item.id === data.selectedSchemeId)?.title || '广告素材'}生成图片`; preview.appendChild(image);
            const note = document.createElement('p'); note.textContent = data.generatedImageModel ? `模型：${data.generatedImageModel}` : '图片已保存到当前项目。'; preview.appendChild(note);
+            const downloadButton = document.createElement('button');
+            downloadButton.type = 'button';
+            downloadButton.className = 'ghost-btn';
+            downloadButton.textContent = '下载图片到电脑';
+            downloadButton.style.marginTop = '10px';
+            downloadButton.addEventListener('click', () => downloadRemoteImage(data.generatedImage));
+            preview.appendChild(downloadButton);
          } else if (!options.promptOnly && data.generatingImage) {
            preview.className = 'asset-generated-preview';
            const note = document.createElement('p'); note.textContent = data.generationProgress || '豆包正在生成广告图片，请稍候…'; preview.appendChild(note);
@@ -3199,7 +3242,12 @@
       if (action === 'save-prompt') { saveAssetsAndComplete('提示词已保存，项目进度已更新'); return; }
        if (action === 'generate-image') { generateImageFromTemplate(templateId); return; }
        if (action === 'revise-prompt') { reviseAssetPrompt(templateId, feedback); return; }
-       if (action === 'save-image') { saveAssetsAndComplete('广告图片已保存，项目进度已更新'); return; }
+       if (action === 'save-image') {
+          const imageUrl = projectState.assets?.generatedImage || '';
+          saveAssetsAndComplete(imageUrl ? '广告图片已保存，正在下载到电脑…' : '广告图片已保存，项目进度已更新');
+          if (imageUrl) downloadRemoteImage(imageUrl);
+          return;
+        }
     }
     function clearAssetsAIResult(mode = projectState.assets?.mode) {
       setAssetHeader(mode === 'prompt' ? '生成广告提示词' : '生成图片素材', 'AI 正在综合项目资料，请稍候。', 'AI 生成中');
@@ -3295,7 +3343,20 @@
     document.getElementById('historyBack').addEventListener('click', () => navigate('home'));
     document.getElementById('historyNewProject').addEventListener('click', startNewProject);
     document.getElementById('emptyNewProject').addEventListener('click', startNewProject);
-    document.getElementById('historyList').addEventListener('click', event => { const item = event.target.closest('[data-project-id]'); if (item) openProject(item.dataset.projectId); });
+    document.getElementById('historyList').addEventListener('click', event => {
+      const remove = event.target.closest('[data-delete-project]');
+      if (remove) { event.stopPropagation(); deleteProject(remove.dataset.deleteProject); return; }
+      const item = event.target.closest('[data-project-id]');
+      if (item) openProject(item.dataset.projectId);
+    });
+    document.getElementById('historyList').addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      if (event.target.closest('[data-delete-project]')) return;
+      const item = event.target.closest('[data-project-id]');
+      if (!item) return;
+      event.preventDefault();
+      openProject(item.dataset.projectId);
+    });
     document.getElementById('setupBack').addEventListener('click', () => navigate(returnView, { projectId: currentProjectId }));
     document.getElementById('saveBackground').addEventListener('click', saveBackground);
     document.getElementById('pathBack').addEventListener('click', () => navigate('setup', { projectId: currentProjectId }));
@@ -3345,6 +3406,30 @@
       syncProjectState();
       toast('商品信息已确认，其他模块已同步');
     });
+    // 把生成的广告图片存到用户电脑。优先 fetch 成 blob 直接下载；
+    // 跨域被拦时退回新标签页打开，让用户右键另存为——不静默失败。
+    async function downloadRemoteImage(url) {
+      if (!url) { toast('还没有生成图片'); return; }
+      try {
+        const response = await fetch(url, { mode: 'cors', cache: 'no-store' });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const blob = await response.blob();
+        if (!blob.size) throw new Error('空文件');
+        const objectUrl = URL.createObjectURL(blob);
+        const extension = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = `adlab-${(projectState.projectName || '广告素材').replace(/[\\/:*?"<>|]/g, '')}-${Date.now()}.${extension}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+        toast('图片已下载到本地');
+      } catch (error) {
+        window.open(url, '_blank', 'noopener');
+        toast('已在新标签页打开图片，右键或长按可以另存为');
+      }
+    }
     function saveAssetsAndComplete(message) {
       if (!projectState.assets?.schemes?.length) { toast('请等待 AI 完成素材生成'); return; }
       if (projectState.assets.mode === 'image' && !projectState.assets.generatedImage) { toast('请先选择图片模板。接入生图 API 后才能生成最终广告图片。'); return; }
