@@ -2345,12 +2345,37 @@
       }
       return String(value);
     }
+    // AI 会在功能/场景后面自动加「（来源：specs）」这类可追溯标注。
+    // 这些信息在卖点清单的「依据」里已经有了，堆在摘要行里只会显得乱。
+    // 只清理显示文本，不改存储的数据；括号里如果还有别的内容（例如「待确认」）要保留。
+    function stripSourceNote(value) {
+      return String(value == null ? '' : value)
+        .replace(/[（(]([^（）()]*)[）)]/g, (whole, inner) => {
+          if (!/来源|source|evidence/i.test(inner)) return whole;
+          const parts = inner.split(/[，,]/).map(part => part.trim()).filter(Boolean);
+          const sourceHead = /^(来源|source|evidence)\s*[：:]/i;
+          // 来源值可能是逗号分隔的多个词（如 "description, features"），
+          // 它们和「来源：」属于同一段，要一起丢掉，不能当成新的正文内容。
+          const sourceValue = /^(specs?|description|features?|images?|image_observed|user_input|model_inference|商品描述|商品图片|已知功能|关键规格|资料|图片)$/i;
+          const kept = [];
+          let inSource = false;
+          for (const part of parts) {
+            if (sourceHead.test(part)) { inSource = true; continue; }
+            if (inSource && sourceValue.test(part)) continue;
+            inSource = false;
+            kept.push(part);
+          }
+          return kept.length ? '（' + kept.join('，') + '）' : '';
+        })
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
     function renderProductUnderstanding(data) {
       const functions = data.basicInfo?.confirmedFunctions || [];
       const scenes = data.usageScenes || [];
-      document.getElementById('reviewFeatures').textContent = functions.map(displayText).filter(Boolean).join('、') || '暂无已确认功能';
+      document.getElementById('reviewFeatures').textContent = functions.map(item => stripSourceNote(displayText(item))).filter(Boolean).join('、') || '暂无已确认功能';
       const scene = document.querySelector('#product-view .review-item:nth-child(6) div');
-      if (scene) scene.textContent = scenes.map(item => displayText(item?.scene ?? item)).filter(Boolean).join('、') || '暂无适用场景';
+      if (scene) scene.textContent = scenes.map(item => stripSourceNote(displayText(item?.scene ?? item))).filter(Boolean).join('、') || '暂无适用场景';
       renderSellingPoints(data);
       const notice = document.querySelector('#product-view .panel-main .notice');
       if (notice) { const title = document.createElement('strong'); title.textContent = data.pendingItems?.length ? '待确认项提示' : '信息可信度核查'; const body = document.createTextNode(data.pendingItems?.length ? data.pendingItems.map(translateProductFieldNames).join('；') : '当前卖点均有商品资料依据，请继续核对广告表达。'); notice.replaceChildren(title, body); }
