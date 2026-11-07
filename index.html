@@ -138,7 +138,7 @@
     .data-glossary .glossary-desc { font-size: 11px; line-height: 1.6; color: #64666d; }
     .data-glossary .glossary-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink); background: #f4f5f7; border-radius: 5px; padding: 1px 5px; }
     .number { flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: #f1f2f4; color: #74767e; font-size: 10px; }
-    .footer-bar { max-width: 1240px; margin: 18px auto 0; display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11px; }
+    .footer-bar { max-width: 1240px; margin: 18px auto 0; display: flex; justify-content: flex-end; align-items: center; color: var(--muted); font-size: 11px; }
     .flow-note { display: flex; align-items: center; gap: 7px; }
     .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #33a779; }
     .toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; color: white; background: #1a1a1a; padding: 11px 15px; border-radius: 9px; font-size: 12px; transition: .25s ease; box-shadow: 0 14px 30px rgba(0,0,0,.2); }
@@ -706,13 +706,12 @@
         <button class="nav-item" data-view="assets"><span class="nav-icon">▣</span>广告素材</button>
         <button class="nav-item" data-view="data"><span class="nav-icon">▥</span>数据分析</button>
       </nav>
-      <div class="sidebar-bottom"><div class="user-row"><div class="avatar">林</div><div><div class="user-name">林小满</div><div class="user-note">跨境商家工作区</div></div></div></div>
     </aside>
 
     <main class="main">
       <header class="topbar">
         <div><div class="eyebrow" id="eyebrow">广告实验室 / 新项目</div><h1 id="pageTitle">把商品，变成更好的广告。</h1></div>
-        <div class="top-actions"><button class="ghost-btn" id="demoBtn">加载演示案例</button><button class="primary-btn" id="saveBtn">保存项目</button></div>
+        <div class="top-actions"><button class="primary-btn" id="saveBtn">保存项目</button></div>
       </header>
 
       <div class="progress-wrap">
@@ -760,7 +759,7 @@
 
       <section class="view" id="data-view"><div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>广告数据分析与复盘</h2><p>无论数据是否来自 AdLab，都可以直接上传历史投放结果。</p></div><span class="status-pill">独立工具</span></div><div class="data-entry"><button class="entry-card active" id="uploadData"><strong>上传数据文件</strong><span>支持 CSV、Excel，系统会先识别字段并让你确认。</span></button><button class="entry-card" id="pasteData"><strong>粘贴表格数据</strong><span>适合快速分析一小段历史数据，也可以直接加载演示案例。</span></button></div><div class="notice" style="margin-bottom:18px"><strong>演示数据已加载</strong>以下数据用于展示分析方法，不代表真实投放结果。你可以替换成自己的表格。</div><div class="analysis-label">字段识别与确认</div><div class="mapping-row"><span>广告版本</span><select><option>广告版本</option><option>Campaign name</option></select></div><div class="mapping-row"><span>展示次数</span><select><option>展示次数</option><option>Impressions</option></select></div><div class="mapping-row"><span>点击次数</span><select><option>点击次数</option><option>Link clicks</option></select></div><div class="mapping-row"><span>广告花费</span><select><option>广告花费</option><option>Spend</option></select></div><div class="mapping-row"><span>购买次数</span><select><option>购买次数</option><option>Purchases</option></select></div><div class="data-meta"><span class="meta-chip"><b>已识别</b>5 个字段</span><span class="meta-chip"><b>版本数</b>3</span><span class="meta-chip"><b>可计算</b>CTR · CPC · CVR · CPA</span></div><div class="analysis-label">核心指标总览</div><div class="metric-grid"><div class="metric-card"><div class="stat-value">2.17%</div><div class="stat-label">整体 CTR</div><div class="metric-note">点击效率</div></div><div class="metric-card"><div class="stat-value">¥0.53</div><div class="stat-label">整体 CPC</div><div class="metric-note">获客成本</div></div><div class="metric-card"><div class="stat-value">7.38%</div><div class="stat-label">整体 CVR</div><div class="metric-note">点击后购买</div></div><div class="metric-card"><div class="stat-value">¥6.96</div><div class="stat-label">整体 CPA</div><div class="metric-note">单次购买</div></div></div><div class="section-break"></div><div class="analysis-label">广告版本对比</div><table class="data-table"><thead><tr><th>广告版本</th><th>展示</th><th>点击</th><th>花费</th><th>购买</th><th>CTR</th><th>CPC</th><th>CVR</th><th>CPA</th></tr></thead><tbody><tr><td>A-通勤场景</td><td>10,000</td><td>250</td><td>¥125</td><td>20</td><td>2.50%</td><td>¥0.50</td><td>8.00%</td><td>¥6.25</td></tr><tr><td>B-健身场景</td><td>10,000</td><td>180</td><td>¥108</td><td>12</td><td>1.80%</td><td>¥0.60</td><td>6.67%</td><td>¥9.00</td></tr><tr><td>C-产品功能</td><td>10,000</td><td>220</td><td>¥110</td><td>16</td><td>2.20%</td><td>¥0.50</td><td>7.27%</td><td>¥6.88</td></tr></tbody></table><div class="section-break"></div><div class="analysis-label">分析结论与证据边界</div><div class="evidence-grid"><div class="evidence supported"><h4>数据直接支持</h4><p>A-通勤场景 CTR 为 2.50%，CVR 为 8.00%，CPA 为 ¥6.25。在当前三个版本中，它的点击效率和购买效率均较好。</p></div><div class="evidence limit"><h4>当前无法判断</h4><p>数据没有包含受众、投放时段、落地页和预算分配，因此不能证明优势完全来自创意主题。</p></div></div><div class="section-break"></div><div class="analysis-label">下一轮实验建议</div><div class="notice"><strong>保留通勤场景，单独测试创意组合</strong>固定受众、预算和落地页，只比较“通勤场景”和“通勤场景 + 产品功能展示”，验证功能信息是否能在保持 CTR 的同时继续降低 CPA。</div><div style="display:flex;justify-content:flex-end;gap:9px;margin-top:22px"><button class="ghost-btn" id="saveAnalysis">保存分析报告</button><button class="primary-btn" data-go="assets">交给素材模块继续制作 →</button></div></div><aside class="panel panel-side"><div class="side-title">独立分析模式</div><div class="notice"><strong>适合新用户</strong>不需要先创建商品项目。上传已有广告数据，就能获得指标、版本对比和可执行的复盘建议。</div><div class="side-section"><div class="side-title">数据质量检查</div><div class="side-list"><div class="side-list-item"><span class="number">✓</span><span><b>字段完整</b><br/>可以计算 CTR、CPC、CVR 和 CPA。</span></div><div class="side-list-item"><span class="number">✓</span><span><b>口径一致</b><br/>三个版本的展示量相同，便于横向比较。</span></div><div class="side-list-item"><span class="number">!</span><span><b>仍需补充</b><br/>建议补充受众、时段和落地页信息。</span></div></div></div><div class="side-section"><div class="side-title">报告可以继续做什么</div><div class="side-list"><div class="side-list-item"><span class="number">1</span><span>只保存和查看分析报告。</span></div><div class="side-list-item"><span class="number">2</span><span>补充商品和创意信息。</span></div><div class="side-list-item"><span class="number">3</span><span>把结论交回素材模块，生成下一版广告。</span></div></div></div></aside></div></section>
 
-      <div class="footer-bar"><div class="flow-note"><span class="live-dot"></span>本地演示模式 · 数据不会上传</div><div>AdLab / 为下一轮广告实验准备</div></div>
+      <div class="footer-bar"><div>AdLab / 为下一轮广告实验准备</div></div>
     </main>
   </div>
   <div class="toast" id="toast"></div>
@@ -3367,7 +3366,6 @@
     document.getElementById('chooseCreativePath').addEventListener('click', () => choosePath('creative-generation'));
     document.getElementById('continueBtn').addEventListener('click', () => { navigate('strategy', { projectId: currentProjectId }); toast('商品信息已确认，进入创意策略'); });
     document.getElementById('saveBtn').addEventListener('click', () => toast('项目已保存到本地演示空间'));
-    document.getElementById('demoBtn').addEventListener('click', () => toast('演示数据已停用，请填写当前项目的真实商品资料'));
     document.querySelectorAll('.tag, .creative-card').forEach(el => el.addEventListener('click', () => el.classList.toggle('selected')));
     const review = document.getElementById('productReview');
     const editor = document.getElementById('productEdit');
