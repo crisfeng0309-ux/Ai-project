@@ -337,6 +337,10 @@
     .product-image-add { display: grid; gap: 3px; text-align: left; width: 100%; padding: 14px 16px; border: 1px dashed var(--line); border-radius: 11px; background: #fbfbfc; cursor: pointer; font-size: 11px; color: var(--muted); line-height: 1.6; }
     .product-image-add strong { font-size: 12px; color: var(--ink); }
     .product-image-add:hover { border-color: #c7c9ce; background: #fff; }
+    /* 校验失败时标红，用户一填写/选择就恢复 */
+    .is-invalid { border-color: #d9534f !important; box-shadow: 0 0 0 3px rgba(217,83,79,.13) !important; }
+    .is-invalid:focus { border-color: #c9302c !important; box-shadow: 0 0 0 3px rgba(217,83,79,.2) !important; }
+    .is-invalid-block { border-radius: 12px; box-shadow: 0 0 0 2px rgba(217,83,79,.55); }
     .version-price-grid { display: grid; gap: 8px; margin-top: 4px; }
     .version-price-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: center; font-size: 11.5px; color: #4a4d54; }
     .version-price-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1864,13 +1868,42 @@
       projectState.setupPath = projectState.path || projectState.setupPath || '';
       renderSetupPathPicker();
     }
+    // 把校验失败的字段/区块标红。传入 id、选择器或元素；用户一输入/点击就自动恢复。
+    function markInvalidTargets(targets = []) {
+      [].concat(targets).filter(Boolean).forEach(target => {
+        const el = typeof target === 'string' ? document.querySelector(target) : target;
+        if (!el) return;
+        const isField = el.matches('input, select, textarea');
+        el.classList.add(isField ? 'is-invalid' : 'is-invalid-block');
+        if (el.dataset.invalidBound === '1') return;
+        el.dataset.invalidBound = '1';
+        const clear = () => el.classList.remove('is-invalid', 'is-invalid-block');
+        el.addEventListener('input', clear);
+        el.addEventListener('change', clear);
+        // 区块（列表/卡片容器）没有输入事件，用户一旦点击就认为在处理了
+        if (!isField) el.addEventListener('click', clear);
+      });
+    }
     function saveBackground() {
       const projectName = document.getElementById('setupProjectName').value.trim();
       const productName = document.getElementById('setupProductName').value.trim();
       const description = document.getElementById('setupDescription').value.trim();
       const market = document.getElementById('setupMarket').value;
       const selectedPath = projectState.setupPath;
-      if (!projectName || !productName || !description || !market || !selectedPath) { const error = document.getElementById('setupPathError'); if (error) error.textContent = selectedPath ? '' : '请选择一个项目方向。'; toast('请填写完整的项目背景，并选择一个项目方向'); return; }
+      if (!projectName || !productName || !description || !market || !selectedPath) {
+        const error = document.getElementById('setupPathError');
+        if (error) error.textContent = selectedPath ? '' : '请选择一个项目方向。';
+        // 把具体没填的那几项标红，方便用户直接定位
+        markInvalidTargets([
+          !projectName ? '#setupProjectName' : null,
+          !market ? '#setupMarket' : null,
+          !productName ? '#setupProductName' : null,
+          !description ? '#setupDescription' : null,
+          !selectedPath ? '.setup-path-options' : null
+        ]);
+        toast('请填写完整的项目背景，并选择一个项目方向');
+        return;
+      }
       const previousPath = projectState.path;
       const previousMarket = projectState.market;
       const previousProductKey = productFingerprint(projectState.product);
@@ -2511,7 +2544,7 @@
       save.textContent = '保存核心受众';
       save.disabled = !data.selectedAudience.length || projectState.aiLoading;
       save.addEventListener('click', () => {
-        if (!data.selectedAudience.length) { toast('请至少选择一个核心受众'); return; }
+        if (!data.selectedAudience.length) { markInvalidTargets(['#targetAudienceMain']); toast('请至少选择一个核心受众'); return; }
         data.audienceSaved = true;
         saveCurrentProject();
         renderStrategy(data);
@@ -2729,8 +2762,15 @@
     }
     async function generateCreativeBrief(options = {}) {
       if (projectState.aiLoading) { toast('AI 正在处理中，请稍候'); return; }
-      if (!projectState.strategy || !selectedSellingPointTitles().length || !projectState.strategy.selectedDirections?.length) { toast('请至少选择一个卖点和一个创意方向'); return; }
-      if (!projectState.strategy.audienceSaved || !selectedAudience().length) { toast('请先选择至少一个核心受众，并点击“保存核心受众”'); return; }
+      if (!projectState.strategy || !selectedSellingPointTitles().length || !projectState.strategy.selectedDirections?.length) {
+        markInvalidTargets([
+          !selectedSellingPointTitles().length ? '#productTags' : null,
+          !projectState.strategy?.selectedDirections?.length ? '#strategy-view .creative-grid' : null
+        ]);
+        toast('请至少选择一个卖点和一个创意方向');
+        return;
+      }
+      if (!projectState.strategy.audienceSaved || !selectedAudience().length) { markInvalidTargets(['#targetAudienceMain']); toast('请先选择至少一个核心受众，并点击“保存核心受众”'); return; }
       const strategy = projectState.strategy;
       const feedback = options.feedback || strategy._pendingBriefFeedback || '';
       strategy.briefStatus = 'generating';
@@ -3295,7 +3335,7 @@
     });
     document.getElementById('confirmProduct').addEventListener('click', () => {
       if (!projectState.productUnderstanding || projectState.productUnderstanding._sourceFingerprint !== productFingerprint(projectState.product)) { toast('请等待 AI 根据最新商品信息完成理解'); return; }
-      if (!projectState.productUnderstanding.selectedSellingPoints?.length) { toast('请至少选择一个卖点'); return; }
+      if (!projectState.productUnderstanding.selectedSellingPoints?.length) { markInvalidTargets(['#productTags']); toast('请至少选择一个卖点'); return; }
       projectState.confirmed = true;
       projectState.productUnderstanding = { ...projectState.productUnderstanding, confirmed: true };
       confirmed.classList.add('show');
