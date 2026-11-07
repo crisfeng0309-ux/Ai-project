@@ -245,14 +245,16 @@
     .asset-mode-card .path-flow { display: block; margin-top: 15px; color: #6c7b91; font-size: 10px; }
     .asset-branch-back { margin: 0 0 14px; }
     .asset-template-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
-    .asset-template-card { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 14px; text-align: left; cursor: pointer; }
+    .asset-template-card { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; }
     .asset-template-card.selected { border-color: #7aaeff; background: var(--blue-soft); box-shadow: 0 0 0 3px rgba(76,137,230,.1); }
     .asset-template-card h3 { margin: 0 0 6px; font-size: 13px; }
     .asset-template-card p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
     .asset-template-card .template-summary { color: #4d5664; line-height: 1.7; }
     .asset-template-card .template-angle { margin-top: 7px; color: var(--blue); }
     .asset-template-card .template-meta { margin-top: 10px; padding-top: 9px; border-top: 1px solid #edf0f4; color: #626b78; font-size: 10px; line-height: 1.7; white-space: pre-line; }
-    .asset-template-card .template-choice { margin-top: 12px; width: 100%; }
+    .asset-template-card .template-meta { margin-bottom: 12px; }
+    /* 按钮统一贴到卡片底部，三张卡片的按钮就会落在同一条水平线上 */
+    .asset-template-card .template-choice { margin-top: auto; width: 100%; }
     .asset-template-card .template-choice:disabled { opacity: .65; cursor: wait; }
     .asset-generated-preview { margin: 14px 0 18px; padding: 14px; border: 1px solid #dce8f8; border-radius: 12px; background: #f7fbff; }
     .asset-generated-preview.asset-generation-error { border-color: #f2b8b5; background: #fff8f7; }
@@ -2885,6 +2887,23 @@
       const actions = document.getElementById('assetBranchActions'); if (actions) actions.replaceChildren();
       const summary = document.getElementById('assetInputSummary'); if (summary) summary.textContent = `已准备商品图片、${selectedSellingPointTitles().length} 个卖点、${selectedDirections().length} 个创意方向和 ${selectedAudience().length} 个核心受众。`;
     }
+    // 生成提示词前的单独一问：是否把功能卖点写进画面
+    function renderSellingPointQuestion() {
+      setAssetHeader('生成广告提示词', '开始生成前，先确认一个细节。', '确认卖点展示');
+      const context = document.getElementById('assetGenerationContext');
+      if (context) context.innerHTML = '<strong>环节 3 / 是否在画面里展示功能卖点</strong><span>只影响图片提示词里要不要安排卖点文案位，不会新增或编造卖点。</span>';
+      const currency = document.getElementById('assetCurrency'); if (currency) currency.textContent = '';
+      const back = document.getElementById('assetBranchBack'); if (back) back.innerHTML = '<button type="button" class="back-link" data-asset-action="back-mode">← 重新选择产出方式</button>';
+      const translations = document.getElementById('assetTranslationPanel'); if (translations) translations.replaceChildren();
+      const generatedPreview = document.getElementById('assetGeneratedPreview'); if (generatedPreview) generatedPreview.replaceChildren();
+      const list = document.getElementById('assetSchemes'); if (list) list.replaceChildren();
+      const actions = document.getElementById('assetBranchActions'); if (actions) actions.replaceChildren();
+      const choice = document.getElementById('assetModeChoice'); if (!choice) return;
+      choice.className = 'asset-mode-choice';
+      choice.innerHTML = '<div class="asset-mode-intro"><h3>图片里要不要直接写出功能卖点？</h3><p>选好之后再开始生成提示词。</p></div><div class="asset-mode-options"><button type="button" class="asset-mode-card" data-asset-action="selling-point-yes"><span class="mode-label">YES</span><h3>要，把功能卖点写进画面</h3><p>生成的图片提示词会预留卖点文案位，卖点只取你已经确认的那几条，不会自己编。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button><button type="button" class="asset-mode-card" data-asset-action="selling-point-no"><span class="mode-label">NO</span><h3>不用，按现在的方式生成</h3><p>和之前完全一样，只按商品信息和创意简报生成，画面里不额外强调卖点。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button></div>';
+      const summary = document.getElementById('assetInputSummary');
+      if (summary) summary.textContent = `已准备商品图片、${selectedSellingPointTitles().length} 个卖点、${selectedDirections().length} 个创意方向和 ${selectedAudience().length} 个核心受众。`;
+    }
     function renderAssetSchemeCards(data, options = {}) {
       ensureAssetSchemes(data);
       const schemes = data.schemes;
@@ -2986,7 +3005,8 @@
      function renderAssets(data) {
        const needsTranslation = data?.mode === 'prompt' && data.schemes?.length && data.schemes.some(item => !item.imagePromptZh || !item.videoPromptZh);
        if (needsTranslation && !projectState.aiLoading && !data.translatingPrompts && !data._translationRequested) { data._translationRequested = true; projectState.assets = data; translateExistingPrompts(data); return; }
-       if (!data || !data.mode) { renderAssetChoice(data || {}); return; }
+       if (data?.askSellingPoint) { renderSellingPointQuestion(); return; }
+      if (!data || !data.mode) { renderAssetChoice(data || {}); return; }
       if (data.mode === 'prompt') renderAssetSchemeCards(data, { promptOnly: true });
       else renderImageBranch(data);
     }
@@ -2998,6 +3018,13 @@
       projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: projectState.assets?.sourceFingerprint || fingerprint, _sourceFingerprint: projectState.assets?._sourceFingerprint || fingerprint };
       saveCurrentProject();
        if (previousMode === mode && projectState.assets.schemes?.length && projectState.assets.sourceFingerprint === fingerprint) { renderAssets(projectState.assets); return; }
+      // 提示词模式：先问一句要不要把功能卖点写进画面，回答后才真正开始生成
+      if (mode === 'prompt') {
+        projectState.assets = { ...(projectState.assets || {}), mode: 'prompt', askSellingPoint: true, sellingPointInImage: undefined };
+        saveCurrentProject();
+        renderAssets(projectState.assets);
+        return;
+      }
       generateAssets(true, mode);
     }
      async function pollGeneratedImageTask(taskId) {
@@ -3068,7 +3095,13 @@
        } finally { projectState.aiLoading = false; }
      }
      function handleAssetAction(action, templateId = '', feedback = '') {
-      if (action === 'back-mode') { projectState.assets = { ...(projectState.assets || {}), mode: '' }; saveCurrentProject(); renderAssets(projectState.assets); return; }
+      if (action === 'back-mode') { projectState.assets = { ...(projectState.assets || {}), mode: '', askSellingPoint: false, sellingPointInImage: undefined }; saveCurrentProject(); renderAssets(projectState.assets); return; }
+      if (action === 'selling-point-yes' || action === 'selling-point-no') {
+        projectState.assets = { ...(projectState.assets || {}), askSellingPoint: false, sellingPointInImage: action === 'selling-point-yes' };
+        saveCurrentProject();
+        generateAssets(true, 'prompt');
+        return;
+      }
       if (action === 'select-template') { if (!projectState.assets) return; projectState.assets.selectedSchemeId = templateId; saveCurrentProject(); renderAssets(projectState.assets); return; }
       if (action === 'save-prompt') { saveAssetsAndComplete('提示词已保存，项目进度已更新'); return; }
        if (action === 'generate-image') { generateImageFromTemplate(templateId); return; }
@@ -3091,7 +3124,7 @@
       if (!force && projectState.assets?.sourceFingerprint === fingerprint && projectState.assets?.mode === mode && projectState.assets.schemes?.length) { renderAssets(projectState.assets); return; }
       if (projectState.aiLoading) { toast('AI 正在生成素材，请稍候'); return; }
       projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, _translationRequested: false, translatingPrompts: false }; clearAssetsAIResult(mode);
-      const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
+      const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, sellingPointInImage: projectState.assets?.sellingPointInImage === true, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
        try { const result = await callAI('/api/ad-assets', payload, { timeoutMs: 150000 }); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
       catch (error) { const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成'; toast(error.message); }
       finally { projectState.aiLoading = false; }
