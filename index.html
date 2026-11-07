@@ -265,8 +265,10 @@
     .spe-note { margin: 12px 0 0; font-size: 10.5px; line-height: 1.7; color: var(--muted); }
     @media (max-width: 620px) { .spe-grid { grid-template-columns: 1fr; } }
     .asset-template-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
-    .asset-template-card { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; }
-    .asset-template-card.selected { border-color: #7aaeff; background: var(--blue-soft); box-shadow: 0 0 0 3px rgba(76,137,230,.1); }
+    .asset-template-card { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+    .asset-template-card:hover { border-color: #c3cad8; box-shadow: 0 8px 20px rgba(20,24,38,.07); transform: translateY(-1px); }
+    .asset-template-card.is-generating { border-color: #7aaeff; background: var(--blue-soft); box-shadow: 0 0 0 3px rgba(76,137,230,.1); cursor: progress; transform: none; }
+    .asset-template-card.is-generating:hover { border-color: #7aaeff; box-shadow: 0 0 0 3px rgba(76,137,230,.1); transform: none; }
     .asset-template-card h3 { margin: 0 0 6px; font-size: 13px; }
     .asset-template-card p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.6; }
     .asset-template-card .template-summary { color: #4d5664; line-height: 1.7; }
@@ -3198,7 +3200,10 @@
          preview.replaceChildren();
          if (!options.promptOnly && data.generatedImage) {
            preview.className = 'asset-generated-preview';
-           const heading = document.createElement('strong'); heading.textContent = '已生成广告图片'; preview.appendChild(heading);
+           const heading = document.createElement('strong');
+           const sourceTitle = data.schemes.find(item => item.id === data.selectedSchemeId)?.title;
+           heading.textContent = sourceTitle ? `已生成广告图片 · 来自「${sourceTitle}」` : '已生成广告图片';
+           preview.appendChild(heading);
            const image = document.createElement('img'); image.src = data.generatedImage; image.alt = `${data.schemes.find(item => item.id === data.selectedSchemeId)?.title || '广告素材'}生成图片`; preview.appendChild(image);
            const note = document.createElement('p'); note.textContent = data.generatedImageModel ? `模型：${data.generatedImageModel}` : '图片已保存到当前项目。'; preview.appendChild(note);
             const downloadButton = document.createElement('button');
@@ -3224,12 +3229,20 @@
       list.className = options.promptOnly ? 'asset-schemes' : 'asset-template-grid'; list.replaceChildren();
       schemes.forEach((scheme, index) => {
         if (!options.promptOnly) {
-          const card = document.createElement('article'); card.className = `asset-template-card ${data.selectedSchemeId === scheme.id ? 'selected' : ''}`;
+          // 只有「正在生成这一张」才有高亮；平时三张卡片完全等同，不存在"看起来已选中"
+          const isGenerating = Boolean(data.generatingImage && data.selectedSchemeId === scheme.id);
+          const card = document.createElement('article'); card.className = `asset-template-card${isGenerating ? ' is-generating' : ''}`;
           const title = document.createElement('h3'); title.textContent = scheme.title;
           const summary = document.createElement('p'); summary.className = 'template-summary'; summary.textContent = scheme.summary;
           const angle = document.createElement('p'); angle.className = 'template-angle'; angle.textContent = `切入角度：${scheme.angle || ['用户痛点场景', '核心卖点展示', '真实生活场景'][index] || '综合创意场景'}`;
           const meta = document.createElement('div'); meta.className = 'template-meta'; meta.textContent = `画面构图：${scheme.imageLayout || 'AI 将根据创意简报规划'}\n广告标题：${scheme.adTitle || '目标市场当地语言广告标题'}\n核心卖点：${(scheme.sellingPointCopy || []).join('、') || '结合已确认卖点'}\n价格：${scheme.localPrice || data.currency?.displayAmount || '按目标市场换算'}`;
-          const choose = document.createElement('button'); choose.type = 'button'; choose.className = `${data.selectedSchemeId === scheme.id ? 'primary-btn' : 'ghost-btn'} template-choice`; choose.dataset.assetAction = 'generate-image'; choose.dataset.templateId = scheme.id; choose.disabled = Boolean(projectState.aiLoading); choose.textContent = data.generatingImage && data.selectedSchemeId === scheme.id ? '豆包生成中…' : data.generatedImage && data.selectedSchemeId === scheme.id ? '重新生成此模板' : '选择此模板并生成';
+          const choose = document.createElement('button'); choose.type = 'button'; choose.className = 'primary-btn template-choice'; choose.dataset.assetAction = 'generate-image'; choose.dataset.templateId = scheme.id; choose.disabled = Boolean(projectState.aiLoading); choose.textContent = isGenerating ? '豆包生成中…（约需 1-2 分钟）' : data.generatedImage && data.selectedSchemeId === scheme.id ? '重新生成此模板' : '选择此模板并生成';
+          // 整张卡片都可以点：卡片面积大，逼用户去瞄准小按钮不直观
+          card.addEventListener('click', event => {
+            if (event.target.closest('button')) return;
+            if (projectState.aiLoading) return;
+            generateImageFromTemplate(scheme.id);
+          });
           card.append(title, summary, angle, meta, choose); list.appendChild(card); return;
         }
          const card = document.createElement('article'); card.className = 'asset-scheme';
@@ -3375,7 +3388,7 @@
          renderAssets(projectState.assets);
          toast('广告图片已生成');
        } catch (error) {
-         projectState.assets = { ...projectState.assets, imageGenerationError: error?.message || '图片生成失败，请稍后重试。', generatingImage: false };
+         projectState.assets = { ...projectState.assets, imageGenerationError: error?.message || '图片生成失败，请稍后重试。', generatingImage: false, selectedSchemeId: '' };
          projectState.aiLoading = false;
          saveCurrentProject();
          renderAssets(projectState.assets);
@@ -3418,7 +3431,7 @@
       if (projectState.aiLoading) { toast('AI 正在生成素材，请稍候'); return; }
       projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, _translationRequested: false, translatingPrompts: false }; clearAssetsAIResult(mode);
       const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productImages: productImages(), productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, sellingPointInImage: projectState.assets?.sellingPointInImage === true, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
-       try { const result = await callAI('/api/ad-assets', payload, { timeoutMs: 150000 }); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
+       try { const result = await callAI('/api/ad-assets', payload, { timeoutMs: 150000 }); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
       catch (error) { const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成'; toast(error.message); }
       finally { projectState.aiLoading = false; }
       // 卡片是在 aiLoading=true 期间渲染的，那一版里「根据我的建议重新生成」是禁用态，
