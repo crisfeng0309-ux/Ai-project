@@ -3206,12 +3206,24 @@
         const current = projectState.assets || {};
         const schemes = mergeTranslations(current, translations);
         const stillHere = (current.mode || '') === modeAtStart;
+        const filled = schemes.filter(item => item.imagePromptZh || item.videoPromptZh).length;
+        if (!filled) {
+          // AI 返回了 200 却没有可用的翻译：这算没完成，不能重置锁，否则会立刻再次触发
+          projectState.assets = { ...current, schemes, translatingPrompts: false, _translationRequested: true };
+          projectState.aiLoading = false;
+          saveCurrentProject();
+          if (stillHere) {
+            renderAssets(projectState.assets);
+            renderTranslationFailure('AI 没有返回可用的中文翻译');
+          }
+          return;
+        }
         projectState.assets = { ...current, schemes, translatingPrompts: false, promptFormatVersion: 2, _translationRequested: false };
         projectState.aiLoading = false;
         saveCurrentProject();
         if (stillHere) {
           renderAssets(projectState.assets);
-          toast('三套提示词的中文翻译已生成');
+          toast(`已补齐 ${filled} 套提示词的中文翻译`);
         }
       } catch (error) {
         const current = projectState.assets || {};
@@ -3383,8 +3395,15 @@
         // 否则停在提问页时，上一轮提示词的补翻译还在跑，翻译回来会用旧快照把界面弹回去。
         if (data?.askSellingPoint) { renderSellingPointQuestion(); return; }
         if (!data || !data.mode) { renderAssetChoice(data || {}); return; }
-        const needsTranslation = data.mode === 'prompt' && data.schemes?.length && data.schemes.some(item => !item.imagePromptZh || !item.videoPromptZh);
-        if (needsTranslation && !projectState.aiLoading && !data.translatingPrompts && !data._translationRequested) { data._translationRequested = true; projectState.assets = data; translateExistingPrompts(data); return; }
+        // 只有真的存在英文原文时才去翻。
+        // 之前不看原文：提示词是空的（上次生成不完整）也照样发请求，AI 自然翻不出东西，
+        // 而成功后又会把 _translationRequested 重置成 false，于是渲染一次触发一次，
+        // 变成无限循环——表现就是反复弹「中文翻译已生成」。
+        const hasPromptSource = Boolean(data.mode === 'prompt' && data.schemes?.some(item => (imagePromptText(item) || '').trim() || (videoPromptText(item) || '').trim()));
+        const missingTranslation = data.mode === 'prompt' && data.schemes?.some(item => !item.imagePromptZh || !item.videoPromptZh);
+        const translationAttempts = Number(data._translationAttempts || 0);
+        const needsTranslation = hasPromptSource && missingTranslation && translationAttempts < 2;
+        if (needsTranslation && !projectState.aiLoading && !data.translatingPrompts && !data._translationRequested) { data._translationRequested = true; data._translationAttempts = translationAttempts + 1; projectState.assets = data; translateExistingPrompts(data); return; }
       if (data.mode === 'prompt') renderAssetSchemeCards(data, { promptOnly: true });
       else renderImageBranch(data);
     }
@@ -3540,7 +3559,7 @@
       if (!projectState.confirmed || !projectState.strategy || !projectState.strategyComplete) { toast('请先确认创意简报，再进入广告素材生成'); return; }
       if (!force && projectState.assets?.sourceFingerprint === fingerprint && projectState.assets?.mode === mode && projectState.assets.schemes?.length) { renderAssets(projectState.assets); return; }
       if (projectState.aiLoading) { toast('AI 正在生成素材，请稍候'); return; }
-      projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, _translationRequested: false, translatingPrompts: false }; clearAssetsAIResult(mode);
+      projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, _translationRequested: false, _translationAttempts: 0, translatingPrompts: false }; clearAssetsAIResult(mode);
       const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productImages: productImages(), productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, sellingPointInImage: projectState.assets?.sellingPointInImage === true, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
        try { const result = await callAI('/api/ad-assets', payload, { timeoutMs: 150000 }); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
       catch (error) {
