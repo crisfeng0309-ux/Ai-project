@@ -1690,9 +1690,12 @@
         const addTitle = document.createElement('strong'); addTitle.textContent = images.length ? '继续添加图片' : '添加商品图片';
         const addDetail = document.createElement('span');
         addDetail.textContent = images.length
-          ? `还可以添加 ${productImageLimit - images.length} 张，多角度图片能让 AI 判断得更准`
-          : '支持 JPG、PNG、WEBP，最多 3 张；第一张作为主图，其余作为多角度补充，都会参与 AI 分析';
+          ? `最多 3 张，还可以添加 ${productImageLimit - images.length} 张；第一张已经是主图，其余可选`
+          : '最多 3 张：第一张作为主图即可，其余可选；支持 JPG、PNG、WEBP，都会参与 AI 分析';
         add.append(addTitle, addDetail);
+        // 这个块本身是 <button>，外层容器的点击会被 closest('button') 挡掉，
+        // 所以必须给它自己绑点击事件，否则点了没有任何反应。
+        add.addEventListener('click', event => { event.stopPropagation(); input.click(); });
         list.appendChild(add);
       }
       wrapper.append(list, input);
