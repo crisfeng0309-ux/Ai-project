@@ -192,7 +192,14 @@
     .generation-button { position: relative; }
     .generation-button.is-loading { color: var(--blue); border-color: #a8c7f5; background: var(--blue-soft); }
     @keyframes adlab-spin { to { transform: rotate(360deg); } }
-    .strategy-brief { white-space: pre-line; }
+    .strategy-brief { white-space: normal; }
+    .brief-rows { display: grid; margin-top: 12px; }
+    .brief-row { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 16px; padding: 10px 0; border-top: 1px dashed #e6e8ec; font-size: 12.5px; line-height: 1.95; letter-spacing: .02em; }
+    .brief-row:first-child { border-top: none; padding-top: 0; }
+    .brief-label { color: #8a8d95; font-size: 11.5px; font-weight: 650; letter-spacing: .04em; }
+    .brief-value { color: #2b3238; word-break: break-word; }
+    .brief-placeholder { margin: 10px 0 0; font-size: 12px; line-height: 1.9; color: var(--muted); }
+    @media (max-width: 620px) { .brief-row { grid-template-columns: 1fr; gap: 3px; padding: 9px 0; } }
     .strategy-brief.stale { border: 1px solid #f0d8b0; background: #fffaf1; }
     .strategy-brief.stale strong { color: #9a681f; }
     .brief-actions { display: flex; justify-content: flex-end; align-items: center; gap: 9px; flex-wrap: wrap; }
@@ -2752,12 +2759,14 @@
       if (enter) { enter.style.display = strategy.briefApproved && briefReady ? 'inline-block' : 'none'; enter.disabled = !strategy.briefApproved || !briefReady; }
       if (note) note.textContent = strategy.briefApproved ? '创意简报已确认。' : strategy.briefStatus === 'generating' ? 'AI 正在生成专业创意简报，请稍候…' : briefReady ? '请确认这份简报，或提出修改建议。' : prerequisites.length ? `还需要：${prerequisites.join('、')}。` : hasBrief ? '商品或创意选择发生变化，请重新生成当前版本。' : '先生成一份基于当前选择的创意简报。';
     }
-    function formatBriefText(brief) {
-      if (!brief) return '选择卖点、创意方向和核心受众后，点击“根据创意方向生成简报”。';
+    function briefSections(brief) {
+      if (!brief) return [];
       const sections = [
         ['创意主题', brief.theme || brief.title], ['核心传播目标', brief.objective], ['目标受众', brief.audience], ['语言与表达', brief.languageExpression], ['用户需求', brief.problem], ['主要卖点', brief.sellingPoints], ['使用场景', brief.usageScene], ['画面主体', brief.visualSubject], ['人物动作', brief.actions], ['商品展示', brief.productDisplay], ['视觉风格', brief.visualStyle], ['构图建议', brief.composition], ['文案方向', brief.copyDirection], ['广告标题', brief.headline], ['广告正文', brief.body], ['避免内容', brief.avoid], ['画幅建议', brief.formats], ['制作建议', brief.productionNotes]
       ];
-      return sections.filter(([, value]) => value && (Array.isArray(value) ? value.length : true)).map(([label, value]) => `${label}：${Array.isArray(value) ? value.join('、') : value}`).join('\n');
+      return sections
+        .filter(([, value]) => value && (Array.isArray(value) ? value.length : true))
+        .map(([label, value]) => [label, Array.isArray(value) ? value.join('、') : String(value)]);
     }
     function renderStrategy(data) {
       const grid = document.querySelector('#strategy-view .creative-grid');
@@ -2816,10 +2825,29 @@
       ensureBriefState(data);
       const briefReady = Boolean(data.brief && (data.briefFingerprint || data._briefFingerprint) === currentBriefFingerprint);
       if (brief) {
+        brief.replaceChildren();
         const title = document.createElement('strong');
         title.textContent = briefReady ? (data.briefApproved ? '已确认的创意简报' : '创意简报已生成') : data.selectedDirections.length ? '等待生成创意简报' : '等待选择创意方向';
-        const message = briefReady ? formatBriefText(data.brief) : data.selectedDirections.length ? '已完成创意方向选择。点击“根据创意方向生成简报”，开始生成专业化创意简报。' : '请先选择一个或多个创意方向。';
-        brief.replaceChildren(title, document.createTextNode(message));
+        brief.appendChild(title);
+        if (briefReady) {
+          // 逐行渲染成「标签 + 内容」，而不是一整段用换行符拼起来的文本——
+          // 原来那样行距跟正文一样，读起来又密又乱。
+          const rows = document.createElement('div');
+          rows.className = 'brief-rows';
+          briefSections(data.brief).forEach(([label, value]) => {
+            const row = document.createElement('div'); row.className = 'brief-row';
+            const labelEl = document.createElement('span'); labelEl.className = 'brief-label'; labelEl.textContent = label;
+            const valueEl = document.createElement('span'); valueEl.className = 'brief-value'; valueEl.textContent = value;
+            row.append(labelEl, valueEl);
+            rows.appendChild(row);
+          });
+          brief.appendChild(rows);
+        } else {
+          const hint = document.createElement('p');
+          hint.className = 'brief-placeholder';
+          hint.textContent = data.selectedDirections.length ? '已完成创意方向选择。点击“根据创意方向生成简报”，开始生成专业化创意简报。' : '请先选择一个或多个创意方向。';
+          brief.appendChild(hint);
+        }
         brief.classList.toggle('stale', !briefReady);
       }
       renderBriefControls(data, briefReady);
