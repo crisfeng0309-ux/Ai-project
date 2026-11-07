@@ -138,7 +138,8 @@
     .data-glossary .glossary-desc { font-size: 11px; line-height: 1.6; color: #64666d; }
     .data-glossary .glossary-formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink); background: #f4f5f7; border-radius: 5px; padding: 1px 5px; }
     .number { flex: 0 0 18px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: #f1f2f4; color: #74767e; font-size: 10px; }
-    .footer-bar { max-width: 1240px; margin: 18px auto 0; display: flex; justify-content: flex-end; align-items: center; color: var(--muted); font-size: 11px; }
+    .footer-bar { max-width: 1240px; margin: 18px auto 0; display: flex; justify-content: space-between; align-items: center; gap: 16px; color: var(--muted); font-size: 11px; }
+    .ai-retry-hint { font-size: 10.5px; line-height: 1.7; color: #8a8d95; }
     .flow-note { display: flex; align-items: center; gap: 7px; }
     .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #33a779; }
     .toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; color: white; background: #1a1a1a; padding: 11px 15px; border-radius: 9px; font-size: 12px; transition: .25s ease; box-shadow: 0 14px 30px rgba(0,0,0,.2); }
@@ -768,7 +769,7 @@
 
       <section class="view" id="data-view"><div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>广告数据分析与复盘</h2><p>无论数据是否来自 AdLab，都可以直接上传历史投放结果。</p></div><span class="status-pill">独立工具</span></div><div class="data-entry"><button class="entry-card active" id="uploadData"><strong>上传数据文件</strong><span>支持 CSV、Excel，系统会先识别字段并让你确认。</span></button><button class="entry-card" id="pasteData"><strong>粘贴表格数据</strong><span>适合快速分析一小段历史数据，也可以直接加载演示案例。</span></button></div><div class="notice" style="margin-bottom:18px"><strong>演示数据已加载</strong>以下数据用于展示分析方法，不代表真实投放结果。你可以替换成自己的表格。</div><div class="analysis-label">字段识别与确认</div><div class="mapping-row"><span>广告版本</span><select><option>广告版本</option><option>Campaign name</option></select></div><div class="mapping-row"><span>展示次数</span><select><option>展示次数</option><option>Impressions</option></select></div><div class="mapping-row"><span>点击次数</span><select><option>点击次数</option><option>Link clicks</option></select></div><div class="mapping-row"><span>广告花费</span><select><option>广告花费</option><option>Spend</option></select></div><div class="mapping-row"><span>购买次数</span><select><option>购买次数</option><option>Purchases</option></select></div><div class="data-meta"><span class="meta-chip"><b>已识别</b>5 个字段</span><span class="meta-chip"><b>版本数</b>3</span><span class="meta-chip"><b>可计算</b>CTR · CPC · CVR · CPA</span></div><div class="analysis-label">核心指标总览</div><div class="metric-grid"><div class="metric-card"><div class="stat-value">2.17%</div><div class="stat-label">整体 CTR</div><div class="metric-note">点击效率</div></div><div class="metric-card"><div class="stat-value">¥0.53</div><div class="stat-label">整体 CPC</div><div class="metric-note">获客成本</div></div><div class="metric-card"><div class="stat-value">7.38%</div><div class="stat-label">整体 CVR</div><div class="metric-note">点击后购买</div></div><div class="metric-card"><div class="stat-value">¥6.96</div><div class="stat-label">整体 CPA</div><div class="metric-note">单次购买</div></div></div><div class="section-break"></div><div class="analysis-label">广告版本对比</div><table class="data-table"><thead><tr><th>广告版本</th><th>展示</th><th>点击</th><th>花费</th><th>购买</th><th>CTR</th><th>CPC</th><th>CVR</th><th>CPA</th></tr></thead><tbody><tr><td>A-通勤场景</td><td>10,000</td><td>250</td><td>¥125</td><td>20</td><td>2.50%</td><td>¥0.50</td><td>8.00%</td><td>¥6.25</td></tr><tr><td>B-健身场景</td><td>10,000</td><td>180</td><td>¥108</td><td>12</td><td>1.80%</td><td>¥0.60</td><td>6.67%</td><td>¥9.00</td></tr><tr><td>C-产品功能</td><td>10,000</td><td>220</td><td>¥110</td><td>16</td><td>2.20%</td><td>¥0.50</td><td>7.27%</td><td>¥6.88</td></tr></tbody></table><div class="section-break"></div><div class="analysis-label">分析结论与证据边界</div><div class="evidence-grid"><div class="evidence supported"><h4>数据直接支持</h4><p>A-通勤场景 CTR 为 2.50%，CVR 为 8.00%，CPA 为 ¥6.25。在当前三个版本中，它的点击效率和购买效率均较好。</p></div><div class="evidence limit"><h4>当前无法判断</h4><p>数据没有包含受众、投放时段、落地页和预算分配，因此不能证明优势完全来自创意主题。</p></div></div><div class="section-break"></div><div class="analysis-label">下一轮实验建议</div><div class="notice"><strong>保留通勤场景，单独测试创意组合</strong>固定受众、预算和落地页，只比较“通勤场景”和“通勤场景 + 产品功能展示”，验证功能信息是否能在保持 CTR 的同时继续降低 CPA。</div><div style="display:flex;justify-content:flex-end;gap:9px;margin-top:22px"><button class="ghost-btn" id="saveAnalysis">保存分析报告</button><button class="primary-btn" data-go="assets">交给素材模块继续制作 →</button></div></div><aside class="panel panel-side"><div class="side-title">独立分析模式</div><div class="notice"><strong>适合新用户</strong>不需要先创建商品项目。上传已有广告数据，就能获得指标、版本对比和可执行的复盘建议。</div><div class="side-section"><div class="side-title">数据质量检查</div><div class="side-list"><div class="side-list-item"><span class="number">✓</span><span><b>字段完整</b><br/>可以计算 CTR、CPC、CVR 和 CPA。</span></div><div class="side-list-item"><span class="number">✓</span><span><b>口径一致</b><br/>三个版本的展示量相同，便于横向比较。</span></div><div class="side-list-item"><span class="number">!</span><span><b>仍需补充</b><br/>建议补充受众、时段和落地页信息。</span></div></div></div><div class="side-section"><div class="side-title">报告可以继续做什么</div><div class="side-list"><div class="side-list-item"><span class="number">1</span><span>只保存和查看分析报告。</span></div><div class="side-list-item"><span class="number">2</span><span>补充商品和创意信息。</span></div><div class="side-list-item"><span class="number">3</span><span>把结论交回素材模块，生成下一版广告。</span></div></div></div></aside></div></section>
 
-      <div class="footer-bar"><div>AdLab / 为下一轮广告实验准备</div></div>
+      <div class="footer-bar"><div class="ai-retry-hint">AI 偶尔会因为网络波动或超时没有返回结果，隔几秒再点一次通常就好，已填的资料不会丢。</div><div>AdLab / 为下一轮广告实验准备</div></div>
     </main>
   </div>
   <div class="toast" id="toast"></div>
@@ -2211,7 +2212,12 @@
         return body.data;
       } catch (error) {
         if (timedOut || error?.name === 'AbortError') {
-          throw new Error(endpoint === '/api/generate-image' ? '图片生成请求超时，豆包接口暂时没有返回结果，请检查模型配置后重试。' : 'AI 请求超时，请稍后重试。');
+          throw new Error(endpoint === '/api/generate-image'
+            ? '图片生成超时：豆包接口暂时没有返回结果。隔几秒再点一次通常就好。'
+            : 'AI 请求超时。隔几秒再点一次通常就好，已填的资料不会丢。');
+        }
+        if (error instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(String(error?.message || ''))) {
+          throw new Error('AI 请求没有成功，可能是网络波动。隔几秒再试一次通常就好，已填的资料不会丢。');
         }
         throw error;
       } finally {
@@ -2326,12 +2332,25 @@
       if (!projectState.aiLoading) setSellingPointGenerationState(false);
       updateProductContinueState();
     }
+    // 显示用：把对象也还原成一句人话，避免历史数据里存下的 [object Object]
+    function displayText(value) {
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'string') return value.trim();
+      if (typeof value === 'object') {
+        for (const key of ['name', 'function', 'feature', 'text', 'value', 'title', 'label', 'description', 'scene', 'scenario']) {
+          const inner = value[key];
+          if (typeof inner === 'string' && inner.trim()) return inner.trim();
+        }
+        return '';
+      }
+      return String(value);
+    }
     function renderProductUnderstanding(data) {
       const functions = data.basicInfo?.confirmedFunctions || [];
       const scenes = data.usageScenes || [];
-      document.getElementById('reviewFeatures').textContent = functions.join('、') || '暂无已确认功能';
+      document.getElementById('reviewFeatures').textContent = functions.map(displayText).filter(Boolean).join('、') || '暂无已确认功能';
       const scene = document.querySelector('#product-view .review-item:nth-child(6) div');
-      if (scene) scene.textContent = scenes.map(item => item.scene).join('、') || '暂无适用场景';
+      if (scene) scene.textContent = scenes.map(item => displayText(item?.scene ?? item)).filter(Boolean).join('、') || '暂无适用场景';
       renderSellingPoints(data);
       const notice = document.querySelector('#product-view .panel-main .notice');
       if (notice) { const title = document.createElement('strong'); title.textContent = data.pendingItems?.length ? '待确认项提示' : '信息可信度核查'; const body = document.createTextNode(data.pendingItems?.length ? data.pendingItems.map(translateProductFieldNames).join('；') : '当前卖点均有商品资料依据，请继续核对广告表达。'); notice.replaceChildren(title, body); }
