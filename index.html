@@ -250,7 +250,7 @@
     .asset-branch-back { margin: 0 0 14px; }
     .selling-point-examples { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
     .spe-head { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
-    .spe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .spe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; max-width: 620px; }
     .spe-card { margin: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
     .spe-card img { display: block; width: 100%; height: auto; }
     .spe-card figcaption { padding: 10px 12px; font-size: 11px; line-height: 1.65; color: #4a4d54; }
@@ -3089,23 +3089,34 @@
     }
     async function translateExistingPrompts(data) {
       if (projectState.aiLoading) return;
+      const modeAtStart = projectState.assets?.mode || data?.mode || '';
       projectState.aiLoading = true;
-      projectState.assets = { ...data, translatingPrompts: true };
+      projectState.assets = { ...projectState.assets, translatingPrompts: true };
       renderAssets(projectState.assets);
+      const mergeTranslations = (base, translations) => (base?.schemes || []).map(item => ({ ...item, ...(translations.get(item.id) || {}) }));
       try {
-        const result = await callAI('/api/prompt-translations', { schemes: data.schemes.map(item => ({ id: item.id, title: item.title, imagePrompt: imagePromptText(item), videoPrompt: videoPromptText(item) })) }, { timeoutMs: 90000 });
+        const result = await callAI('/api/prompt-translations', { schemes: (data.schemes || []).map(item => ({ id: item.id, title: item.title, imagePrompt: imagePromptText(item), videoPrompt: videoPromptText(item) })) }, { timeoutMs: 90000 });
         const translations = new Map((result.translations || []).map(item => [item.id, item]));
-        const schemes = data.schemes.map(item => ({ ...item, ...(translations.get(item.id) || {}) }));
-        projectState.assets = { ...data, schemes, translatingPrompts: false, promptFormatVersion: 2, _translationRequested: false };
+        // 等待期间用户可能已经返回上一步：必须基于当前状态合并，不能用调用时的旧快照
+        const current = projectState.assets || {};
+        const schemes = mergeTranslations(current, translations);
+        const stillHere = (current.mode || '') === modeAtStart;
+        projectState.assets = { ...current, schemes, translatingPrompts: false, promptFormatVersion: 2, _translationRequested: false };
         projectState.aiLoading = false;
         saveCurrentProject();
-        renderAssets(projectState.assets);
-        toast('三套提示词的中文翻译已生成');
+        if (stillHere) {
+          renderAssets(projectState.assets);
+          toast('三套提示词的中文翻译已生成');
+        }
       } catch (error) {
-        projectState.assets = { ...data, translatingPrompts: false, _translationRequested: true };
+        const current = projectState.assets || {};
+        const stillHere = (current.mode || '') === modeAtStart;
+        projectState.assets = { ...current, translatingPrompts: false, _translationRequested: true };
         projectState.aiLoading = false;
-        renderAssets(projectState.assets);
-        toast(error.message);
+        if (stillHere) {
+          renderAssets(projectState.assets);
+          toast(error.message);
+        }
       }
     }
     function setAssetHeader(title, subtitle, status) {
@@ -3250,10 +3261,12 @@
        }
      }
      function renderAssets(data) {
-       const needsTranslation = data?.mode === 'prompt' && data.schemes?.length && data.schemes.some(item => !item.imagePromptZh || !item.videoPromptZh);
-       if (needsTranslation && !projectState.aiLoading && !data.translatingPrompts && !data._translationRequested) { data._translationRequested = true; projectState.assets = data; translateExistingPrompts(data); return; }
-       if (data?.askSellingPoint) { renderSellingPointQuestion(); return; }
-      if (!data || !data.mode) { renderAssetChoice(data || {}); return; }
+        // 顺序很重要：先把「提问页」和「选择方式页」挡在前面。
+        // 否则停在提问页时，上一轮提示词的补翻译还在跑，翻译回来会用旧快照把界面弹回去。
+        if (data?.askSellingPoint) { renderSellingPointQuestion(); return; }
+        if (!data || !data.mode) { renderAssetChoice(data || {}); return; }
+        const needsTranslation = data.mode === 'prompt' && data.schemes?.length && data.schemes.some(item => !item.imagePromptZh || !item.videoPromptZh);
+        if (needsTranslation && !projectState.aiLoading && !data.translatingPrompts && !data._translationRequested) { data._translationRequested = true; projectState.assets = data; translateExistingPrompts(data); return; }
       if (data.mode === 'prompt') renderAssetSchemeCards(data, { promptOnly: true });
       else renderImageBranch(data);
     }
