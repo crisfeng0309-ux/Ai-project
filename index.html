@@ -1626,8 +1626,11 @@
     const productImageLimit = 3;
     // 统一的读取入口：优先用 images 数组，旧项目只有单张 image 时自动当成第一张
     function productImages() {
-      const list = Array.isArray(projectState.product?.images) ? projectState.product.images.filter(item => item?.dataUrl) : [];
-      if (list.length) return list.slice(0, productImageLimit);
+      // 只要 images 字段存在（哪怕是空数组）就以它为准——空数组代表"用户删光了"，
+      // 不能回退到旧字段，否则删最后一张时会被 resurrect。
+      const stored = projectState.product?.images;
+      if (Array.isArray(stored)) return stored.filter(item => item?.dataUrl).slice(0, productImageLimit);
+      // 只有完全没有 images 字段（改造前的旧项目）才退回单张 image
       return projectState.product?.image?.dataUrl ? [projectState.product.image] : [];
     }
     function syncProductImageFields() {
