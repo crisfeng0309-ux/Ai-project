@@ -2625,9 +2625,9 @@
           const content = document.createElement('div');
           const title = document.createElement('strong');
           title.textContent = audience.name;
-          const detail = document.createElement('p');
-          detail.textContent = [audience.need, audience.painPoint].filter(Boolean).join(' · ') || 'AI 根据当前商品资料识别的潜在受众';
-          content.append(title, detail);
+          // 受众卡片只显示名称：下面的需求/痛点说明在列表里太占视觉空间，
+          // 这些信息仍然保留在数据里，会作为生成创意简报的参考。
+          content.append(title);
           const remove = document.createElement('button');
           remove.type = 'button';
           remove.className = 'card-remove';
