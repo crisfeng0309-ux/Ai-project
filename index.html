@@ -3191,7 +3191,8 @@
        setAssetHeader(options.promptOnly ? '生成广告提示词' : '生成图片素材', options.promptOnly ? '每套创意只提供图片提示词和视频提示词，复制即可使用。' : '先选择一个广告图片模板，后续接入生图 API 生成最终图片。', data.translatingPrompts ? 'AI 翻译中' : projectState.aiLoading && data.revisingSchemeId ? 'AI 修改中' : data.generatingImage ? '豆包生成中' : data.imageGenerationError ? '生成失败' : '素材已生成');
       const context = document.getElementById('assetGenerationContext');
       if (context) { context.className = 'notice asset-context'; context.innerHTML = `<strong>${options.promptOnly ? `已生成 ${data.schemes.length} 套完整提示词素材方案` : `已生成 ${data.schemes.length} 个广告图片模板`}</strong><span>商品：${projectState.product.name || '未填写'} · 市场：${projectState.market || '未选择'} · 平台：${projectState.platform || 'TikTok Shop'}</span>`; }
-      const currency = data.currency || currencySnapshot();
+      // 只有拿到完整字段才用后端结果，否则退回本地计算，避免界面出现 undefined
+        const currency = data.currency?.displayAmount && data.currency?.exchangeRate ? data.currency : currencySnapshot();
        const currencyEl = document.getElementById('assetCurrency');
       if (currencyEl) currencyEl.innerHTML = currency.available ? `<span>人民币售价：<strong>¥${currency.sourceAmount}</strong></span><span>广告展示价格：<strong>${currency.displayAmount}</strong></span><span>汇率：1 CNY ≈ ${currency.exchangeRate} ${currency.targetCurrency} · ${currency.rateUpdatedAt}</span>` : '<span>当前未生成当地货币价格，请确认人民币售价和汇率配置。</span>';
        if (options.promptOnly) renderPromptTranslations(schemes); else { const translations = document.getElementById('assetTranslationPanel'); if (translations) translations.replaceChildren(); }
