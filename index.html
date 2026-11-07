@@ -2486,6 +2486,20 @@
       document.getElementById('confirmProduct').disabled = !data.selectedSellingPoints?.length || data._sourceFingerprint !== productFingerprint(projectState.product);
       setProductStatus('等待确认');
     }
+    // 商品理解失败时，把「AI 分析中」换成具体原因，并在可信度提示里放一个重试入口，
+    // 否则界面会一直停在分析中，用户不知道该再点哪里。
+    function renderProductFailure(message) {
+      clearProductAIResult('未能生成，请重试', false);
+      const notice = document.querySelector('#product-view .panel-main .notice');
+      if (!notice) return;
+      const reason = document.createElement('span');
+      reason.textContent = message || 'AI 没有返回结果，请重试。';
+      const retry = document.createElement('button');
+      retry.type = 'button'; retry.className = 'ghost-btn'; retry.textContent = '重新生成商品理解';
+      retry.style.marginTop = '8px';
+      retry.addEventListener('click', () => generateProductUnderstanding());
+      notice.append(reason, retry);
+    }
     async function generateProductUnderstanding() {
       const fingerprint = productFingerprint(projectState.product);
       if (!projectState.backgroundSaved || !projectState.product.name || projectState.aiLoading) return;
@@ -2502,6 +2516,7 @@
         saveCurrentProject();
       } catch (error) {
         setProductStatus('AI 未完成');
+        renderProductFailure(error.message);
         toast(error.message);
       } finally { projectState.aiLoading = false; setSellingPointGenerationState(false); updateProductContinueState(); }
     }
@@ -3139,6 +3154,24 @@
       if (negative && !/negative prompt|负面提示词/i.test(parts[0])) parts.push(`Negative prompt: ${negative}`);
       return parts.filter(Boolean).join('\n\n');
     }
+    // 翻译失败时侧栏不能一直显示「AI 翻译中」，给一个明确原因和手动重试入口。
+    function renderTranslationFailure(message) {
+      const panel = document.getElementById('assetTranslationPanel');
+      if (!panel) return;
+      panel.replaceChildren();
+      const section = document.createElement('div'); section.className = 'side-section';
+      const title = document.createElement('div'); title.className = 'side-title'; title.textContent = '提示词中文翻译';
+      const reason = document.createElement('div'); reason.className = 'notice'; reason.textContent = `翻译没有完成：${message || 'AI 没有返回结果'}`;
+      const retry = document.createElement('button');
+      retry.type = 'button'; retry.className = 'ghost-btn'; retry.textContent = '重新翻译';
+      retry.addEventListener('click', () => {
+        if (projectState.aiLoading) return;
+        projectState.assets = { ...(projectState.assets || {}), _translationRequested: false };
+        translateExistingPrompts(projectState.assets);
+      });
+      section.append(title, reason, retry);
+      panel.appendChild(section);
+    }
     function renderPromptTranslations(schemes) {
       const panel = document.getElementById('assetTranslationPanel');
       if (!panel) return;
@@ -3187,6 +3220,7 @@
         projectState.aiLoading = false;
         if (stillHere) {
           renderAssets(projectState.assets);
+          renderTranslationFailure(error.message);
           toast(error.message);
         }
       }
@@ -3466,6 +3500,40 @@
       const list = document.getElementById('assetSchemes'); if (list) list.innerHTML = `<div class="asset-empty"><span class="strategy-loading">AI 正在生成${mode === 'prompt' ? '完整提示词' : '多个广告图片模板'}，请稍候…</span></div>`;
       const actions = document.getElementById('assetBranchActions'); if (actions) actions.replaceChildren();
     }
+    // 生成失败时必须把加载屏换掉。以前失败只弹一个 toast，
+    // 而加载屏是生成开始时画的，schemes 为空时后面那次 renderAssets 又会被跳过，
+    // 界面就永久停在「AI 正在生成…请稍候」，看起来像卡死。
+    function renderAssetFailure(mode, message) {
+      setAssetHeader(mode === 'prompt' ? '生成广告提示词' : '生成图片素材', '这次没有生成成功，可以直接再试一次。', 'AI 未完成');
+      const context = document.getElementById('assetGenerationContext');
+      if (context) {
+        context.className = 'notice asset-context';
+        context.replaceChildren();
+        const title = document.createElement('strong'); title.textContent = '这次没有生成成功';
+        const detail = document.createElement('span'); detail.textContent = message || 'AI 没有返回结果，请重试。';
+        context.append(title, detail);
+      }
+      const currency = document.getElementById('assetCurrency'); if (currency) currency.textContent = '';
+      const list = document.getElementById('assetSchemes');
+      if (list) {
+        list.replaceChildren();
+        const empty = document.createElement('div'); empty.className = 'asset-empty';
+        const line = document.createElement('span'); line.className = 'strategy-loading'; line.textContent = message || 'AI 没有返回结果，请重试。';
+        empty.appendChild(line);
+        list.appendChild(empty);
+      }
+      const actions = document.getElementById('assetBranchActions');
+      if (actions) {
+        actions.replaceChildren();
+        const retry = document.createElement('button');
+        retry.type = 'button'; retry.className = 'primary-btn'; retry.textContent = '重新生成';
+        retry.addEventListener('click', () => generateAssets(true, projectState.assets?.mode || mode));
+        const back = document.createElement('button');
+        back.type = 'button'; back.className = 'ghost-btn'; back.textContent = '重新选择产出方式';
+        back.dataset.assetAction = 'back-mode';
+        actions.append(retry, back);
+      }
+    }
     async function generateAssets(force = false, mode = projectState.assets?.mode) {
       const fingerprint = assetSourceFingerprint();
       if (!mode) { renderAssetChoice(projectState.assets || {}); return; }
@@ -3475,7 +3543,12 @@
       projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, _translationRequested: false, translatingPrompts: false }; clearAssetsAIResult(mode);
       const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productImages: productImages(), productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, sellingPointInImage: projectState.assets?.sellingPointInImage === true, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
        try { const result = await callAI('/api/ad-assets', payload, { timeoutMs: 150000 }); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
-      catch (error) { const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成'; toast(error.message); }
+      catch (error) {
+        const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成';
+        // 有旧方案时保留旧内容，只在没有结果时换成失败态，避免把用户的成果清掉
+        if (!projectState.assets?.schemes?.length) renderAssetFailure(mode, error.message);
+        toast(error.message);
+      }
       finally { projectState.aiLoading = false; }
       // 卡片是在 aiLoading=true 期间渲染的，那一版里「根据我的建议重新生成」是禁用态，
       // 翻译自动补齐也会被 aiLoading 挡住。所以结束时必须再渲染一次。
