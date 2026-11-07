@@ -2267,7 +2267,7 @@
       showView(view, { fromHistory: true });
     }
     async function callAI(endpoint, payload, options = {}) {
-      const timeoutMs = Number(options.timeoutMs || 45000);
+      const timeoutMs = Number(options.timeoutMs || 120000);
       const controller = new AbortController();
       let timedOut = false;
       const timeoutId = window.setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
