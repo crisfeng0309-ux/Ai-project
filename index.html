@@ -247,6 +247,15 @@
     .asset-mode-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
     .asset-mode-card .path-flow { display: block; margin-top: 15px; color: #6c7b91; font-size: 10px; }
     .asset-branch-back { margin: 0 0 14px; }
+    .selling-point-examples { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
+    .spe-head { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+    .spe-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .spe-card { margin: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
+    .spe-card img { display: block; width: 100%; height: auto; }
+    .spe-card figcaption { padding: 10px 12px; font-size: 11px; line-height: 1.65; color: #4a4d54; }
+    .spe-card figcaption b { color: var(--ink); }
+    .spe-note { margin: 12px 0 0; font-size: 10.5px; line-height: 1.7; color: var(--muted); }
+    @media (max-width: 620px) { .spe-grid { grid-template-columns: 1fr; } }
     .asset-template-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
     .asset-template-card { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; }
     .asset-template-card.selected { border-color: #7aaeff; background: var(--blue-soft); box-shadow: 0 0 0 3px rgba(76,137,230,.1); }
@@ -3031,7 +3040,7 @@
       const actions = document.getElementById('assetBranchActions'); if (actions) actions.replaceChildren();
       const choice = document.getElementById('assetModeChoice'); if (!choice) return;
       choice.className = 'asset-mode-choice';
-      choice.innerHTML = '<div class="asset-mode-intro"><h3>图片里要不要直接写出功能卖点？</h3><p>选好之后再开始生成提示词。</p></div><div class="asset-mode-options"><button type="button" class="asset-mode-card" data-asset-action="selling-point-yes"><span class="mode-label">YES</span><h3>要，把功能卖点写进画面</h3><p>生成的图片提示词会预留卖点文案位，卖点只取你已经确认的那几条，不会自己编。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button><button type="button" class="asset-mode-card" data-asset-action="selling-point-no"><span class="mode-label">NO</span><h3>不用，按现在的方式生成</h3><p>只按商品信息和创意简报生成，画面里不额外强调卖点。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button></div>';
+      choice.innerHTML = '<div class="asset-mode-intro"><h3>图片里要不要直接写出功能卖点？</h3><p>选好之后再开始生成提示词。</p></div><div class="asset-mode-options"><button type="button" class="asset-mode-card" data-asset-action="selling-point-yes"><span class="mode-label">YES</span><h3>要，把功能卖点写进画面</h3><p>生成的图片提示词会预留卖点文案位，卖点只取你已经确认的那几条，不会自己编。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button><button type="button" class="asset-mode-card" data-asset-action="selling-point-no"><span class="mode-label">NO</span><h3>不用，按现在的方式生成</h3><p>只按商品信息和创意简报生成，画面里不额外强调卖点。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button></div><div class="selling-point-examples"><div class="spe-head">两种选择，大概会生成什么样的图</div><div class="spe-grid"><figure class="spe-card"><img src="./assets/example-no-editing.jpg" alt="不展示功能卖点时的示例图" loading="lazy" /><figcaption><b>选「不用」</b>画面干净，只有商品本身，不出现卖点文字。</figcaption></figure><figure class="spe-card"><img src="./assets/example-with-sellingpoints.jpg" alt="把功能卖点写进画面时的示例图" loading="lazy" /><figcaption><b>选「要」</b>画面里用引线标出功能卖点（示例为越南语）。</figcaption></figure></div><p class="spe-note">示意图仅供参考：实际图片由 AI 根据你的商品和已确认卖点生成，构图、文字和细节都不会与示例一致。</p></div>';
       const summary = document.getElementById('assetInputSummary');
       if (summary) summary.textContent = `已准备商品图片、${selectedSellingPointTitles().length} 个卖点、${selectedDirections().length} 个创意方向和 ${selectedAudience().length} 个核心受众。`;
     }
