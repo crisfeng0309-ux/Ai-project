@@ -333,6 +333,10 @@
     .data-input-tab strong { display: block; font-size: 13px; margin-bottom: 5px; }
     .data-input-tab span { color: var(--muted); font-size: 11px; line-height: 1.6; }
     .data-input-pane { display: grid; gap: 12px; }
+    .product-image-list { display: grid; gap: 10px; }
+    .product-image-add { display: grid; gap: 3px; text-align: left; width: 100%; padding: 14px 16px; border: 1px dashed var(--line); border-radius: 11px; background: #fbfbfc; cursor: pointer; font-size: 11px; color: var(--muted); line-height: 1.6; }
+    .product-image-add strong { font-size: 12px; color: var(--ink); }
+    .product-image-add:hover { border-color: #c7c9ce; background: #fff; }
     .version-price-grid { display: grid; gap: 8px; margin-top: 4px; }
     .version-price-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: center; font-size: 11.5px; color: #4a4d54; }
     .version-price-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1619,16 +1623,32 @@
     function readFileAsDataUrl(file) {
       return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(file); });
     }
-    function compressProductImage(file) {
+    const productImageLimit = 3;
+    // 统一的读取入口：优先用 images 数组，旧项目只有单张 image 时自动当成第一张
+    function productImages() {
+      const list = Array.isArray(projectState.product?.images) ? projectState.product.images.filter(item => item?.dataUrl) : [];
+      if (list.length) return list.slice(0, productImageLimit);
+      return projectState.product?.image?.dataUrl ? [projectState.product.image] : [];
+    }
+    function syncProductImageFields() {
+      const list = productImages();
+      projectState.product.images = list;
+      projectState.product.image = list[0] || null;
+      projectState.product.imageName = list[0]?.fileName || '';
+      return list;
+    }
+    function compressProductImage(file, options = {}) {
       return readFileAsDataUrl(file).then(dataUrl => new Promise((resolve, reject) => {
         const image = new Image();
         image.onload = () => {
-          const scale = Math.min(1, 1600 / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height));
+          const maxEdge = options.maxEdge || 1600;
+          const quality = options.quality || 0.86;
+          const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height));
           const canvas = document.createElement('canvas');
           canvas.width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
           canvas.height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
           canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
-          resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.86), width: canvas.width, height: canvas.height });
+          resolve({ dataUrl: canvas.toDataURL('image/jpeg', quality), width: canvas.width, height: canvas.height });
         };
         image.onerror = reject;
         image.src = dataUrl;
@@ -1637,46 +1657,73 @@
     function renderProductImageUpload() {
       const wrapper = document.getElementById('setupImage');
       if (!wrapper) return;
-      const image = projectState.product?.image;
+      const images = productImages();
       wrapper.replaceChildren();
       const input = document.createElement('input');
-      input.type = 'file'; input.id = 'setupImageInput'; input.accept = 'image/jpeg,image/png,image/webp'; input.hidden = true;
-      const content = document.createElement('div');
-      if (image?.dataUrl) {
+      input.type = 'file'; input.id = 'setupImageInput'; input.accept = 'image/jpeg,image/png,image/webp'; input.multiple = true; input.hidden = true;
+      const list = document.createElement('div'); list.className = 'product-image-list';
+      images.forEach((image, index) => {
+        const row = document.createElement('div'); row.className = 'product-upload-filled';
         const preview = document.createElement('img'); preview.className = 'product-upload-preview'; preview.src = image.dataUrl; preview.alt = '商品图片预览';
         const meta = document.createElement('div'); meta.className = 'product-upload-meta';
-        const title = document.createElement('strong'); title.textContent = image.fileName || '商品图片';
-        const detail = document.createElement('span'); detail.textContent = `${image.width || 0} × ${image.height || 0} · ${Math.round((image.size || 0) / 1024)} KB`;
+        const title = document.createElement('strong'); title.textContent = image.fileName || (index === 0 ? '商品主图' : '补充图片');
+        const detail = document.createElement('span');
+        detail.textContent = `${index === 0 ? '主图 · ' : `第 ${index + 1} 张 · `}${image.width || 0} × ${image.height || 0} · ${Math.round((image.size || 0) / 1024)} KB`;
         meta.append(title, detail);
         const actions = document.createElement('div'); actions.className = 'product-upload-actions';
-        const replace = document.createElement('button'); replace.type = 'button'; replace.className = 'ghost-btn'; replace.textContent = '替换图片';
-        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'ghost-btn'; remove.textContent = '删除图片';
-        replace.addEventListener('click', event => { event.stopPropagation(); input.click(); });
-        remove.addEventListener('click', event => { event.stopPropagation(); projectState.product.image = null; projectState.product.imageName = ''; if (projectState.backgroundSaved) { invalidateProductOutputs(); saveCurrentProject(); } renderProductImageUpload(); toast('已删除商品图片，后续分析不会继续使用旧图片'); });
-        actions.append(replace, remove);
-        content.className = 'product-upload-filled'; content.append(preview, meta, actions);
-      } else {
-        const title = document.createElement('strong'); title.textContent = '添加商品图片';
-        const detail = document.createElement('span'); detail.textContent = '支持 JPG、PNG、WEBP，建议上传清晰的商品主图，图片会用于后续 AI 分析';
-        content.append(title, detail);
+        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'ghost-btn'; remove.textContent = '删除';
+        remove.addEventListener('click', event => {
+          event.stopPropagation();
+          const next = productImages().filter((item, itemIndex) => itemIndex !== index);
+          projectState.product.images = next;
+          syncProductImageFields();
+          if (projectState.backgroundSaved) { invalidateProductOutputs(); saveCurrentProject(); }
+          renderProductImageUpload();
+          toast(next.length ? '已删除这张图片' : '商品图片已清空');
+        });
+        actions.append(remove);
+        row.append(preview, meta, actions);
+        list.appendChild(row);
+      });
+      if (images.length < productImageLimit) {
+        const add = document.createElement('button'); add.type = 'button'; add.className = 'product-image-add';
+        const addTitle = document.createElement('strong'); addTitle.textContent = images.length ? '继续添加图片' : '添加商品图片';
+        const addDetail = document.createElement('span');
+        addDetail.textContent = images.length
+          ? `还可以添加 ${productImageLimit - images.length} 张，多角度图片能让 AI 判断得更准`
+          : '支持 JPG、PNG、WEBP，最多 3 张；第一张作为主图，其余作为多角度补充，都会参与 AI 分析';
+        add.append(addTitle, addDetail);
+        list.appendChild(add);
       }
-      wrapper.append(content, input);
+      wrapper.append(list, input);
       wrapper.onclick = event => { if (!event.target.closest('button')) input.click(); };
       wrapper.ondragover = event => { event.preventDefault(); wrapper.classList.add('drag-over'); };
       wrapper.ondragleave = () => wrapper.classList.remove('drag-over');
-      wrapper.ondrop = event => { event.preventDefault(); wrapper.classList.remove('drag-over'); const file = event.dataTransfer.files?.[0]; if (file) processProductImage(file); };
-      input.addEventListener('change', event => { const file = event.target.files?.[0]; if (file) processProductImage(file); });
+      wrapper.ondrop = event => { event.preventDefault(); wrapper.classList.remove('drag-over'); const files = Array.from(event.dataTransfer.files || []); if (files.length) processProductImage(files); };
+      input.addEventListener('change', event => { const files = Array.from(event.target.files || []); if (files.length) processProductImage(files); input.value = ''; });
     }
-    async function processProductImage(file) {
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast('请上传 JPG、PNG 或 WEBP 图片'); return; }
-      if (file.size > 10 * 1024 * 1024) { toast('图片大小不能超过 10MB'); return; }
+    async function processProductImage(fileOrFiles) {
+      const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+      const current = productImages();
+      const room = productImageLimit - current.length;
+      if (room <= 0) { toast(`最多上传 ${productImageLimit} 张图片，请先删除一张`); return; }
+      const accepted = files.slice(0, room);
+      if (files.length > room) toast(`最多 ${productImageLimit} 张，本次只添加了前 ${room} 张`);
+      if (accepted.some(file => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type))) { toast('请上传 JPG、PNG 或 WEBP 图片'); return; }
+      if (accepted.some(file => file.size > 10 * 1024 * 1024)) { toast('图片大小不能超过 10MB'); return; }
       try {
-        const compressed = await compressProductImage(file);
-        projectState.product.image = { fileName: file.name, mimeType: 'image/jpeg', width: compressed.width, height: compressed.height, size: file.size, dataUrl: compressed.dataUrl, fingerprint: `${file.name}:${file.size}:${compressed.dataUrl.length}:${compressed.dataUrl.slice(-80)}`, uploadedAt: new Date().toISOString() };
-        projectState.product.imageName = file.name;
+        const added = [];
+        for (const file of accepted) {
+          // 主图保留较高分辨率，补充图压小一点，避免 localStorage 被撑爆
+          const isPrimary = current.length === 0 && added.length === 0;
+          const compressed = await compressProductImage(file, isPrimary ? { maxEdge: 1600, quality: 0.86 } : { maxEdge: 1200, quality: 0.8 });
+          added.push({ fileName: file.name, mimeType: 'image/jpeg', width: compressed.width, height: compressed.height, size: file.size, dataUrl: compressed.dataUrl, fingerprint: `${file.name}:${file.size}:${compressed.dataUrl.slice(0, 40)}` });
+        }
+        projectState.product.images = [...current, ...added].slice(0, productImageLimit);
+        syncProductImageFields();
         if (projectState.backgroundSaved) { invalidateProductOutputs(); saveCurrentProject(); }
         renderProductImageUpload();
-        toast('商品图片已保存，后续 AI 会读取这张图片');
+        toast(added.length > 1 ? `已添加 ${added.length} 张商品图片，后续 AI 会一起读取` : '商品图片已保存，后续 AI 会读取这张图片');
       } catch { toast('图片读取失败，请重新选择'); }
     }
     function resetSetupForm() {
@@ -1767,7 +1814,7 @@
       setSellingPointGenerationState(true);
       const data = projectState.productUnderstanding;
       try {
-        const result = await callAI('/api/product-understanding', { product: projectState.product, productImage: projectState.product.image, market: projectState.market, projectName: projectState.projectName, mode: 'more-selling-points', existingSellingPoints: (data.sellingPoints || []).map(point => point.title), selectedSellingPoints: data.selectedSellingPoints || [] });
+        const result = await callAI('/api/product-understanding', { product: projectState.product, productImage: projectState.product.image, productImages: productImages(), market: projectState.market, projectName: projectState.projectName, mode: 'more-selling-points', existingSellingPoints: (data.sellingPoints || []).map(point => point.title), selectedSellingPoints: data.selectedSellingPoints || [] });
         const existing = data.sellingPoints || [];
         const existingTitles = new Set(existing.map(point => point.title));
         const additions = (result.sellingPoints || []).filter(point => point.title && !existingTitles.has(point.title) && !(data.removedSellingPoints || []).includes(point.title));
@@ -2216,7 +2263,7 @@
       document.getElementById('confirmProduct').disabled = true;
       setProductStatus('AI 分析中');
       try {
-        const data = await callAI('/api/product-understanding', { product: projectState.product, productImage: projectState.product.image, market: projectState.market, projectName: projectState.projectName, mode: 'initial' });
+        const data = await callAI('/api/product-understanding', { product: projectState.product, productImage: projectState.product.image, productImages: productImages(), market: projectState.market, projectName: projectState.projectName, mode: 'initial' });
         projectState.productUnderstanding = { ...data, selectedSellingPoints: null, removedSellingPoints: [], _selectionInitialized: false, _sourceFingerprint: fingerprint };
         renderProductUnderstanding(projectState.productUnderstanding);
         saveCurrentProject();
@@ -2619,7 +2666,7 @@
       if (status) status.textContent = 'AI 分析中';
       clearStrategyAIResult();
       try {
-        const data = await callAI('/api/creative-strategy', { product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), mode: 'initial' });
+        const data = await callAI('/api/creative-strategy', { product: projectState.product, productImage: projectState.product.image, productImages: productImages(), productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), mode: 'initial' });
         projectState.strategy = { ...data, selectedDirections: [], selectedAudience: [], audienceSaved: false, removedAudience: [], removedDirections: [], _sourceFingerprint: fingerprint, sourceFingerprint: fingerprint, brief: null, briefStatus: 'not-generated', briefApproved: false, briefVersion: 0, briefFeedback: [], briefApprovedAt: '', briefFingerprint: '', _briefFingerprint: '' };
         saveCurrentProject();
         renderStrategy(projectState.strategy);
@@ -2643,7 +2690,7 @@
       if (status) status.textContent = '正在生成新方向';
       if (button) { button.disabled = true; button.classList.add('is-loading'); button.textContent = 'AI 正在生成方向…'; }
       try {
-        const result = await callAI('/api/creative-strategy', { product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), existingDirections: projectState.strategy.creativeDirections || [], removedDirections: projectState.strategy.removedDirections || [], mode: 'more-directions' });
+        const result = await callAI('/api/creative-strategy', { product: projectState.product, productImage: projectState.product.image, productImages: productImages(), productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), existingDirections: projectState.strategy.creativeDirections || [], removedDirections: projectState.strategy.removedDirections || [], mode: 'more-directions' });
         const existingTitles = new Set((projectState.strategy.creativeDirections || []).map(direction => direction.title));
         const additions = (result.creativeDirections || []).filter(direction => direction.title && !existingTitles.has(direction.title) && !(projectState.strategy.removedDirections || []).includes(direction.title));
         projectState.strategy.creativeDirections = [...(projectState.strategy.creativeDirections || []), ...additions];
@@ -2690,7 +2737,7 @@
       renderStrategy(strategy);
       let succeeded = false;
       try {
-        const result = await callAI('/api/creative-strategy', { product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), strategy: projectState.strategy, currentBrief: strategy.brief, briefFeedback: strategy.briefFeedback || [], modificationSuggestion: feedback, mode: 'brief' });
+        const result = await callAI('/api/creative-strategy', { product: projectState.product, productImage: projectState.product.image, productImages: productImages(), productUnderstanding: projectState.productUnderstanding, market: projectState.market, platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), strategy: projectState.strategy, currentBrief: strategy.brief, briefFeedback: strategy.briefFeedback || [], modificationSuggestion: feedback, mode: 'brief' });
         const nextVersion = (strategy.briefVersion || 0) + 1;
         strategy.brief = result.creativeBrief || result.brief || null;
         strategy.briefVersion = nextVersion;
@@ -2774,7 +2821,7 @@
       fields[1].appendChild(bodyNote);
     }
     function assetSourceFingerprint() {
-      return JSON.stringify({ base: strategySelectionFingerprint(), brief: projectState.strategy?.brief || null, image: projectState.product?.image?.fingerprint || '', currency: currencySnapshot() });
+      return JSON.stringify({ base: strategySelectionFingerprint(), brief: projectState.strategy?.brief || null, images: projectState.product?.images?.fingerprint || '', currency: currencySnapshot() });
     }
     function meaningfulAssetTitle(scheme, index) {
       const provided = String(scheme?.title || '').trim();
@@ -2973,7 +3020,7 @@
            assetMode: 'prompt',
            projectName: projectState.projectName,
            product: projectState.product,
-           productImage: projectState.product?.image || null,
+           productImage: projectState.product?.image || null, productImages: productImages(),
            productUnderstanding: projectState.productUnderstanding,
            strategy: projectState.strategy,
            approvedBrief: projectState.strategy?.brief,
@@ -3055,7 +3102,7 @@
            market: projectState.market,
            platform: projectState.platform || 'TikTok Shop',
            product: projectState.product,
-           productImage: projectState.product?.image || null,
+           productImage: projectState.product?.image || null, productImages: productImages(),
            productUnderstanding: projectState.productUnderstanding,
            strategy: projectState.strategy,
            approvedBrief: projectState.strategy?.brief || null,
@@ -3124,7 +3171,7 @@
       if (!force && projectState.assets?.sourceFingerprint === fingerprint && projectState.assets?.mode === mode && projectState.assets.schemes?.length) { renderAssets(projectState.assets); return; }
       if (projectState.aiLoading) { toast('AI 正在生成素材，请稍候'); return; }
       projectState.aiLoading = true; projectState.assets = { ...(projectState.assets || {}), mode, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, _translationRequested: false, translatingPrompts: false }; clearAssetsAIResult(mode);
-      const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, sellingPointInImage: projectState.assets?.sellingPointInImage === true, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
+      const payload = { projectName: projectState.projectName, product: projectState.product, productImage: projectState.product.image, productImages: productImages(), productUnderstanding: projectState.productUnderstanding, strategy: projectState.strategy, approvedBrief: projectState.strategy.brief, assetMode: mode, sellingPointInImage: projectState.assets?.sellingPointInImage === true, market: projectState.market, language: marketLanguage(projectState.market), platform: projectState.platform || 'TikTok Shop', selectedSellingPoints: selectedSellingPointTitles(), selectedDirections: selectedDirections(), selectedAudience: selectedAudience(), currency: currencySnapshot(), sourceFingerprint: fingerprint };
        try { const result = await callAI('/api/ad-assets', payload, { timeoutMs: 150000 }); const promptComplete = mode !== 'prompt' || result.schemes?.every(item => item.imagePromptZh && item.videoPromptZh); projectState.assets = { ...result, mode, promptFormatVersion: promptComplete ? 2 : 1, sourceFingerprint: fingerprint, _sourceFingerprint: fingerprint, selectedSchemeId: result.selectedSchemeId || result.schemes?.[0]?.id || '' }; saveCurrentProject(); renderAssets(projectState.assets); toast(mode === 'prompt' ? '提示词素材包已生成' : '广告图片模板已生成'); }
       catch (error) { const status = document.getElementById('assetStatusPill'); if (status) status.textContent = 'AI 未完成'; toast(error.message); }
       finally { projectState.aiLoading = false; }
