@@ -295,7 +295,11 @@
     .asset-prompt-revision textarea { min-height: 72px; resize: vertical; }
     .asset-prompt-revision button { justify-self: start; }
     .asset-translation-panel { display: grid; gap: 10px; }
-    .asset-translation-card { border: 1px solid #e7e9ee; border-radius: 9px; background: #fafbfc; padding: 10px; }
+    .asset-translation-card { border: 1px solid #e7e9ee; border-radius: 9px; background: #fafbfc; padding: 10px; transition: border-color .15s ease, background .15s ease; }
+    .asset-translation-card.is-active { border-color: #9cc0f2; background: #f4f9ff; }
+    /* 素材页右侧栏是 sticky 的：内容比屏幕高时下半截看不到，所以给它自己的滚动条 */
+    #assets-view .panel-side { max-height: calc(100vh - 44px); overflow-y: auto; }
+    @media (max-width: 980px) { #assets-view .panel-side { max-height: none; overflow: visible; } }
     .asset-translation-card h4 { margin: 0 0 8px; font-size: 11px; }
     .asset-translation-card strong { display: block; margin-top: 8px; color: var(--ink); font-size: 10px; }
     .asset-translation-card p { margin: 4px 0 0; color: #5f636d; font-size: 10px; line-height: 1.65; white-space: pre-line; }
@@ -3172,6 +3176,44 @@
       section.append(title, reason, retry);
       panel.appendChild(section);
     }
+    // 素材页右侧是 sticky 侧栏：页面往下滚时它不动，于是左滑到第二套、右侧还停在第一套。
+    // 这里监听页面滚动，找出当前正在看的那一套，让右侧高亮并自动滚到对应位置。
+    let translationSyncBound = false;
+    function bindTranslationSync() {
+      if (translationSyncBound) return;
+      translationSyncBound = true;
+      let ticking = false;
+      const sync = () => {
+        ticking = false;
+        const view = document.getElementById('assets-view');
+        if (!view || !view.classList.contains('active')) return;
+        const panel = document.getElementById('assetTranslationPanel');
+        if (!panel) return;
+        const leftCards = Array.from(view.querySelectorAll('[data-scheme-card]'));
+        if (!leftCards.length) return;
+        // 以视口上方 1/3 处为基准线，取最后一越过基准线的卡片
+        const line = window.innerHeight / 3;
+        let active = leftCards[0];
+        leftCards.forEach(card => { if (card.getBoundingClientRect().top <= line) active = card; });
+        const id = active.dataset.schemeCard;
+        panel.querySelectorAll('[data-translation-for]').forEach(card => {
+          card.classList.toggle('is-active', card.dataset.translationFor === id);
+        });
+        const target = panel.querySelector(`[data-translation-for="${id}"]`);
+        if (!target) return;
+        // 只滚动侧栏自身，不带动页面
+        const panelRect = panel.getBoundingClientRect();
+        const cardRect = target.getBoundingClientRect();
+        if (cardRect.top < panelRect.top + 8) panel.scrollTop += cardRect.top - panelRect.top - 8;
+        else if (cardRect.bottom > panelRect.bottom - 8) panel.scrollTop += cardRect.bottom - panelRect.bottom + 8;
+      };
+      window.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(sync);
+      }, { passive: true });
+      window.addEventListener('resize', () => { ticking = true; window.requestAnimationFrame(sync); }, { passive: true });
+    }
     function renderPromptTranslations(schemes) {
       const panel = document.getElementById('assetTranslationPanel');
       if (!panel) return;
@@ -3182,7 +3224,7 @@
       const note = document.createElement('div'); note.className = 'notice'; note.textContent = '右侧翻译仅用于理解，复制使用时请复制左侧原始提示词。'; section.appendChild(note);
       const list = document.createElement('div'); list.className = 'asset-translation-panel';
       schemes.forEach((scheme, index) => {
-        const card = document.createElement('div'); card.className = 'asset-translation-card';
+        const card = document.createElement('div'); card.className = 'asset-translation-card'; card.dataset.translationFor = scheme.id;
         const heading = document.createElement('h4'); heading.textContent = `${schemeOrdinal(index)}、${scheme.title}`; card.appendChild(heading);
         const imageLabel = document.createElement('strong'); imageLabel.textContent = '图片提示词中文翻译'; card.appendChild(imageLabel);
          const imageText = document.createElement('p'); imageText.textContent = scheme.imagePromptZh || (projectState.assets?.translatingPrompts ? 'AI 正在补充中文翻译…' : '本方案暂未生成中文翻译。'); card.appendChild(imageText);
@@ -3191,6 +3233,7 @@
         list.appendChild(card);
       });
       section.appendChild(list); panel.appendChild(section);
+      bindTranslationSync();
     }
     async function translateExistingPrompts(data) {
       if (projectState.aiLoading) return;
@@ -3269,7 +3312,7 @@
       const actions = document.getElementById('assetBranchActions'); if (actions) actions.replaceChildren();
       const choice = document.getElementById('assetModeChoice'); if (!choice) return;
       choice.className = 'asset-mode-choice';
-      choice.innerHTML = '<div class="asset-mode-intro"><h3>图片里要不要直接写出功能卖点？</h3><p>选好之后再开始生成提示词。</p></div><div class="asset-mode-options"><button type="button" class="asset-mode-card" data-asset-action="selling-point-yes"><span class="mode-label">YES</span><h3>要，把功能卖点写进画面</h3><p>生成的图片提示词会预留卖点文案位，卖点只取你已经确认的那几条，不会自己编。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button><button type="button" class="asset-mode-card" data-asset-action="selling-point-no"><span class="mode-label">NO</span><h3>不用，按现在的方式生成</h3><p>只按商品信息和创意简报生成，画面里不额外强调卖点。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button></div><div class="selling-point-examples"><div class="spe-head">两种选择，大概会生成什么样的图</div><div class="spe-grid"><figure class="spe-card"><img src="./assets/example-no-editing.jpg" alt="不展示功能卖点时的示例图" loading="lazy" /><figcaption><b>选「不用」</b>画面干净，只有商品本身，不出现卖点文字。</figcaption></figure><figure class="spe-card"><img src="./assets/example-with-sellingpoints.jpg" alt="把功能卖点写进画面时的示例图" loading="lazy" /><figcaption><b>选「要」</b>画面里用引线标出功能卖点（示例为越南语）。</figcaption></figure></div><p class="spe-note">示意图仅供参考：实际图片由 AI 根据你的商品和已确认卖点生成，构图、文字和细节都不会与示例一致。</p></div>';
+      choice.innerHTML = '<div class="asset-mode-intro"><h3>图片里要不要直接写出功能卖点？</h3><p>选好之后再开始生成提示词。</p></div><div class="asset-mode-options"><button type="button" class="asset-mode-card" data-asset-action="selling-point-yes"><span class="mode-label">YES</span><h3>要，把功能卖点写进画面</h3><p>生成的图片提示词会预留卖点文案位，卖点只取你已经确认的那几条，不会自己编。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button><button type="button" class="asset-mode-card" data-asset-action="selling-point-no"><span class="mode-label">NO</span><h3>不用，按现在的方式生成</h3><p>只按商品信息和创意简报生成，画面里不额外强调卖点。</p><span class="path-flow">生成提示词 → 修改确认 → 复制使用</span></button></div><div class="selling-point-examples"><div class="spe-head">两种选择，大概会生成什么样的图</div><div class="spe-grid"><figure class="spe-card"><img src="./assets/example-with-sellingpoints.jpg" alt="把功能卖点写进画面时的示例图" loading="lazy" /><figcaption><b>选「要」</b>画面里用引线标出功能卖点（示例为越南语）。</figcaption></figure><figure class="spe-card"><img src="./assets/example-no-editing.jpg" alt="不展示功能卖点时的示例图" loading="lazy" /><figcaption><b>选「不用」</b>画面干净，只有商品本身，不出现卖点文字。</figcaption></figure></div><p class="spe-note">示意图仅供参考：实际图片由 AI 根据你的商品和已确认卖点生成，构图、文字和细节都不会与示例一致。</p></div>';
       const summary = document.getElementById('assetInputSummary');
       if (summary) summary.textContent = `已准备商品图片、${selectedSellingPointTitles().length} 个卖点、${selectedDirections().length} 个创意方向和 ${selectedAudience().length} 个核心受众。`;
     }
@@ -3334,7 +3377,7 @@
           });
           card.append(title, summary, angle, meta, choose); list.appendChild(card); return;
         }
-         const card = document.createElement('article'); card.className = 'asset-scheme';
+         const card = document.createElement('article'); card.className = 'asset-scheme'; card.dataset.schemeCard = scheme.id;
          const head = document.createElement('div'); head.className = 'asset-scheme-head'; const titleWrap = document.createElement('div'); const title = document.createElement('h3'); title.className = 'asset-prompt-number'; title.textContent = `${schemeOrdinal(index)}、${scheme.title}`; const summary = document.createElement('p'); summary.textContent = scheme.summary; const angle = document.createElement('p'); angle.textContent = `切入角度：${scheme.angle || '综合当前创意简报生成'}`; titleWrap.append(title, summary, angle); head.appendChild(titleWrap); card.appendChild(head);
          const promptGrid = document.createElement('div'); promptGrid.className = 'asset-scheme-grid asset-prompt-block'; promptGrid.append(assetTextBlock('图片生成提示词', imagePromptText(scheme), true), assetTextBlock('视频生成提示词', videoPromptText(scheme), true)); card.appendChild(promptGrid);
          const revision = document.createElement('div'); revision.className = 'asset-prompt-revision'; const revisionLabel = document.createElement('label'); revisionLabel.textContent = '对这套提示词不满意？告诉 AI 你想怎么改'; const revisionInput = document.createElement('textarea'); revisionInput.placeholder = '例如：人物动作更自然，突出防水功能，把画面改成越南上班族雨天通勤场景……'; revisionInput.dataset.promptFeedback = scheme.id; const revisionButton = document.createElement('button'); revisionButton.type = 'button'; revisionButton.className = 'ghost-btn'; revisionButton.dataset.assetAction = 'revise-prompt'; revisionButton.dataset.templateId = scheme.id; revisionButton.disabled = Boolean(projectState.aiLoading); revisionButton.textContent = data.revisingSchemeId === scheme.id ? 'AI 正在根据建议修改…' : '根据我的建议重新生成'; revision.append(revisionLabel, revisionInput, revisionButton); card.appendChild(revision);
