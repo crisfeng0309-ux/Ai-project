@@ -3532,12 +3532,17 @@
            designType: scheme.designType || '',
            scheme,
            prompt: scheme.imagePrompt,
+            // 商品资料的英文版：只给生图模型看，界面上给用户看的仍然是中文。
+            // 新方案在素材生成时就会带上；老方案没有时由后端现场翻译一次，成功后回填，下次不再翻译。
+            productFactsEn: scheme.productFactsEn || '',
            negativePrompt: scheme.negativePrompt,
            size: '1024x1024'
          };
          let result;
+          let factsEn = '';
          try {
            result = await callAI('/api/generate-image-task', payload, { timeoutMs: 20000 });
+            factsEn = result.productFactsEn || '';
            if (result.taskId && !result.imageUrl) result = await pollGeneratedImageTask(result.taskId);
          } catch (taskError) {
            const fallbackPrefixes = ['AI_HTTP_400', 'AI_HTTP_404', 'AI_HTTP_405', 'IMAGE_API_HTTP_400', 'IMAGE_API_HTTP_404', 'IMAGE_API_HTTP_405'];
@@ -3546,9 +3551,14 @@
            projectState.assets = { ...projectState.assets, generationProgress: '图片正在生成中…' };
            renderAssets(projectState.assets);
            result = await callAI('/api/generate-image', payload, { timeoutMs: 165000 });
+            factsEn = result.productFactsEn || factsEn;
          }
          if (!result.imageUrl) throw new Error(result.taskId ? '豆包已创建生图任务，但当前接口未返回可直接展示的图片地址，请将豆包接口配置为同步返回图片，或补充任务查询接口。' : '豆包没有返回图片地址，请检查生图模型和接口配置。');
-         projectState.assets = { ...projectState.assets, generatedImage: result.imageUrl, generatedImageModel: result.model || '', imageGenerationError: '', generationProgress: '', generatingImage: false, generatedAt: new Date().toISOString() };
+         // 把翻译好的英文商品事实写回这套模板，下次生成不用再翻一次
+          const schemes = factsEn
+            ? (projectState.assets?.schemes || []).map(item => item.id === templateId ? { ...item, productFactsEn: factsEn } : item)
+            : projectState.assets?.schemes;
+          projectState.assets = { ...projectState.assets, schemes, generatedImage: result.imageUrl, generatedImageModel: result.model || '', imageGenerationError: '', generationProgress: '', generatingImage: false, generatedAt: new Date().toISOString() };
          projectState.aiLoading = false;
          saveCurrentProject();
          renderAssets(projectState.assets);
