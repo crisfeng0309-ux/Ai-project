@@ -3416,16 +3416,19 @@
     }
     // 版式代号 → 给用户看的中文。认不出来的原样返回，避免把旧项目的中文描述吃掉。
     const assetLayoutLabels = {
-      'split-dark': '深色分栏（左侧信息栏 + 右侧商品）',
-      'scene-band': '满版实景 + 底部信息带',
-      'clean-catalog': '干净商品展示',
-      // 旧项目里的历史代号，仍然映射到最接近的新配方
-      'studio-split': '深色分栏（左侧信息栏 + 右侧商品）',
-      'lifestyle-callout': '满版实景 + 底部信息带',
-      'center-showcase': '干净商品展示',
-      'editorial-magazine': '干净商品展示',
-      'multi-scene': '满版实景 + 底部信息带',
-      'info-cards': '干净商品展示'
+      'split-studio': '影棚分栏（左侧商品 + 右侧信息栏）',
+      'feature-orbit': '实景环绕（6 条卖点 + 底部信息带）',
+      'hero-editorial': '编辑式主视觉（场景优先）',
+      // 旧项目里的历史代号，映射到最接近的新模板
+      'split-dark': '影棚分栏（左侧商品 + 右侧信息栏）',
+      'studio-split': '影棚分栏（左侧商品 + 右侧信息栏）',
+      'scene-band': '实景环绕（6 条卖点 + 底部信息带）',
+      'lifestyle-callout': '实景环绕（6 条卖点 + 底部信息带）',
+      'multi-scene': '实景环绕（6 条卖点 + 底部信息带）',
+      'clean-catalog': '编辑式主视觉（场景优先）',
+      'center-showcase': '编辑式主视觉（场景优先）',
+      'editorial-magazine': '编辑式主视觉（场景优先）',
+      'info-cards': '编辑式主视觉（场景优先）'
     };
     function assetLayoutLabel(value) {
       const key = String(value || '').trim().toLowerCase();
