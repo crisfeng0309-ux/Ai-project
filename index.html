@@ -3543,7 +3543,7 @@
            const fallbackPrefixes = ['AI_HTTP_400', 'AI_HTTP_404', 'AI_HTTP_405', 'IMAGE_API_HTTP_400', 'IMAGE_API_HTTP_404', 'IMAGE_API_HTTP_405'];
            const canFallbackToSync = fallbackPrefixes.some(prefix => String(taskError.code || '').startsWith(prefix));
            if (!canFallbackToSync) throw taskError;
-           projectState.assets = { ...projectState.assets, generationProgress: '异步接口不可用，正在使用同步生图接口…' };
+           projectState.assets = { ...projectState.assets, generationProgress: '图片正在生成中…' };
            renderAssets(projectState.assets);
            result = await callAI('/api/generate-image', payload, { timeoutMs: 165000 });
          }
