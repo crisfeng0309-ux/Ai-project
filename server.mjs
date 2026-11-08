@@ -61,6 +61,7 @@ async function handleApi(req, res, path) {
     try {
       json(res, 200, { ok: true, data: await getDoubaoImageTaskStatus(body.taskId) });
     } catch (error) {
+      console.error(`[adlab] 生图状态查询失败 code=${error.message}`);
       const status = error.message === 'IMAGE_TASK_ID_REQUIRED' ? 400 : error.message === 'IMAGE_API_TIMEOUT' ? 504 : 502;
       json(res, status, { ok: false, code: error.message, message: imageGenerationErrorMessage(error) });
     }
@@ -72,6 +73,9 @@ async function handleApi(req, res, path) {
     try {
       json(res, 200, { ok: true, data: await imageHandler(body) });
     } catch (error) {
+      // 以前图片错误是静默返回的，线上只能看到「请检查豆包接口配置」这种兜底文案，没法定位
+      console.error(`[adlab] 生图失败 path=${path} code=${error?.message || error}`);
+      if (error?.stack) console.error(error.stack.split('\n').slice(0, 4).join('\n'));
       json(res, imageErrorStatus(error), { ok: false, code: error.message, message: imageGenerationErrorMessage(error) });
     }
     return;

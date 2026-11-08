@@ -270,14 +270,6 @@
     .spe-card figcaption b { color: var(--ink); }
     .spe-note { margin: 12px 0 0; font-size: 10.5px; line-height: 1.7; color: var(--muted); }
     @media (max-width: 620px) { .spe-grid { grid-template-columns: 1fr; } }
-    /* 画面比例：档位来自后端，这里只管怎么摆 */
-    .asset-aspect-bar { display: none; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
-    .asset-aspect-bar.is-visible { display: flex; }
-    .asset-aspect-label { font-size: 11px; color: var(--muted); margin-right: 2px; }
-    .asset-aspect-option { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 6px 11px; font-size: 11px; color: #4a4d54; cursor: pointer; transition: .15s ease; }
-    .asset-aspect-option:hover { border-color: #c7c9ce; }
-    .asset-aspect-option.is-active { border-color: #84b4ff; background: var(--blue-soft); color: #145fcb; font-weight: 650; }
-    .asset-aspect-note { font-size: 10.5px; color: var(--muted); }
     .asset-template-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px; }
     .asset-template-card { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
     .asset-template-card:hover { border-color: #c3cad8; box-shadow: 0 8px 20px rgba(20,24,38,.07); transform: translateY(-1px); }
@@ -3079,11 +3071,9 @@
       const main = view?.querySelector('.panel-main');
       const side = view?.querySelector('.panel-side');
       if (!main || !side) return;
-       main.innerHTML = '<div class="panel-heading"><div><h2 id="assetPageTitle">广告素材工作台</h2><p id="assetPageSubtitle">先选择你希望 AdLab 输出图片素材，还是输出专业提示词。</p></div><span class="status-pill" id="assetStatusPill">选择输出方式</span></div><div id="assetGenerationContext" class="asset-context"></div><div id="assetCurrency" class="asset-currency"></div><div id="assetBranchBack" class="asset-branch-back"></div><div id="assetModeChoice"></div><div id="assetAspectBar" class="asset-aspect-bar"></div><div id="assetGeneratedPreview"></div><div id="assetSchemes" class="asset-schemes"></div><div id="assetBranchActions" class="asset-action-row"></div>';
+       main.innerHTML = '<div class="panel-heading"><div><h2 id="assetPageTitle">广告素材工作台</h2><p id="assetPageSubtitle">先选择你希望 AdLab 输出图片素材，还是输出专业提示词。</p></div><span class="status-pill" id="assetStatusPill">选择输出方式</span></div><div id="assetGenerationContext" class="asset-context"></div><div id="assetCurrency" class="asset-currency"></div><div id="assetBranchBack" class="asset-branch-back"></div><div id="assetModeChoice"></div><div id="assetGeneratedPreview"></div><div id="assetSchemes" class="asset-schemes"></div><div id="assetBranchActions" class="asset-action-row"></div>';
        side.innerHTML = '<div class="side-title">当前素材步骤</div><div id="assetInputSummary" class="notice">先选择一种素材产出方式。</div><div id="assetTranslationPanel"></div><div class="side-section"><div class="side-title">本步骤会使用</div><div class="asset-check-list"><div class="asset-check-item">已确认的商品和商品图片</div><div class="asset-check-item">用户保留的卖点、受众和创意方向</div><div class="asset-check-item">已确认的创意简报</div><div class="asset-check-item">目标市场的背景信息（市场、平台与投放语境）</div><div class="asset-check-item">目标市场语言和当地货币价格</div></div></div>';
       view.addEventListener('click', event => {
-        const aspect = event.target.closest('[data-aspect]');
-        if (aspect) { setAssetAspect(aspect.dataset.aspect); return; }
         const mode = event.target.closest('[data-asset-mode]');
         if (mode) { selectAssetMode(mode.dataset.assetMode); return; }
          const action = event.target.closest('[data-asset-action]');
@@ -3427,48 +3417,18 @@
     // 版式代号 → 给用户看的中文。认不出来的原样返回，避免把旧项目的中文描述吃掉。
     const assetLayoutLabels = {
       'studio-split': '深色影棚分栏（左信息栏 + 右商品）',
-      'lifestyle-callout': '满版实景 + 图标卖点环绕'
+      'lifestyle-callout': '满版实景 + 图标卖点环绕',
+      'center-showcase': '商品居中 + 四周信息环绕',
+      'editorial-magazine': '杂志式不对称排版',
+      'multi-scene': '主场景 + 辅助场景小窗',
+      'info-cards': '商品 + 信息卡片堆叠'
     };
     function assetLayoutLabel(value) {
       const key = String(value || '').trim().toLowerCase();
       if (!key) return 'AI 将根据创意简报规划';
       return assetLayoutLabels[key] || value;
     }
-    // 比例档位由后端给（data.aspectOptions），前端不再写死任何比例
-    function assetAspectValue(raw, options) {
-      const list = Array.isArray(options) && options.length ? options : [{ value: '1:1' }];
-      const value = String(raw || '').trim();
-      return list.some(item => item.value === value) ? value : list[0].value;
-    }
-    function setAssetAspect(value) {
-      projectState.assets = { ...(projectState.assets || {}), aspectRatio: value };
-      saveCurrentProject();
-      renderAssets(projectState.assets);
-    }
-    function renderAssetAspectBar(data) {
-      const bar = document.getElementById('assetAspectBar');
-      if (!bar) return;
-      const options = Array.isArray(data?.aspectOptions) ? data.aspectOptions : [];
-      if (!options.length) { bar.classList.remove('is-visible'); bar.replaceChildren(); return; }
-      bar.classList.add('is-visible');
-      const current = assetAspectValue(data?.aspectRatio, options);
-      bar.replaceChildren();
-      const label = document.createElement('span'); label.className = 'asset-aspect-label'; label.textContent = '画面比例';
-      bar.appendChild(label);
-      options.forEach(option => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = `asset-aspect-option${option.value === current ? ' is-active' : ''}`;
-        button.dataset.aspect = option.value;
-        button.textContent = option.label || option.value;
-        bar.appendChild(button);
-      });
-      const note = document.createElement('span'); note.className = 'asset-aspect-note';
-      note.textContent = data?.generatedImage ? '改比例后需要重新生成图片' : '比例决定画布形状与版式重心';
-      bar.appendChild(note);
-    }
     function renderImageBranch(data) {
-      renderAssetAspectBar(data);
       renderAssetSchemeCards(data, { imageMode: true });
        const actions = document.getElementById('assetBranchActions'); if (actions) actions.innerHTML = `<button type="button" class="ghost-btn" data-asset-action="back-mode">重新选择产出方式</button>${data.generatedImage ? '<button type="button" class="primary-btn" data-asset-action="save-image">保存图片，完成素材环节 →</button>' : '<span class="asset-mode-note">点击任意模板下方的“选择此模板并生成”，即可调用豆包生成图片。</span>'}`;
     }
@@ -3592,8 +3552,8 @@
             // 新方案在素材生成时就会带上；老方案没有时由后端现场翻译一次，成功后回填，下次不再翻译。
             productFactsEn: scheme.productFactsEn || '',
            negativePrompt: scheme.negativePrompt,
-           // 画布尺寸由后端按比例换算（9:16 → 720x1280 等），前端只回传比例
-           aspectRatio: assetAspectValue(projectState.assets?.aspectRatio, projectState.assets?.aspectOptions)
+           // 画布尺寸由后端决定；出图是什么比例，界面就显示什么比例
+           size: '1024x1024'
          };
          let result;
           let factsEn = '';
