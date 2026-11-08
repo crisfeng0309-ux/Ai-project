@@ -3422,7 +3422,7 @@
           const summary = document.createElement('p'); summary.className = 'template-summary'; summary.textContent = scheme.summary;
           const angle = document.createElement('p'); angle.className = 'template-angle'; angle.textContent = `切入角度：${scheme.angle || ['用户痛点场景', '核心卖点展示', '真实生活场景'][index] || '综合创意场景'}`;
           // 后端给的是版式代号，界面上必须说人话：用户不需要知道 studio-split 是什么意思
-          const meta = document.createElement('div'); meta.className = 'template-meta'; meta.textContent = `画面构图：${assetLayoutLabel(scheme.imageLayout)}\n广告标题：${scheme.adTitle || '目标市场当地语言广告标题'}\n核心卖点：${(scheme.sellingPointCopy || []).join('、') || '结合已确认卖点'}\n价格：${scheme.localPrice || data.currency?.displayAmount || '按目标市场换算'}`;
+          const meta = document.createElement('div'); meta.className = 'template-meta'; meta.textContent = `画面构图：${assetLayoutLabel(scheme.imageLayout)}\n广告标题：${scheme.adTitle || '目标市场当地语言广告标题'}\n核心卖点：${(scheme.sellingPointCopy || []).join('、') || '结合已确认卖点'}\n价格：${scheme.localPrice || data.currency?.displayAmount || '按目标市场换算'}${scheme.priceNote ? ' ' + scheme.priceNote : ''}\n购买按钮：${scheme.ctaText || '自动生成当地语言 CTA'}（${projectState.platform || 'TikTok Shop'}）`;
           const choose = document.createElement('button'); choose.type = 'button'; choose.className = 'primary-btn template-choice'; choose.dataset.assetAction = 'generate-image'; choose.dataset.templateId = scheme.id; choose.disabled = Boolean(projectState.aiLoading); choose.textContent = isGenerating ? '豆包生成中…（约需 1-2 分钟）' : data.generatedImage && data.selectedSchemeId === scheme.id ? '重新生成此模板' : '选择此模板并生成';
           // 整张卡片都可以点：卡片面积大，逼用户去瞄准小按钮不直观
           card.addEventListener('click', event => {
