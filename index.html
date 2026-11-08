@@ -586,15 +586,35 @@
       overflow: hidden;
       isolation: isolate;
       background-color: #cfdadd;
-      /* 多层叠加：中心柔光托字 → 上下电影渐变 → 暖调暗角 → 原始背景图 */
-      background-image:
-        radial-gradient(50% 72% at 50% 50%, rgba(255,251,245,.84) 0%, rgba(255,251,245,.60) 38%, rgba(255,251,245,.18) 68%, rgba(255,251,245,0) 82%),
-        linear-gradient(180deg, rgba(14,20,26,.18) 0%, rgba(14,20,26,.02) 22%, rgba(14,20,26,0) 55%, rgba(10,15,20,.30) 100%),
-        radial-gradient(125% 95% at 50% 46%, rgba(255,208,148,.10) 0%, rgba(255,208,148,0) 52%, rgba(8,13,18,.20) 100%),
-        url("./assets/adlab-mountain.jpg");
+    }
+    /* 背景照片层：两张图交叉淡化，当前那张缓慢推近 */
+    .home-slides { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+    .home-slide {
+      position: absolute;
+      inset: 0;
       background-position: center center;
       background-size: cover;
       background-repeat: no-repeat;
+      opacity: 0;
+      transform: scale(1);
+      transition: opacity 2s ease-in-out;
+      backface-visibility: hidden;
+    }
+    .home-slide.is-shown { opacity: 1; }
+    /* 6 秒（停留 4 秒 + 淡化 2 秒）里只推近 5%，肉眼基本察觉不到起点 */
+    .home-slide.is-active { animation: homeKenBurns 6s linear forwards; }
+    @keyframes homeKenBurns { from { transform: scale(1); } to { transform: scale(1.05); } }
+    /* 压暗层：原来和照片叠在一起的渐变现在独立一层，字体对比度与原来看不出差别 */
+    .home-view::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background-image:
+        radial-gradient(50% 72% at 50% 50%, rgba(255,251,245,.84) 0%, rgba(255,251,245,.60) 38%, rgba(255,251,245,.18) 68%, rgba(255,251,245,0) 82%),
+        linear-gradient(180deg, rgba(14,20,26,.18) 0%, rgba(14,20,26,.02) 22%, rgba(14,20,26,0) 55%, rgba(10,15,20,.30) 100%),
+        radial-gradient(125% 95% at 50% 46%, rgba(255,208,148,.10) 0%, rgba(255,208,148,0) 52%, rgba(8,13,18,.20) 100%);
     }
     /* 顶部版心细线 */
     .home-view::before {
@@ -605,7 +625,7 @@
       width: 1px;
       height: clamp(48px, 9vh, 96px);
       background: linear-gradient(180deg, rgba(26,35,43,.34), rgba(26,35,43,0));
-      z-index: 1;
+      z-index: 2;
       pointer-events: none;
     }
     .home-content { width: min(760px, 100%); text-align: center; position: relative; z-index: 2; }
@@ -680,6 +700,10 @@
     @media (prefers-reduced-motion: reduce) {
       .home-view, .home-kicker, .home-brand, .home-tagline, .home-actions, .home-footnote { animation: none; }
       .home-actions button { transition: none; }
+      /* 关掉动效时只留第一张静态照片，不轮播也不缩放 */
+      .home-slide { transition: none; }
+      .home-slide.is-active { animation: none; }
+      .home-slide:not(.is-shown) { display: none; }
     }
     @media (max-width: 900px) {
       .home-kicker { letter-spacing: .28em; }
@@ -756,7 +780,7 @@
 
       <section class="view" id="setup-view"><div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>建立项目背景</h2><p>先填写这一次广告实验的基础信息，保存后再选择工作方向。</p></div><span class="status-pill">第 1 步</span></div><div class="setup-note" style="margin-bottom:18px">这是一个新的空白项目。请填写你自己的商品资料，系统不会自动带入其他项目的信息。<span class="setup-note-hint">另外，商品图片和描述里尽量避开真人肖像（尤其儿童）、明星或影视动漫形象、政治相关符号、暴力血腥、医疗药效宣称——这类内容会被生图模型的安全审核拦下，导致出图失败。</span></div><div class="form-grid two-col"><div class="field"><label for="setupProjectName">项目名称</label><input id="setupProjectName" placeholder="例如：泰国榨汁杯广告实验" /></div><div class="field"><label for="setupMarket">目标市场</label><select id="setupMarket"><option value="">请选择目标市场</option><option>泰国</option><option>越南</option><option>马来西亚</option><option>新加坡</option><option>印度尼西亚</option><option>菲律宾</option><option>柬埔寨</option><option>老挝</option><option>缅甸</option></select></div><div class="field"><label for="setupProductName">商品名称</label><input id="setupProductName" placeholder="例如：便携式榨汁杯" /></div><div class="field"><label for="setupCategory">商品类别</label><input id="setupCategory" placeholder="例如：厨房小家电" /></div><div class="field"><label for="setupPrice">人民币售价（元）</label><input id="setupPrice" inputmode="decimal" placeholder="例如：129" /></div><div class="field"><label for="setupSpecs">关键规格</label><input id="setupSpecs" placeholder="例如：350ml、USB 充电" /></div></div><div class="form-grid" style="margin-top:16px"><div class="field"><label for="setupDescription">商品描述</label><textarea id="setupDescription" placeholder="介绍商品是什么、解决什么问题，以及商家已经确认的功能。"></textarea></div><div class="field"><label for="setupFeatures">已知功能</label><textarea id="setupFeatures" placeholder="例如：制作果汁、便于携带、使用后容易清洗。"></textarea></div><div class="field"><label for="setupImage">商品图片</label><div class="upload" id="setupImage"><div><strong>添加商品图片</strong><span>演示版先保存图片名称，后续接入真实图片上传</span></div></div></div><div class="field"><label for="setupLogo">商品 LOGO（可选）</label><div class="upload" id="setupLogo"><div><strong>上传商品 LOGO</strong><span>有品牌标识可以传一张，生成素材时会作为参考；不传也不影响</span></div></div></div><div class="field"><label for="setupNotes">项目备注（可选）</label><textarea id="setupNotes" style="min-height:90px" placeholder="补充你希望 AdLab 记住的背景信息。"></textarea></div></div><div style="display:flex;justify-content:flex-end;gap:9px;margin-top:22px"><button class="ghost-btn" id="setupBack">返回主页面</button><button class="primary-btn" id="saveBackground">保存项目背景 →</button></div></div><aside class="panel panel-side"><div class="side-title">本页完成后</div><div class="side-list"><div class="side-list-item"><span class="number">1</span><span>保存项目和商品的基础资料。</span></div><div class="side-list-item"><span class="number">2</span><span>选择“广告数据分析”或“获取广告创意”。</span></div><div class="side-list-item"><span class="number">3</span><span>项目总览会记录你当前进行到的步骤。</span></div></div></aside></div></section>
       <section class="view" id="path-view"><div class="workspace"><div class="panel panel-main"><div class="panel-heading"><div><h2>选择这次项目的方向</h2><p>两条路径使用同一份项目背景，但服务不同的目标。</p></div><span class="status-pill">第 2 步</span></div><div class="path-grid"><button class="path-card" id="chooseDataPath"><span class="path-number">PATH 01</span><h3>广告数据分析</h3><p>适合已经有历史广告投放数据、但看不懂这些数字说明什么问题的用户。</p><span class="path-flow">上传或粘贴数据 → 字段确认 → 指标计算 → 数据分析</span></button><button class="path-card" id="chooseCreativePath"><span class="path-number">PATH 02</span><h3>获取广告创意</h3><p>适合还没有投放广告，希望从商品信息开始获得广告策略和素材的用户。</p><span class="path-flow">商品理解 → 市场策略 → 广告图或专业提示词</span></button></div><div style="display:flex;justify-content:flex-start;margin-top:22px"><button class="ghost-btn" id="pathBack">← 返回项目背景</button></div></div><aside class="panel panel-side"><div class="side-title">已保存的项目背景</div><div class="notice" id="pathSummary"><strong>等待加载</strong>保存后会在这里显示商品名称、目标市场和售价。</div></aside></div></section>
-      <section class="view active" id="home-view"><div class="home-view"><div class="home-content"><div class="home-kicker">AI advertising laboratory</div><h1 class="home-brand">Ad<span>Lab</span></h1><p class="home-tagline">把商品，变成更好的广告。</p><div class="home-actions"><button class="primary-btn" id="newProjectBtn">新建项目</button><button class="ghost-btn" id="historyBtn">查看历史项目</button></div><div class="home-footnote">从商品理解开始，完成一次完整的广告实验</div></div></div></section>
+      <section class="view active" id="home-view"><div class="home-view"><div class="home-slides" aria-hidden="true"><div class="home-slide is-shown is-active" style="background-image:url('./assets/home-hero-1.jpg')"></div><div class="home-slide" data-bg="./assets/home-hero-2.jpg"></div></div><div class="home-content"><div class="home-kicker">AI advertising laboratory</div><h1 class="home-brand">Ad<span>Lab</span></h1><p class="home-tagline">把商品，变成更好的广告。</p><div class="home-actions"><button class="primary-btn" id="newProjectBtn">新建项目</button><button class="ghost-btn" id="historyBtn">查看历史项目</button></div><div class="home-footnote">从商品理解开始，完成一次完整的广告实验</div></div></div></section>
       <section class="view" id="history-view"><div class="history-view"><div class="history-inner"><div class="history-top"><div><button class="back-link" id="historyBack">← 返回 AdLab</button><div class="eyebrow" style="margin-top:25px">项目空间 / 历史项目</div><h1>继续你的广告实验。</h1></div><button class="primary-btn" id="historyNewProject">新建项目</button></div><div class="history-list" id="historyList"></div><div class="history-empty" id="historyEmpty" style="display:none"><strong>还没有广告项目</strong><p>创建你的第一个广告项目，开始一次完整的广告实验。</p><button class="primary-btn" id="emptyNewProject">新建项目</button></div></div></div></section>
       <section class="view" id="overview-view"><div class="progress-dashboard"><div class="progress-head"><div><div class="path-label" id="overviewPathLabel">项目进度</div><h2 id="overviewProjectName">项目总览</h2><p id="overviewProjectMeta">当前项目正在读取进度。</p></div><div class="progress-percent"><strong id="overviewPercent">0%</strong><span>完成进度</span></div></div><div class="progress-rail"><div class="progress-rail-fill" id="overviewProgressFill"></div></div><div class="progress-list" id="overviewProgressList"></div><div class="progress-next"><p><strong id="overviewNextTitle">下一步</strong><span id="overviewNextDetail">完成当前步骤后继续。</span></p><button class="primary-btn" id="overviewContinue">继续 →</button></div></div></section>
       <section class="view legacy-overview" id="overview-legacy2"><div class="overview-grid"><div><div class="overview-card primary"><div class="overview-kicker">当前项目 / 进行中</div><h2>泰国榨汁杯广告实验</h2><p>从确认商品信息开始，逐步生成广告创意、素材和下一轮优化任务。</p><div class="project-meta"><span>目标市场：泰国</span><span>商品售价：129 元</span><span>最近更新：刚刚</span></div><button class="primary-btn" data-go="product">继续当前项目 →</button></div><div class="overview-section"><div class="overview-section-head"><h3>工作流进度</h3><span>当前停在第 1 步</span></div><div class="workflow-strip"><button class="workflow-item current" data-go="product"><span class="workflow-index">01</span><strong>商品理解</strong><span>等待确认</span></button><button class="workflow-item" data-go="strategy"><span class="workflow-index">02</span><strong>创意策略</strong><span>未开始</span></button><button class="workflow-item" data-go="assets"><span class="workflow-index">03</span><strong>广告素材</strong><span>未开始</span></button><button class="workflow-item" data-go="data"><span class="workflow-index">04</span><strong>数据分析</strong><span>可独立使用</span></button><button class="workflow-item"><span class="workflow-index">05</span><strong>创意迭代</strong><span>待数据复盘</span></button></div></div></div><div><div class="overview-card"><h3>项目状态</h3><p>当前需要你确认 AdLab 对商品基本信息的理解。</p><div class="mini-progress"><button class="progress-row current" data-go="product"><span class="progress-number">1</span><span><strong>商品理解</strong><small>确认商品名称、售价、规格和功能</small></span><span class="progress-status">继续</span></button><button class="progress-row" data-go="strategy"><span class="progress-number">2</span><span><strong>创意策略</strong><small>选择一个或多个广告方向</small></span><span class="progress-status">未开始</span></button><button class="progress-row" data-go="assets"><span class="progress-number">3</span><span><strong>广告素材</strong><small>制作广告图或专业提示词</small></span><span class="progress-status">未开始</span></button></div></div><div class="overview-section"><div class="overview-card"><h3>独立入口</h3><p>没有使用过 AdLab，也可以直接上传历史投放数据。</p><button class="ghost-btn" style="margin-top:14px;width:100%" data-go="data">进入数据分析 →</button></div></div></div></div><div class="overview-section"><div class="overview-section-head"><h3>快捷操作</h3><span>从你需要的地方开始</span></div><div class="quick-grid"><button class="quick-card" data-go="product"><strong>新建广告项目</strong><span>填写商品资料，建立第一版商品理解。</span></button><button class="quick-card" data-go="data"><strong>独立分析投放数据</strong><span>上传已有广告数据，获得数据分析报告。</span></button><button class="quick-card" data-go="assets"><strong>查看广告素材</strong><span>继续制作广告图片或专业提示词。</span></button></div></div></section>
@@ -3784,7 +3808,56 @@
       // 提示词流程到这里整个项目就结束了，直接回首页；图片流程仍停在完成页
       if (options.goHome) navigate('home');
     }
+    // 主页背景轮播：每张停 4 秒，交叉淡化 2 秒，同时缓慢推近
+    function initHomeSlideshow() {
+      const homeView = document.getElementById('home-view');
+      const slides = Array.from(homeView ? homeView.querySelectorAll('.home-slide') : []);
+      if (slides.length < 2) return;
+      const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // 系统开了「减少动态效果」就停在第一张，也不去下载第二张
+      if (reduced) return;
+      const loadLazySlides = () => {
+        slides.slice(1).forEach(slide => {
+          const src = slide.dataset.bg;
+          if (!src) return;
+          delete slide.dataset.bg;
+          const image = new Image();
+          image.onload = () => { slide.style.backgroundImage = `url('${src}')`; };
+          image.src = src;
+        });
+      };
+      if (document.readyState === 'complete') loadLazySlides();
+      else window.addEventListener('load', loadLazySlides, { once: true });
+      const holdMs = 4000;
+      const fadeMs = 2000;
+      let index = slides.findIndex(slide => slide.classList.contains('is-shown'));
+      if (index < 0) index = 0;
+      let timer = null;
+      const advance = () => {
+        const current = slides[index];
+        index = (index + 1) % slides.length;
+        const next = slides[index];
+        // 必须先从「没有 is-active」的状态加上，缩放动画才会重新播
+        if (next.classList.contains('is-active')) {
+          next.classList.remove('is-active');
+          void next.offsetWidth;
+        }
+        next.classList.add('is-active');
+        next.classList.add('is-shown');
+        current.classList.remove('is-shown');
+        // 等淡出结束（此时已完全透明）再摘掉动画，缩放归位看不见
+        window.setTimeout(() => {
+          if (!current.classList.contains('is-shown')) current.classList.remove('is-active');
+        }, fadeMs + 120);
+      };
+      const start = () => { if (!timer) timer = window.setInterval(advance, holdMs + fadeMs); };
+      const stop = () => { if (timer) { window.clearInterval(timer); timer = null; } };
+      // 切到别的标签页就停，回来再继续，避免后台空转
+      document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else start(); });
+      start();
+    }
     ensureDemoProject();
+    initHomeSlideshow();
     window.addEventListener('popstate', restoreFromUrl);
     restoreFromUrl();
   </script>
