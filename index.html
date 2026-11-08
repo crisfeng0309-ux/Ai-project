@@ -414,7 +414,6 @@
     .funnel-step { border: 1px solid var(--line); border-radius: 10px; padding: 13px 10px; text-align: center; background: #fbfbfc; }
     .funnel-step .fs-value { font-size: 19px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
     .funnel-step .fs-label { font-size: 11px; color: #64666d; margin-top: 5px; }
-    .funnel-step .fs-rate { font-size: 11px; color: var(--green); margin-top: 7px; font-weight: 650; }
     .chart-block + .chart-block { margin-top: 18px; }
     .chart-block .chart-sub { font-size: 11px; color: #8a8d95; margin: -6px 0 10px; }
     .chart-row { display: grid; grid-template-columns: 74px minmax(0, 1fr) 86px; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 11px; color: #64666d; }
@@ -1344,11 +1343,13 @@
       const purchases = Number(total.purchases) || 0;
       if (!impressions) return '';
       const steps = [
-        { label: '展示', value: impressions, rate: null },
-        { label: '点击', value: clicks, rate: impressions ? clicks / impressions : null },
-        { label: '购买', value: purchases, rate: clicks ? purchases / clicks : null }
+        { label: '展示', value: impressions },
+        { label: '点击', value: clicks },
+        { label: '购买', value: purchases }
       ];
-      const cells = steps.map(step => `<div class="funnel-step"><div class="fs-value">${step.value.toLocaleString('zh-CN')}</div><div class="fs-label">${step.label}</div>${step.rate === null ? '<div class="fs-rate">起点</div>' : `<div class="fs-rate">↓ 较上一环节 ${(step.rate * 100).toFixed(2)}%</div>`}</div>`).join('');
+      // 只保留三个绝对数字。「起点」和「较上一环节 x%」容易让人误以为那是累计转化率，
+      // 而且这两步的转化率在下面的点击率 CTR、转化率 CVR 两张图里已经各自画过了。
+      const cells = steps.map(step => `<div class="funnel-step"><div class="fs-value">${step.value.toLocaleString('zh-CN')}</div><div class="fs-label">${step.label}</div></div>`).join('');
       return `<div class="data-chart-card"><div class="chart-title">转化漏斗：人是从哪一步漏掉的</div><div class="funnel-row">${cells}</div></div>`;
     }
     function renderChartBars(metrics, key, title, hint, formatter, lowerIsBetter) {
