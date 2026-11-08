@@ -3372,7 +3372,33 @@
             downloadButton.textContent = '下载图片到电脑';
             downloadButton.style.marginTop = '10px';
             downloadButton.addEventListener('click', () => downloadRemoteImage(data.generatedImage));
-            preview.appendChild(downloadButton);
+             preview.appendChild(downloadButton);
+             // 验证「底图 + 程序排版」：无文字底图直接给排版预览页，带字版本提示先出底图
+             const layoutKey = data.schemes.find(item => item.id === data.selectedSchemeId)?.imageLayout || '';
+             if (data.textMode === 'none') {
+               const composeButton = document.createElement('button');
+               composeButton.type = 'button';
+               composeButton.className = 'ghost-btn';
+               composeButton.textContent = '用程序排版预览这张底图';
+               composeButton.style.marginTop = '10px';
+               composeButton.addEventListener('click', () => window.open(`/tools/compose-preview.html?src=${encodeURIComponent(data.generatedImage)}&layout=${encodeURIComponent(layoutKey)}`, '_blank'));
+               preview.appendChild(composeButton);
+               const backToText = document.createElement('button');
+               backToText.type = 'button';
+               backToText.className = 'ghost-btn';
+               backToText.textContent = '重新生成带文字的版本';
+               backToText.style.margin = '10px 0 0 8px';
+               backToText.addEventListener('click', () => generateImageFromTemplate(data.selectedSchemeId));
+               preview.appendChild(backToText);
+             } else {
+               const basePlateButton = document.createElement('button');
+               basePlateButton.type = 'button';
+               basePlateButton.className = 'ghost-btn';
+               basePlateButton.textContent = '生成无文字底图（对比程序排版）';
+               basePlateButton.style.marginTop = '10px';
+               basePlateButton.addEventListener('click', () => generateImageFromTemplate(data.selectedSchemeId, { textMode: 'none' }));
+               preview.appendChild(basePlateButton);
+             }
          } else if (!options.promptOnly && data.generatingImage) {
            preview.className = 'asset-generated-preview';
            const note = document.createElement('p'); note.textContent = data.generationProgress || '豆包正在生成广告图片，请稍候…'; preview.appendChild(note);
@@ -3533,7 +3559,7 @@
        }
        throw new Error('图片任务等待时间过长，请稍后查看任务状态或重新生成。');
      }
-     async function generateImageFromTemplate(templateId) {
+     async function generateImageFromTemplate(templateId, options = {}) {
        if (projectState.aiLoading) { toast('AI 正在生成，请稍候'); return; }
        const data = projectState.assets;
        const scheme = data?.schemes?.find(item => item.id === templateId);
@@ -3563,7 +3589,9 @@
             productFactsEn: scheme.productFactsEn || '',
            negativePrompt: scheme.negativePrompt,
            // 画布尺寸由后端决定；出图是什么比例，界面就显示什么比例
-           size: '1024x1024'
+           size: '1024x1024',
+            // 'none' = 只要无文字底图，用于对比「底图 + 程序排版」路线
+            textMode: options.textMode === 'none' ? 'none' : ''
          };
          let result;
           let factsEn = '';
@@ -3585,7 +3613,7 @@
           const schemes = factsEn
             ? (projectState.assets?.schemes || []).map(item => item.id === templateId ? { ...item, productFactsEn: factsEn } : item)
             : projectState.assets?.schemes;
-          projectState.assets = { ...projectState.assets, schemes, generatedImage: result.imageUrl, generatedImageModel: result.model || '', imageGenerationError: '', generationProgress: '', generatingImage: false, generatedAt: new Date().toISOString() };
+          projectState.assets = { ...projectState.assets, schemes, generatedImage: result.imageUrl, generatedImageModel: result.model || '', textMode: options.textMode === 'none' ? 'none' : 'full', imageGenerationError: '', generationProgress: '', generatingImage: false, generatedAt: new Date().toISOString() };
          projectState.aiLoading = false;
          saveCurrentProject();
          renderAssets(projectState.assets);

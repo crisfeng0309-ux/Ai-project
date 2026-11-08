@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>底图 + 程序排版 验证台</title>
+<style>
+  :root { color-scheme: light; --line: #e4e6ea; --muted: #6b7280; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f6f7f9; color: #16181d; }
+  header { padding: 22px 28px 14px; background: #fff; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0 0 6px; font-size: 18px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  main { display: grid; grid-template-columns: 380px 1fr; gap: 20px; padding: 20px 28px 40px; align-items: start; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+  .panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .panel h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  input[type=text], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 13px; background: #fff; }
+  textarea { resize: vertical; min-height: 62px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  button { margin-top: 14px; width: 100%; padding: 10px; border: 0; border-radius: 9px; background: #16181d; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button.secondary { background: #fff; color: #16181d; border: 1px solid var(--line); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .stage { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  canvas { width: 100%; height: auto; border-radius: 8px; display: block; background: #14161a; }
+  .stage-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; gap: 12px; flex-wrap: wrap; }
+  .stage-head b { font-size: 13px; }
+  .stage-head span { font-size: 12px; color: var(--muted); }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>底图 + 程序排版 验证台</h1>
+  <p>把「无文字底图」拖进来，用三套模板的真实坐标叠一遍文字。对比一下：模型画字 vs 程序排字。</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>底图与文案</h2>
+
+    <label>版式模板</label>
+    <select id="layout"></select>
+
+    <label>底图（拖进来，或粘贴图片地址）</label>
+    <input id="file" type="file" accept="image/*" />
+    <input id="src" type="text" placeholder="或粘贴图片地址 https://…" style="margin-top:6px" />
+
+    <label>标题 headline</label>
+    <input id="f-headline" type="text" />
+    <label>副标题 subline</label>
+    <input id="f-subline" type="text" />
+    <label>卖点（一行一条）callouts</label>
+    <textarea id="f-callouts"></textarea>
+    <div class="row">
+      <div><label>品牌行 brand</label><input id="f-brand" type="text" /></div>
+      <div><label>价格 price</label><input id="f-price" type="text" /></div>
+    </div>
+    <label>陈述句 statement</label>
+    <input id="f-statement" type="text" />
+    <div class="row">
+      <div><label>场景 chip（用 | 分隔）</label><input id="f-chips" type="text" /></div>
+      <div><label>小字 fine print</label><input id="f-fine" type="text" /></div>
+    </div>
+
+    <label>字体（系统里要有泰文字形）</label>
+    <input id="font" type="text" value="Leelawadee UI, Noto Sans Thai, Sarabun, Tahoma, sans-serif" />
+
+    <div class="toggle"><input id="guides" type="checkbox" /> 显示分区框</div>
+    <button id="render">重新渲染</button>
+    <button id="download" class="secondary">下载 PNG</button>
+    <p class="hint">字号会按分区自动缩放；泰语只在空格处换行，放不下就缩小，绝不从词中间切断（切开会把辅音和基辅符号拆开，读起来就是乱码）。</p>
+  </section>
+
+  <section class="stage">
+    <div class="stage-head"><b>预览</b><span id="status">等待底图…</span></div>
+    <canvas id="canvas" width="1024" height="1024"></canvas>
+  </section>
+</main>
+
+<script type="module">
+import { TEMPLATE_KEYS, templateSpec } from '../lib/image-recipes.mjs';
+
+const SAMPLE = {
+  headline: 'กันน้ำ กันลม ระบายอากาศ',
+  subline: 'DryVent กันน้ำ ระบายอากาศ',
+  callouts: ['กันน้ำ DryVent', 'กันลม', 'ระบายอากาศ', 'กระเป๋าซิป', 'พกพาสะดวก', 'กันหนาว'],
+  brand: 'THE NORTH FACE',
+  price: '฿4,180',
+  statement: 'ออกแบบมาเพื่อการเดินทางในทุกสภาพอากาศ',
+  chips: ['เดินป่า', 'ตั้งแคมป์', 'เดินทาง'],
+  fine: 'มีให้เลือกหลายไซซ์'
+};
+
+const $ = id => document.getElementById(id);
+const canvas = $('canvas');
+const ctx = canvas.getContext('2d');
+let baseImage = null;
+
+const UNIT = canvas.width / 1000;
+const LEVELS = { headline: 100, sub: 38, body: 34, price: 96, small: 22 };
+const LINE_HEIGHT = { headline: 1.14, default: 1.3 };
+
+const layoutSelect = $('layout');
+TEMPLATE_KEYS.forEach(key => {
+  const spec = templateSpec(key);
+  const option = document.createElement('option');
+  option.value = key;
+  option.textContent = `${spec.name} · ${spec.label}`;
+  layoutSelect.appendChild(option);
+});
+
+for (const [key, value] of Object.entries(SAMPLE)) {
+  const el = $('f-' + key);
+  if (!el) continue;
+  el.value = Array.isArray(value) ? value.join(key === 'chips' ? ' | ' : '\n') : value;
+}
+
+function currentCopy() {
+  return {
+    headline: $('f-headline').value.trim(),
+    subline: $('f-subline').value.trim(),
+    callouts: $('f-callouts').value.split('\n').map(item => item.trim()).filter(Boolean),
+    brand: $('f-brand').value.trim(),
+    price: $('f-price').value.trim(),
+    statement: $('f-statement').value.trim(),
+    chips: $('f-chips').value.split('|').map(item => item.trim()).filter(Boolean),
+    fine: $('f-fine').value.trim()
+  };
+}
+
+const fontFamily = () => $('font').value || 'sans-serif';
+
+// 从模板字号往下缩，直到整段既放得进宽也放得进高
+function fitBlock(text, level, boxWidth, boxHeight, maxLines) {
+  const start = Math.round((LEVELS[level] || 34) * UNIT);
+  const weight = level === 'headline' ? 800 : 700;
+  for (let size = start; size >= 9; size -= 1) {
+    ctx.font = `${weight} ${size}px ${fontFamily()}`;
+    const words = String(text).split(/\s+/).filter(Boolean);
+    if (!words.length) return null;
+    if (words.some(word => ctx.measureText(word).width > boxWidth)) continue;
+    const lines = [];
+    let line = words[0];
+    for (let i = 1; i < words.length; i += 1) {
+      const test = `${line} ${words[i]}`;
+      if (ctx.measureText(test).width <= boxWidth) line = test;
+      else { lines.push(line); line = words[i]; }
+    }
+    lines.push(line);
+    if (maxLines && lines.length > maxLines) continue;
+    const lineHeight = size * (LINE_HEIGHT[level] || LINE_HEIGHT.default);
+    if (lines.length * lineHeight <= boxHeight) return { size, lines, lineHeight, weight };
+  }
+  return { size: 12, lines: [String(text)], lineHeight: 16, weight };
+}
+
+function drawBlock(zone, text, levelOverride, single) {
+  if (!zone || !text) return;
+  const level = levelOverride || zone.level || 'body';
+  const xs = zone.x || [zone.left?.[0] ?? 0, zone.right?.[1] ?? 1];
+  const x0 = xs[0] * canvas.width;
+  const x1 = xs[1] * canvas.width;
+  const y0 = zone.y[0] * canvas.height;
+  const y1 = zone.y[1] * canvas.height;
+  const fitted = fitBlock(text, level, x1 - x0, y1 - y0, single ? 1 : zone.maxLines);
+  if (!fitted) return;
+  const total = fitted.lines.length * fitted.lineHeight;
+  let y = y0 + Math.max(0, (y1 - y0 - total) / 2) + fitted.size;
+  ctx.font = `${fitted.weight} ${fitted.size}px ${fontFamily()}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,.45)';
+  ctx.shadowBlur = 10;
+  for (const line of fitted.lines) {
+    const width = ctx.measureText(line).width;
+    const x = zone.align === 'center' ? (x0 + x1) / 2 - width / 2 : zone.align === 'right' ? x1 - width : x0;
+    ctx.fillText(line, x, y);
+    y += fitted.lineHeight;
+  }
+  ctx.shadowBlur = 0;
+}
+
+function lineIcon(x, y, size) {
+  ctx.save();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = Math.max(1.2, size * 0.08);
+  ctx.beginPath();
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x + size * 0.28, y + size * 0.52);
+  ctx.lineTo(x + size * 0.44, y + size * 0.68);
+  ctx.lineTo(x + size * 0.74, y + size * 0.34);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCallouts(zone, items) {
+  if (!zone || !items.length) return;
+  const list = items.slice(0, zone.count || items.length);
+  const place = (text, boxX, boxY, boxW, boxH) => {
+    const fitted = fitBlock(text, 'body', Math.max(40, boxW * 0.74), boxH, 1);
+    if (!fitted) return;
+    const icon = Math.max(14, fitted.size * 0.85);
+    const baseline = boxY + (boxH - fitted.lineHeight) / 2 + fitted.size;
+    lineIcon(boxX, baseline - fitted.size * 0.85, icon);
+    ctx.font = `${fitted.weight} ${fitted.size}px ${fontFamily()}`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(fitted.lines[0], boxX + icon * 1.55, baseline);
+  };
+
+  if (zone.mode === 'columns') {
+    const half = Math.ceil(list.length / 2);
+    const columns = [list.slice(0, half), list.slice(half)];
+    const y0 = zone.y[0] * canvas.height;
+    const y1 = zone.y[1] * canvas.height;
+    const step = (y1 - y0) / Math.max(1, half);
+    columns.forEach((column, index) => {
+      const range = index === 0 ? zone.left : zone.right;
+      const x = range[0] * canvas.width;
+      const w = (range[1] - range[0]) * canvas.width;
+      column.forEach((text, row) => place(text, x, y0 + step * row, w, step));
+    });
+    return;
+  }
+  if (zone.mode === 'grid2x2') {
+    const x0 = zone.x[0] * canvas.width;
+    const x1 = zone.x[1] * canvas.width;
+    const y0 = zone.y[0] * canvas.height;
+    const y1 = zone.y[1] * canvas.height;
+    const colW = (x1 - x0) / 2;
+    const rowH = (y1 - y0) / 2;
+    list.forEach((text, index) => place(text, x0 + (index % 2) * colW, y0 + Math.floor(index / 2) * rowH, colW, rowH));
+    return;
+  }
+  const x0 = zone.x[0] * canvas.width;
+  const x1 = zone.x[1] * canvas.width;
+  const y0 = zone.y[0] * canvas.height;
+  const y1 = zone.y[1] * canvas.height;
+  const colW = (x1 - x0) / Math.max(1, list.length);
+  list.forEach((text, index) => place(text, x0 + colW * index, y0, colW, y1 - y0));
+}
+
+function drawGuides(zones) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(80,200,255,.65)';
+  ctx.lineWidth = 1;
+  for (const zone of Object.values(zones)) {
+    if (!zone || !zone.x) continue;
+    ctx.strokeRect(zone.x[0] * canvas.width, zone.y[0] * canvas.height,
+      (zone.x[1] - zone.x[0]) * canvas.width, (zone.y[1] - zone.y[0]) * canvas.height);
+  }
+  ctx.restore();
+}
+
+function render() {
+  const spec = templateSpec(layoutSelect.value);
+  const copy = currentCopy();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#14161a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (baseImage) {
+    const scale = Math.max(canvas.width / baseImage.width, canvas.height / baseImage.height);
+    const w = baseImage.width * scale;
+    const h = baseImage.height * scale;
+    ctx.drawImage(baseImage, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+  }
+  if (!spec.zones) { $('status').textContent = '这套模板还没有结构化坐标'; return; }
+  const zones = spec.zones;
+  ctx.fillStyle = '#fff';
+  drawBlock(zones.brand, copy.brand, null, true);
+  drawBlock(zones.headline, copy.headline);
+  drawBlock(zones.subline, copy.subline);
+  drawCallouts(zones.callouts, copy.callouts);
+  drawBlock(zones.statement, copy.statement);
+  drawBlock(zones.price, copy.price, 'price', true);
+  drawBlock(zones.chips, copy.chips.join('   ·   '), null, true);
+  drawBlock(zones.fine, copy.fine, null, true);
+  if ($('guides').checked) drawGuides(zones);
+  $('status').textContent = baseImage
+    ? `${spec.name} · ${copy.callouts.length} 条卖点（底图 ${baseImage.width}×${baseImage.height}）`
+    : `${spec.name} · 还没有底图，先拖一张进来`;
+}
+
+function loadImageFromSrc(src) {
+  const image = new Image();
+  image.crossOrigin = 'anonymous';
+  image.onload = () => { baseImage = image; render(); };
+  image.onerror = () => { $('status').textContent = '图片加载失败：可能是跨域限制，先下载到本地再拖进来'; };
+  image.src = src;
+}
+
+$('file').addEventListener('change', event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => loadImageFromSrc(String(reader.result));
+  reader.readAsDataURL(file);
+});
+
+$('src').addEventListener('change', event => {
+  const value = event.target.value.trim();
+  if (value) loadImageFromSrc(value);
+});
+
+document.body.addEventListener('dragover', event => event.preventDefault());
+document.body.addEventListener('drop', event => {
+  event.preventDefault();
+  const file = event.dataTransfer?.files?.[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = () => loadImageFromSrc(String(reader.result));
+  reader.readAsDataURL(file);
+});
+
+$('render').addEventListener('click', render);
+$('guides').addEventListener('change', render);
+layoutSelect.addEventListener('change', render);
+$('download').addEventListener('click', () => {
+  const link = document.createElement('a');
+  link.download = `preview-${layoutSelect.value}-${Date.now()}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+const params = new URLSearchParams(location.search);
+const preloadSrc = params.get('src');
+const preloadLayout = params.get('layout');
+if (preloadLayout && TEMPLATE_KEYS.includes(preloadLayout)) layoutSelect.value = preloadLayout;
+if (preloadSrc) { $('src').value = preloadSrc; loadImageFromSrc(preloadSrc); }
+render();
+</script>
+</body>
+</html>
