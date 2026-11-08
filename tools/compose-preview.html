@@ -63,6 +63,14 @@
       <div><label>小字 fine print</label><input id="f-fine" type="text" /></div>
     </div>
 
+    <div class="row">
+      <div><label>销售平台（只写文字）</label><input id="f-platform" type="text" /></div>
+      <div><label>强调色 accent</label><input id="f-accent" type="text" placeholder="#FF6B1A，留空则全白" /></div>
+    </div>
+
+    <label>按钮文案 CTA</label>
+    <input id="f-cta" type="text" />
+
     <label>字体（系统里要有泰文字形）</label>
     <input id="font" type="text" value="Leelawadee UI, Noto Sans Thai, Sarabun, Tahoma, sans-serif" />
 
@@ -89,7 +97,10 @@ const SAMPLE = {
   price: '฿4,180',
   statement: 'ออกแบบมาเพื่อการเดินทางในทุกสภาพอากาศ',
   chips: ['เดินป่า', 'ตั้งแคมป์', 'เดินทาง'],
-  fine: 'มีให้เลือกหลายไซซ์'
+  fine: 'มีให้เลือกหลายไซซ์',
+  platform: 'TikTok Shop',
+  accent: '#FF6B1A',
+  cta: 'ซื้อเลย'
 };
 
 const $ = id => document.getElementById(id);
@@ -125,7 +136,10 @@ function currentCopy() {
     price: $('f-price').value.trim(),
     statement: $('f-statement').value.trim(),
     chips: $('f-chips').value.split('|').map(item => item.trim()).filter(Boolean),
-    fine: $('f-fine').value.trim()
+    fine: $('f-fine').value.trim(),
+    platform: $('f-platform').value.trim(),
+    accent: $('f-accent').value.trim(),
+    cta: $('f-cta').value.trim()
   };
 }
 
@@ -155,7 +169,7 @@ function fitBlock(text, level, boxWidth, boxHeight, maxLines) {
   return { size: 12, lines: [String(text)], lineHeight: 16, weight };
 }
 
-function drawBlock(zone, text, levelOverride, single) {
+function drawBlock(zone, text, levelOverride, single, fill) {
   if (!zone || !text) return;
   const level = levelOverride || zone.level || 'body';
   const xs = zone.x || [zone.left?.[0] ?? 0, zone.right?.[1] ?? 1];
@@ -170,6 +184,7 @@ function drawBlock(zone, text, levelOverride, single) {
   ctx.font = `${fitted.weight} ${fitted.size}px ${fontFamily()}`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = fill || '#fff';
   ctx.shadowColor = 'rgba(0,0,0,.45)';
   ctx.shadowBlur = 10;
   for (const line of fitted.lines) {
@@ -244,6 +259,43 @@ function drawCallouts(zone, items) {
   list.forEach((text, index) => place(text, x0 + colW * index, y0, colW, y1 - y0));
 }
 
+// 平台名只写文字；CTA 是实心圆角按钮，可用强调色填充
+function drawCommercial(zones, copy) {
+  const accent = /^#[0-9a-f]{6}$/i.test(copy.accent) ? copy.accent : "";
+  if (zones.badge && copy.platform) {
+    drawBlock(zones.badge, copy.platform, null, true);
+  }
+  if (!zones.cta) return;
+  const x0 = zones.cta.x[0] * canvas.width;
+  const x1 = zones.cta.x[1] * canvas.width;
+  const y0 = zones.cta.y[0] * canvas.height;
+  const y1 = zones.cta.y[1] * canvas.height;
+  const radius = canvas.width * 0.03;
+  ctx.save();
+  ctx.fillStyle = accent || "#111111";
+  ctx.beginPath();
+  ctx.moveTo(x0 + radius, y0);
+  ctx.lineTo(x1 - radius, y0);
+  ctx.quadraticCurveTo(x1, y0, x1, y0 + (y1 - y0) / 2);
+  ctx.quadraticCurveTo(x1, y1, x1 - radius, y1);
+  ctx.lineTo(x0 + radius, y1);
+  ctx.quadraticCurveTo(x0, y1, x0, y0 + (y1 - y0) / 2);
+  ctx.quadraticCurveTo(x0, y0, x0 + radius, y0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  if (!copy.cta) return;
+  const fitted = fitBlock(copy.cta, "body", (x1 - x0) * 0.86, (y1 - y0) * 0.8, 1);
+  if (!fitted) return;
+  ctx.save();
+  ctx.font = `${fitted.weight} ${fitted.size}px ${fontFamily()}`;
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(fitted.lines[0], (x0 + x1) / 2, (y0 + y1) / 2 + 1);
+  ctx.restore();
+}
+
 function drawGuides(zones) {
   ctx.save();
   ctx.strokeStyle = 'rgba(80,200,255,.65)';
@@ -276,9 +328,11 @@ function render() {
   drawBlock(zones.subline, copy.subline);
   drawCallouts(zones.callouts, copy.callouts);
   drawBlock(zones.statement, copy.statement);
-  drawBlock(zones.price, copy.price, 'price', true);
+  const accentPaint = /^#[0-9a-f]{6}$/i.test(copy.accent) ? copy.accent : '';
+  drawBlock(zones.price, copy.price, 'price', true, accentPaint);
   drawBlock(zones.chips, copy.chips.join('   ·   '), null, true);
   drawBlock(zones.fine, copy.fine, null, true);
+  drawCommercial(zones, copy);
   if ($('guides').checked) drawGuides(zones);
   $('status').textContent = baseImage
     ? `${spec.name} · ${copy.callouts.length} 条卖点（底图 ${baseImage.width}×${baseImage.height}）`
