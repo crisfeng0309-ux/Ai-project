@@ -3563,7 +3563,10 @@
          projectState.aiLoading = false;
          saveCurrentProject();
          renderAssets(projectState.assets);
-         toast('广告图片已生成');
+         // 后端生成后会用视觉模型自检一次；仍然检出中文（重生成后没改善）就提醒用户再点一次
+         toast(result.languageCheck === 'flagged'
+           ? '广告图片已生成，但图里可能还有非目标市场文字，建议再生成一次'
+           : '广告图片已生成');
        } catch (error) {
          projectState.assets = { ...projectState.assets, imageGenerationError: error?.message || '图片生成失败，请稍后重试。', generatingImage: false, selectedSchemeId: '' };
          projectState.aiLoading = false;
