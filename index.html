@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AdLab · 跨境广告实验室</title>
+<link rel="icon" type="image/png" sizes="32x32" href="./assets/adlab-icon-32.png" />
+<link rel="icon" type="image/png" sizes="64x64" href="./assets/adlab-icon-64.png" />
+<link rel="apple-touch-icon" href="./assets/adlab-icon-512.png" />
   <style>
     :root {
       --ink: #141414;
@@ -31,7 +34,9 @@
     .app-shell { min-height: 100vh; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
     .sidebar { padding: 28px 18px 20px; border-right: 1px solid var(--line); background: rgba(255,255,255,.76); display: flex; flex-direction: column; }
     .brand { display: flex; align-items: center; gap: 10px; padding: 0 12px 30px; }
-    .brand-mark { width: 26px; height: 26px; border-radius: 8px; background: #161616; color: white; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+    /* 品牌图标：换成正式图标后不再需要背景色和文字，尺寸保持不变，避免影响侧栏布局 */
+    .brand-mark { width: 26px; height: 26px; flex: none; border-radius: 22%; box-shadow: 0 1px 2px rgba(16, 24, 40, .16); overflow: hidden; }
+    .brand-mark img { width: 100%; height: 100%; display: block; object-fit: cover; }
     .brand-name { font-size: 16px; font-weight: 700; letter-spacing: -.03em; }
     .brand-sub { color: var(--muted); font-size: 11px; margin-left: auto; }
     .nav-label { color: #a0a1a8; font-size: 11px; font-weight: 700; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: .08em; }
@@ -752,7 +757,7 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand"><div class="brand-mark">A</div><div class="brand-name">AdLab</div><div class="brand-sub">BETA</div></div>
+      <div class="brand"><div class="brand-mark"><img src="./assets/adlab-icon.png" alt="" width="26" height="26" /></div><div class="brand-name">AdLab</div><div class="brand-sub">BETA</div></div>
       <div class="nav-label">工作台</div>
       <nav class="nav">
         <button class="nav-item active" data-view="overview"><span class="nav-icon">⌂</span>项目总览</button>
