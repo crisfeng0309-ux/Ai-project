@@ -2663,13 +2663,21 @@
     // 受众候选：优先从创意简报的「目标受众」里切分，切不出来再从商品与卖点拼。
     // 以前这里写死「年轻消费者/日常通勤人群/短途出行用户/注重便利性的家庭用户」，
     // 导致不管什么商品，候选名单永远一样，已删除。
+    // 年龄段不是决策维度：切分简报受众时把「18-24 岁」这类片段剥掉
+    function stripAgeRange(value) {
+      return String(value || '')
+        .replace(/\s*\d{1,2}\s*[-–~～至]\s*\d{1,2}\s*岁?\s*/g, ' ')
+        .replace(/\s*\d{1,2}\s*岁\s*/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
     function audienceCandidates() {
       const brief = projectState.strategy?.creativeBrief || {};
       const market = projectState.market || '目标市场';
       const product = projectState.product || {};
       const segments = String(brief.audience || '')
         .split(/[、，,；;\/\n]+/)
-        .map(item => item.replace(/^[·\-\s]+/, '').trim())
+        .map(item => stripAgeRange(item.replace(/^[·\-\s]+/, '')))
         .filter(item => item.length >= 3 && item.length <= 26 && !/^(目标受众|受众|人群)$/.test(item));
       if (segments.length >= 2) return segments.slice(0, 4);
       const points = (Array.isArray(projectState.strategy?.creativeBrief?.sellingPoints) ? projectState.strategy.creativeBrief.sellingPoints : [])
@@ -2683,7 +2691,7 @@
       return derived;
     }
     function audienceName(audience, index = 0) {
-      const name = String(audience?.name || audience?.audience || '').trim();
+      const name = stripAgeRange(String(audience?.name || audience?.audience || '').trim());
       const generic = /^(潜在受众|目标受众|受众|target audience|audience)\s*\d*$/i.test(name)
         || /^(年轻消费者|日常通勤人群|短途出行用户|注重便利性的家庭用户|消费者|用户)$/.test(name);
       if (name && !generic) return name;
@@ -2701,8 +2709,8 @@
         if (used.has(name)) name = `${name} ${index + 1}`;
         used.add(name);
         if (previous && previous !== name) rename.set(previous, name);
-        const need = audience.need && !/AI 根据当前商品资料识别的潜在受众|暂无|待补充/.test(audience.need) ? audience.need : `希望在${projectState.product?.description || '日常使用'}中获得更方便的商品体验`;
-        const painPoint = audience.painPoint && !/AI 根据当前商品资料识别的潜在受众|暂无|待补充/.test(audience.painPoint) ? audience.painPoint : `现有解决方案不够便携或不够符合${projectState.market || '目标市场'}的日常使用场景`;
+        const need = audience.need && !/AI 根据当前商品资料识别的潜在受众|暂无|待补充/.test(audience.need) ? audience.need : `希望在「${name}」这个场景里省心一点`;
+        const painPoint = audience.painPoint && !/AI 根据当前商品资料识别的潜在受众|暂无|待补充/.test(audience.painPoint) ? audience.painPoint : `市面上的信息说不清适不适合自己的用法`;
         return { ...audience, name, need, painPoint };
       });
       data.selectedAudience = [...new Set((data.selectedAudience || []).map(name => rename.get(name) || name).filter(name => data.targetAudience.some(audience => audience.name === name)))];
