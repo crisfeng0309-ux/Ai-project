@@ -4,6 +4,7 @@ import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleAI } from './lib/ai.mjs';
 import { generateDoubaoImage, startDoubaoImageTask, getDoubaoImageTaskStatus, imageGenerationErrorMessage } from './lib/image-generation.mjs';
+import { demoAuthConfig, issueToken, verifyToken, checkCredentials, createRateLimiter, readToken, clientIp, authStatus } from './lib/demo-auth.mjs';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const port = Number(process.env.PORT || 4173);
@@ -22,7 +23,12 @@ const imageHandlers = {
   '/api/generate-image-task': startDoubaoImageTask
 };
 
-const apiRoutes = new Set([...Object.keys(aiKinds), ...Object.keys(imageHandlers), '/api/generate-image-status']);
+// 这两个接口不校验登录态：一个用来登录，一个用来判断要不要显示登录页
+const publicApiRoutes = new Set(['/api/login', '/api/session']);
+const apiRoutes = new Set([...Object.keys(aiKinds), ...Object.keys(imageHandlers), '/api/generate-image-status', ...publicApiRoutes]);
+
+// 同一个来源连续输错 5 次，锁 60 秒
+const loginLimiter = createRateLimiter({ max: 5, windowMs: 60000 });
 
 function json(res, status, body) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -56,6 +62,35 @@ function imageErrorStatus(error) {
 
 async function handleApi(req, res, path) {
   const body = await readBody(req);
+
+  // 登录：门禁没开就直接告诉前端「不需要登录」，前端会跳过登录页
+  if (path === '/api/login') {
+    const config = demoAuthConfig();
+    if (!config.enabled) return json(res, 200, { ok: true, data: { authEnabled: false, token: "" } });
+    const key = clientIp(req);
+    const gate = loginLimiter.check(key);
+    if (!gate.ok) {
+      return json(res, 429, { ok: false, code: 'AUTH_TOO_MANY', message: `尝试次数过多，请 ${Math.ceil(gate.retryAfterMs / 1000)} 秒后再试` });
+    }
+    if (!checkCredentials(body.user, body.password)) {
+      loginLimiter.fail(key);
+      console.warn(`[adlab] 演示登录失败 ip=${key}`);
+      return json(res, 401, { ok: false, code: 'AUTH_INVALID', message: '账号或密码不正确' });
+    }
+    loginLimiter.reset(key);
+    const issued = issueToken(config.user);
+    console.log(`[adlab] 演示登录成功 ip=${key}`);
+    return json(res, 200, { ok: true, data: { authEnabled: true, token: issued.token, expiresAt: issued.expiresAt } });
+  }
+
+  // 会话：前端启动时问一次，决定要不要显示登录页
+  if (path === '/api/session') {
+    const status = authStatus();
+    if (!status.authEnabled) return json(res, 200, { ok: true, data: { authEnabled: false } });
+    const session = verifyToken(readToken(req));
+    if (!session.ok) return json(res, 401, { ok: false, code: 'AUTH_REQUIRED', message: '演示环境需要先登录' });
+    return json(res, 200, { ok: true, data: { authEnabled: true, user: session.user, expiresAt: session.expiresAt } });
+  }
 
   if (path === '/api/generate-image-status') {
     try {
@@ -91,6 +126,11 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     if (url.pathname.startsWith('/api/')) {
       if (req.method !== 'POST' || !apiRoutes.has(url.pathname)) return json(res, 404, { ok: false, message: 'Not found' });
+      // 没开门禁时这一段整体跳过，行为和以前完全一致
+      if (demoAuthConfig().enabled && !publicApiRoutes.has(url.pathname)) {
+        const session = verifyToken(readToken(req));
+        if (!session.ok) return json(res, 401, { ok: false, code: 'AUTH_REQUIRED', message: '演示环境需要登录后才能使用' });
+      }
       return await handleApi(req, res, url.pathname);
     }
     const requested = url.pathname === '/' ? '/index.html' : url.pathname;

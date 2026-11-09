@@ -752,9 +752,50 @@
     @media (max-width: 620px) { .path-grid { grid-template-columns: 1fr; } }
     @media (max-width: 980px) { .app-shell { grid-template-columns: 1fr; } .sidebar { display: none; } .main { padding: 24px 18px 42px; } .workspace { grid-template-columns: 1fr; } .panel-side { position: static; } .progress-wrap { overflow-x: auto; padding-bottom: 5px; } .step-line { min-width: 20px; } }
     @media (max-width: 620px) { .topbar { align-items: flex-start; flex-direction: column; } .top-actions { width: 100%; } .top-actions button { flex: 1; } .two-col, .creative-grid { grid-template-columns: 1fr; } .panel-main { padding: 20px; } .panel-side { padding: 18px; } .footer-bar { align-items: flex-start; gap: 10px; flex-direction: column; } }
+    /* ===== 演示环境登录页（服务端未配置密码时不会出现）===== */
+    .demo-gate { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 28px 20px; overflow-y: auto; color: #fff; background: radial-gradient(120% 90% at 20% 0%, #1d2531 0%, #0e1116 55%, #08090c 100%); }
+    .demo-gate[hidden] { display: none; }
+    body.demo-locked { overflow: hidden; }
+    .demo-gate-inner { width: min(420px, 100%); text-align: center; }
+    .demo-gate-logo { width: 64px; height: 64px; border-radius: 22%; box-shadow: 0 10px 30px rgba(0, 0, 0, .45); }
+    .demo-gate-kicker { margin: 18px 0 6px; font-size: 11px; letter-spacing: .18em; color: rgba(255, 255, 255, .5); }
+    .demo-gate-brand { margin: 0; font-size: 30px; letter-spacing: -.04em; }
+    .demo-gate-tagline { margin: 6px 0 26px; font-size: 14px; color: rgba(255, 255, 255, .62); }
+    .demo-gate-card { position: relative; padding: 26px 22px 20px; border-radius: 16px; background: #fff; color: #16181d; text-align: left; box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
+    .demo-gate-badge { position: absolute; top: -11px; left: 22px; padding: 3px 10px; border-radius: 999px; background: #16181d; color: #fff; font-size: 11px; letter-spacing: .06em; }
+    .demo-gate-card label { display: block; margin: 14px 0 6px; font-size: 12px; color: #6b7280; }
+    .demo-gate-card input[type=text], .demo-gate-card input[type=password] { width: 100%; padding: 11px 12px; border: 1px solid #e4e6ea; border-radius: 10px; background: #fff; font: inherit; font-size: 14px; }
+    .demo-gate-card input:focus { outline: none; border-color: #16181d; box-shadow: 0 0 0 3px rgba(22, 24, 29, .08); }
+    .demo-gate-remember { display: flex !important; align-items: center; gap: 7px; margin: 14px 0 0 !important; font-size: 12px !important; color: #4b5563 !important; cursor: pointer; }
+    .demo-gate-remember input { width: auto; }
+    .demo-gate-card button { width: 100%; margin-top: 16px; padding: 12px; border: 0; border-radius: 10px; background: #16181d; color: #fff; font: inherit; font-weight: 650; cursor: pointer; }
+    .demo-gate-card button:disabled { opacity: .65; cursor: default; }
+    .demo-gate-error { min-height: 18px; margin: 10px 0 0; font-size: 12px; color: #d92d20; }
+    .demo-gate-hint { margin: 6px 0 0; font-size: 11.5px; color: #9aa1ac; }
+    .demo-logout { margin: 0 12px 14px; }
   </style>
 </head>
 <body>
+
+<div id="demoGate" class="demo-gate" hidden>
+  <div class="demo-gate-inner">
+    <img class="demo-gate-logo" src="./assets/adlab-icon.png" alt="" width="64" height="64" />
+    <p class="demo-gate-kicker">全国人工智能应用创新大赛 · 参赛作品</p>
+    <h1 class="demo-gate-brand">AdLab</h1>
+    <p class="demo-gate-tagline">把商品，变成更好的广告。</p>
+    <form class="demo-gate-card" id="demoGateForm">
+      <span class="demo-gate-badge">演示环境</span>
+      <label for="demoGateUser">账号</label>
+      <input id="demoGateUser" type="text" placeholder="请输入账号" autocomplete="username" />
+      <label for="demoGatePass">密码</label>
+      <input id="demoGatePass" type="password" placeholder="请输入密码" autocomplete="current-password" />
+      <label class="demo-gate-remember"><input id="demoGateRemember" type="checkbox" checked />记住我（7 天内免登录）</label>
+      <button type="submit" id="demoGateSubmit">进入 AdLab</button>
+      <p class="demo-gate-error" id="demoGateError" role="alert"></p>
+      <p class="demo-gate-hint">体验账号由主办方随作品说明提供</p>
+    </form>
+  </div>
+</div>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand"><div class="brand-mark"><img src="./assets/adlab-icon.png" alt="" width="26" height="26" /></div><div class="brand-name">AdLab</div><div class="brand-sub">BETA</div></div>
@@ -2309,12 +2350,14 @@
       let timedOut = false;
       const timeoutId = window.setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
       try {
-        const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal });
+        const response = await fetch(endpoint, { method: 'POST', headers: withDemoAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(payload), signal: controller.signal });
         const body = await response.json().catch(() => ({}));
         if (!response.ok || !body.ok) {
           const failure = new Error(body.message || `AI 请求失败（HTTP ${response.status}）`);
           failure.code = body.code || `AI_HTTP_${response.status}`;
           failure.status = response.status;
+          // 登录过期：直接弹回登录页，避免用户以为「点了没反应」
+          if (failure.code === 'AUTH_REQUIRED') { setDemoToken(''); showDemoGate('登录已过期，请重新登录'); }
           throw failure;
         }
         return body.data;
@@ -3956,6 +3999,88 @@
       document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else start(); });
       start();
     }
+
+    // ===== 演示环境门禁：服务端没配密码时，下面这段不会影响任何现有功能 =====
+    const DEMO_TOKEN_KEY = 'adlab-demo-token';
+    function demoToken() { try { return localStorage.getItem(DEMO_TOKEN_KEY) || ''; } catch { return ''; } }
+    function setDemoToken(value) { try { if (value) localStorage.setItem(DEMO_TOKEN_KEY, value); else localStorage.removeItem(DEMO_TOKEN_KEY); } catch {} }
+    function withDemoAuth(headers = {}) {
+      const token = demoToken();
+      return token ? { ...headers, Authorization: `Bearer ${token}` } : headers;
+    }
+    async function demoRequest(path, payload) {
+      const response = await fetch(path, { method: 'POST', headers: withDemoAuth({ 'Content-Type': 'application/json' }), body: JSON.stringify(payload || {}) });
+      const body = await response.json().catch(() => ({}));
+      return { ok: response.ok && body.ok !== false, status: response.status, body };
+    }
+    function showDemoGate(message = '') {
+      const gate = document.getElementById('demoGate');
+      if (!gate) return;
+      gate.hidden = false;
+      document.body.classList.add('demo-locked');
+      const error = document.getElementById('demoGateError');
+      if (error) error.textContent = message;
+      const user = document.getElementById('demoGateUser');
+      if (user) window.setTimeout(() => user.focus(), 60);
+    }
+    function hideDemoGate() {
+      const gate = document.getElementById('demoGate');
+      if (gate) gate.hidden = true;
+      document.body.classList.remove('demo-locked');
+    }
+    function mountDemoLogout() {
+      if (document.getElementById('demoLogout')) return;
+      const brand = document.querySelector('.sidebar .brand') || document.querySelector('.brand');
+      if (!brand) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.id = 'demoLogout';
+      button.className = 'back-link demo-logout';
+      button.textContent = '退出演示';
+      button.addEventListener('click', () => { setDemoToken(''); window.location.reload(); });
+      brand.insertAdjacentElement('afterend', button);
+    }
+    async function bootDemoGate() {
+      const form = document.getElementById('demoGateForm');
+      if (!form) return;
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        const userInput = document.getElementById('demoGateUser');
+        const passInput = document.getElementById('demoGatePass');
+        const submit = document.getElementById('demoGateSubmit');
+        const error = document.getElementById('demoGateError');
+        const user = userInput.value.trim();
+        const password = passInput.value;
+        if (!user || !password) { error.textContent = '请输入账号和密码'; return; }
+        submit.disabled = true; submit.textContent = '验证中…';
+        let result;
+        try { result = await demoRequest('/api/login', { user, password }); }
+        catch { result = { ok: false, status: 0, body: { message: '网络异常，请重试一次' } }; }
+        submit.disabled = false; submit.textContent = '进入 AdLab';
+        if (result.ok) {
+          const data = result.body.data || {};
+          if (data.token) setDemoToken(data.token);
+          passInput.value = '';
+          hideDemoGate();
+          mountDemoLogout();
+          return;
+        }
+        error.textContent = result.body.message || '账号或密码不正确';
+      });
+      try {
+        const session = await demoRequest('/api/session', {});
+        if (session.ok) {
+          hideDemoGate();
+          if (session.body.data?.authEnabled) mountDemoLogout();
+          return;
+        }
+        if (session.status === 401) { showDemoGate(''); return; }
+      } catch {}
+      // 网络异常时放行，避免把用户锁在门外
+      hideDemoGate();
+    }
+
+    bootDemoGate();
     ensureDemoProject();
     initHomeSlideshow();
     window.addEventListener('popstate', restoreFromUrl);
