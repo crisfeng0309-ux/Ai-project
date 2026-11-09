@@ -2510,7 +2510,7 @@
       const scenes = data.usageScenes || [];
       document.getElementById('reviewFeatures').textContent = functions.map(item => stripSourceNote(displayText(item))).filter(Boolean).join('、') || '暂无已确认功能';
       const scene = document.querySelector('#product-view .review-item:nth-child(6) div');
-      if (scene) scene.textContent = scenes.map(item => stripSourceNote(displayText(item?.scene ?? item))).filter(Boolean).join('、') || '暂无适用场景';
+      if (scene) scene.textContent = scenes.map(item => stripSourceNote(displayText(item?.scene ?? item))).filter(Boolean).join('、') || '未给出适用场景（点「我想修改」补充，或重新分析一次）';
       renderSellingPoints(data);
       const notice = document.querySelector('#product-view .panel-main .notice');
       if (notice) { const title = document.createElement('strong'); title.textContent = data.pendingItems?.length ? '待确认项提示' : '信息可信度核查'; const body = document.createTextNode(data.pendingItems?.length ? data.pendingItems.map(translateProductFieldNames).join('；') : '当前卖点均有商品资料依据，请继续核对广告表达。'); notice.replaceChildren(title, body); }
@@ -2655,20 +2655,37 @@
       });
       data.selectedDirections = (data.selectedDirections || []).map(title => rename.get(title) || title).filter(title => data.creativeDirections.some(direction => direction.title === title));
     }
+    // 受众候选：优先从创意简报的「目标受众」里切分，切不出来再从商品与卖点拼。
+    // 以前这里写死「年轻消费者/日常通勤人群/短途出行用户/注重便利性的家庭用户」，
+    // 导致不管什么商品，候选名单永远一样，已删除。
+    function audienceCandidates() {
+      const brief = projectState.strategy?.creativeBrief || {};
+      const market = projectState.market || '目标市场';
+      const product = projectState.product || {};
+      const segments = String(brief.audience || '')
+        .split(/[、，,；;\/\n]+/)
+        .map(item => item.replace(/^[·\-\s]+/, '').trim())
+        .filter(item => item.length >= 3 && item.length <= 26 && !/^(目标受众|受众|人群)$/.test(item));
+      if (segments.length >= 2) return segments.slice(0, 4);
+      const points = (Array.isArray(projectState.strategy?.creativeBrief?.sellingPoints) ? projectState.strategy.creativeBrief.sellingPoints : [])
+        .map(item => String(item || "").trim())
+        .filter(Boolean)
+        .slice(0, 2);
+      const derived = [];
+      if (String(product.name || "").trim()) derived.push(`${market}${String(product.name).trim()}的日常使用者`);
+      points.forEach(point => derived.push(`${market}在意「${point}」的人群`));
+      if (derived.length < 2) derived.push(`${market}${String(product.category || '同类商品').trim()}的比价型买家`);
+      return derived;
+    }
     function audienceName(audience, index = 0) {
       const name = String(audience?.name || audience?.audience || '').trim();
-      if (name && !/^(潜在受众|target audience|audience)\s*\d*$/i.test(name)) return name;
+      const generic = /^(潜在受众|目标受众|受众|target audience|audience)\s*\d*$/i.test(name)
+        || /^(年轻消费者|日常通勤人群|短途出行用户|注重便利性的家庭用户|消费者|用户)$/.test(name);
+      if (name && !generic) return name;
       const need = String(audience?.need || '').trim();
-      if (need) return `${need}人群`;
-      const product = projectState.product || {};
-      const market = projectState.market || '目标市场';
-      const category = `${product.category || ''} ${product.name || ''}`;
-      const candidates = /充电|手机|数码|电源/.test(category)
-        ? [`${market}手机重度使用者`, `${market}高校学生`, `${market}城市通勤人群`, `${market}短途出行用户`]
-        : /包|箱|收纳|服饰/.test(category)
-          ? [`${market}高校学生`, `${market}城市通勤人群`, `${market}短途出行用户`, `${market}轻运动生活人群`]
-          : [`${market}年轻消费者`, `${market}日常通勤人群`, `${market}短途出行用户`, `${market}注重便利性的家庭用户`];
-      return candidates[index % candidates.length];
+      if (need && !/暂无|待补充/.test(need)) return `${need}人群`;
+      const candidates = audienceCandidates();
+      return candidates[index % Math.max(1, candidates.length)];
     }
     function normalizeAudienceNames(data) {
       const rename = new Map();
