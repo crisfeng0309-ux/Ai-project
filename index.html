@@ -3245,12 +3245,19 @@
       const negative = String(scheme.negativePrompt || '').trim();
       return negative && !/negative prompt|负面提示词/i.test(prompt) ? `${prompt}\n\nNegative prompt: ${negative}` : prompt;
     }
+    // 只有英文内容才拼进可复制提示词：formatAdvice / productionNotes / shotList /
+    // qualityChecks 这些是给用户看的中文说明，拼进去会让视频模型把中文写进画面。
+    const CJK_TEST = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff\uac00-\ud7af]/;
+    const englishOnly = value => {
+      const text = String(value || '').trim();
+      return text && !CJK_TEST.test(text) ? text : '';
+    };
     function videoPromptText(scheme) {
       const parts = [String(scheme.videoPrompt || '').trim()];
-      const format = [...(scheme.formatAdvice || [])].filter(Boolean).join('\n');
-      const production = String(scheme.productionNotes || '').trim();
-      const shots = [...(scheme.shotList || [])].filter(Boolean).join('\n');
-      const details = [...(scheme.qualityChecks || [])].filter(Boolean).join('\n');
+      const format = [...(scheme.formatAdvice || [])].filter(Boolean).map(englishOnly).filter(Boolean).join('\n');
+      const production = englishOnly(scheme.productionNotes);
+      const shots = [...(scheme.shotList || [])].filter(Boolean).map(englishOnly).filter(Boolean).join('\n');
+      const details = [...(scheme.qualityChecks || [])].filter(Boolean).map(englishOnly).filter(Boolean).join('\n');
       const negative = String(scheme.negativePrompt || '').trim();
       if (format && !/画幅|aspect|format/i.test(parts[0])) parts.push(`Format and production: ${format}`);
       if (production && !/制作建议|production|制作/i.test(parts[0])) parts.push(`Production notes: ${production}`);
