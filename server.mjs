@@ -142,4 +142,7 @@ const server = createServer(async (req, res) => {
   } catch { json(res, 404, { ok: false, message: 'Not found' }); }
 });
 
-server.listen(port, () => console.log(`AdLab server running at http://localhost:${port}`));
+// 必须只监听本机回环：默认 listen(port) 会绑到 0.0.0.0，
+// 任何知道 IP 的人都能绕过 nginx 直连 4173（没有访问日志、没有限流）。
+const host = process.env.HOST || '127.0.0.1';
+server.listen(port, host, () => console.log(`AdLab server running at http://${host}:${port}`));
