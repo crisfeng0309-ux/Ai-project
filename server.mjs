@@ -119,6 +119,24 @@ async function handleApi(req, res, path) {
   return handleAI(aiKinds[path], { method: req.method, body }, vercelRes(res));
 }
 
+// 允许公开访问的静态路径白名单。任何以点开头的文件（.env / .git / .vercel…）.
+// 以及源码、配置文件，一律不对外提供。
+const PUBLIC_STATIC = [
+  /^\/$/,
+  /^\/index\.html$/,
+  /^\/favicon\.ico$/,
+  /^\/assets\/[A-Za-z0-9._-]+\.(png|jpe?g|svg|webp|gif|ico)$/,
+  /^\/lib\/[A-Za-z0-9._-]+\.mjs$/,
+  /^\/tools\/[A-Za-z0-9._-]+\.html$/
+];
+
+function isPublicStatic(pathname) {
+  if (!pathname) return false;
+  if (pathname.includes('..')) return false;
+  // 兜底：任何隐藏文件/目录（.env、.git、.vercel、.gitignore…）直接拒绝
+  if (/\/(\.|[^/]*\/\.)/.test(pathname)) return false;
+  return PUBLIC_STATIC.some(pattern => pattern.test(pathname));
+}
 const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.json': 'application/json; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml' };
 
 const server = createServer(async (req, res) => {
@@ -134,6 +152,10 @@ const server = createServer(async (req, res) => {
       return await handleApi(req, res, url.pathname);
     }
     const requested = url.pathname === '/' ? '/index.html' : url.pathname;
+    // 静态文件必须走白名单：以前是「仓库根目录整目录静态服务」，
+    // 结果 /.env 和 /.git/HEAD 都能被直接下载（线上日志里有人 GET /.env 拿到 200）。
+    // 现在只允许真正需要给浏览器的那几个路径，其余一律 404。
+    if (!isPublicStatic(requested)) return json(res, 404, { ok: false, message: 'Not found' });
     const filePath = normalize(join(root, requested));
     if (!filePath.startsWith(root)) return json(res, 403, { ok: false, message: 'Forbidden' });
     const file = await readFile(filePath);
