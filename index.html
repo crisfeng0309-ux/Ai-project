@@ -770,9 +770,7 @@
       background-position: center center, center center;
       background-size: cover, cover;
       background-repeat: no-repeat, no-repeat;
-      transition: opacity .55s cubic-bezier(.22, .7, .24, 1);
     }
-    .demo-gate.is-leaving { opacity: 0; pointer-events: none; }
     .demo-gate[hidden] { display: none; }
     body.demo-locked { overflow: hidden; }
     .demo-gate-inner { width: min(420px, 100%); text-align: center; }
@@ -792,16 +790,6 @@
     .demo-gate-error { min-height: 18px; margin: 10px 0 0; font-size: 12px; color: #d92d20; }
     .demo-gate-hint { margin: 6px 0 0; font-size: 11.5px; color: #9aa1ac; }
     .demo-logout { margin: 0 12px 14px; }
-    /* 登录成功后首页"亮起来"：从略暗略糊恢复清晰，和登录页淡出同时进行 */
-    @keyframes loginReveal {
-      from { opacity: .25; filter: brightness(.88) saturate(.92); transform: scale(1.012); }
-      to { opacity: 1; filter: none; transform: scale(1); }
-    }
-    .home-view.login-reveal { animation: loginReveal .72s cubic-bezier(.22, .7, .24, 1) both; }
-    @media (prefers-reduced-motion: reduce) {
-      .demo-gate { transition: none; }
-      .home-view.login-reveal { animation: none; }
-    }
   </style>
 </head>
 <body>
@@ -4059,27 +4047,10 @@
       const user = document.getElementById('demoGateUser');
       if (user) window.setTimeout(() => user.focus(), 60);
     }
-    function playHomeReveal() {
-      const home = document.querySelector('#home-view .home-view');
-      if (!home) return;
-      home.classList.remove('login-reveal');
-      void home.offsetWidth; // 强制重排，确保动画能重新触发
-      home.classList.add('login-reveal');
-      window.setTimeout(() => home.classList.remove('login-reveal'), 900);
-    }
-    function hideDemoGate(options = {}) {
+    function hideDemoGate() {
       const gate = document.getElementById('demoGate');
+      if (gate) gate.hidden = true;
       document.body.classList.remove('demo-locked');
-      if (!gate || gate.hidden) return;
-      if (!options.animate) { gate.hidden = true; return; }
-      gate.classList.add('is-leaving');
-      const finish = () => {
-        gate.hidden = true;
-        gate.classList.remove('is-leaving');
-      };
-      gate.addEventListener('transitionend', finish, { once: true });
-      window.setTimeout(finish, 700); // 兜底：动画事件没触发也要关掉
-      playHomeReveal();
     }
     function mountDemoLogout() {
       if (document.getElementById('demoLogout')) return;
@@ -4114,7 +4085,7 @@
           const data = result.body.data || {};
           if (data.token) setDemoToken(data.token);
           passInput.value = '';
-          hideDemoGate({ animate: true });
+          hideDemoGate();
           mountDemoLogout();
           return;
         }
