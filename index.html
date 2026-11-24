@@ -753,7 +753,26 @@
     @media (max-width: 980px) { .app-shell { grid-template-columns: 1fr; } .sidebar { display: none; } .main { padding: 24px 18px 42px; } .workspace { grid-template-columns: 1fr; } .panel-side { position: static; } .progress-wrap { overflow-x: auto; padding-bottom: 5px; } .step-line { min-width: 20px; } }
     @media (max-width: 620px) { .topbar { align-items: flex-start; flex-direction: column; } .top-actions { width: 100%; } .top-actions button { flex: 1; } .two-col, .creative-grid { grid-template-columns: 1fr; } .panel-main { padding: 20px; } .panel-side { padding: 18px; } .footer-bar { align-items: flex-start; gap: 10px; flex-direction: column; } }
     /* ===== 演示环境登录页（服务端未配置密码时不会出现）===== */
-    .demo-gate { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 28px 20px; overflow-y: auto; color: #fff; background: radial-gradient(120% 90% at 20% 0%, #1d2531 0%, #0e1116 55%, #08090c 100%); }
+    /* 背景沿用首页那张山景：登录页是它的暗调版，登录后"亮起来"，切换就不会突兀 */
+    .demo-gate {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 20px;
+      overflow-y: auto;
+      color: #fff;
+      background-image:
+        linear-gradient(180deg, rgba(8, 12, 18, .58) 0%, rgba(8, 12, 18, .70) 48%, rgba(6, 9, 13, .84) 100%),
+        url('./assets/home-hero-1.jpg');
+      background-position: center center, center center;
+      background-size: cover, cover;
+      background-repeat: no-repeat, no-repeat;
+      transition: opacity .55s cubic-bezier(.22, .7, .24, 1);
+    }
+    .demo-gate.is-leaving { opacity: 0; pointer-events: none; }
     .demo-gate[hidden] { display: none; }
     body.demo-locked { overflow: hidden; }
     .demo-gate-inner { width: min(420px, 100%); text-align: center; }
@@ -773,6 +792,16 @@
     .demo-gate-error { min-height: 18px; margin: 10px 0 0; font-size: 12px; color: #d92d20; }
     .demo-gate-hint { margin: 6px 0 0; font-size: 11.5px; color: #9aa1ac; }
     .demo-logout { margin: 0 12px 14px; }
+    /* 登录成功后首页"亮起来"：从略暗略糊恢复清晰，和登录页淡出同时进行 */
+    @keyframes loginReveal {
+      from { opacity: .25; filter: brightness(.88) saturate(.92); transform: scale(1.012); }
+      to { opacity: 1; filter: none; transform: scale(1); }
+    }
+    .home-view.login-reveal { animation: loginReveal .72s cubic-bezier(.22, .7, .24, 1) both; }
+    @media (prefers-reduced-motion: reduce) {
+      .demo-gate { transition: none; }
+      .home-view.login-reveal { animation: none; }
+    }
   </style>
 </head>
 <body>
@@ -4030,10 +4059,27 @@
       const user = document.getElementById('demoGateUser');
       if (user) window.setTimeout(() => user.focus(), 60);
     }
-    function hideDemoGate() {
+    function playHomeReveal() {
+      const home = document.querySelector('#home-view .home-view');
+      if (!home) return;
+      home.classList.remove('login-reveal');
+      void home.offsetWidth; // 强制重排，确保动画能重新触发
+      home.classList.add('login-reveal');
+      window.setTimeout(() => home.classList.remove('login-reveal'), 900);
+    }
+    function hideDemoGate(options = {}) {
       const gate = document.getElementById('demoGate');
-      if (gate) gate.hidden = true;
       document.body.classList.remove('demo-locked');
+      if (!gate || gate.hidden) return;
+      if (!options.animate) { gate.hidden = true; return; }
+      gate.classList.add('is-leaving');
+      const finish = () => {
+        gate.hidden = true;
+        gate.classList.remove('is-leaving');
+      };
+      gate.addEventListener('transitionend', finish, { once: true });
+      window.setTimeout(finish, 700); // 兜底：动画事件没触发也要关掉
+      playHomeReveal();
     }
     function mountDemoLogout() {
       if (document.getElementById('demoLogout')) return;
@@ -4068,7 +4114,7 @@
           const data = result.body.data || {};
           if (data.token) setDemoToken(data.token);
           passInput.value = '';
-          hideDemoGate();
+          hideDemoGate({ animate: true });
           mountDemoLogout();
           return;
         }
