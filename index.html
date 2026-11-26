@@ -204,13 +204,17 @@
     .generation-button.is-loading { color: var(--blue); border-color: #a8c7f5; background: var(--blue-soft); }
     @keyframes adlab-spin { to { transform: rotate(360deg); } }
     .strategy-brief { white-space: normal; }
-    .brief-rows { display: grid; margin-top: 12px; }
-    .brief-row { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 16px; padding: 10px 0; border-top: 1px dashed #e6e8ec; font-size: 12.5px; line-height: 1.95; letter-spacing: .02em; }
-    .brief-row:first-child { border-top: none; padding-top: 0; }
-    .brief-label { color: #8a8d95; font-size: 11.5px; font-weight: 650; letter-spacing: .04em; }
-    .brief-value { color: #2b3238; word-break: break-word; }
+    .brief-rows { display: grid; margin-top: 12px; border-radius: 10px; overflow: hidden; }
+    /* 原来用「极浅虚线 + 大行高」，段一长就分不清哪行是哪行。
+       现在改成「交替底色 + 实线 + 内边距」，行边界直接由色块体现。 */
+    .brief-row { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 18px; padding: 12px 14px; border-top: 1px solid #eef0f3; background: #fff; font-size: 12.5px; line-height: 1.75; letter-spacing: .02em; }
+    /* 外层 .notice 本身就是 #f8f8fa，所以奇数行要给实白底，斑马纹才有对比 */
+    .brief-row:nth-child(even) { background: #f4f6f9; }
+    .brief-row:first-child { border-top: none; }
+    .brief-label { color: #6b7280; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; line-height: 1.75; }
+    .brief-value { color: #2b3238; line-height: 1.75; word-break: break-word; }
     .brief-placeholder { margin: 10px 0 0; font-size: 12px; line-height: 1.9; color: var(--muted); }
-    @media (max-width: 620px) { .brief-row { grid-template-columns: 1fr; gap: 3px; padding: 9px 0; } }
+    @media (max-width: 620px) { .brief-row { grid-template-columns: 1fr; gap: 4px; padding: 11px 12px; line-height: 1.72; } .brief-label { line-height: 1.6; } }
     .strategy-brief.stale { border: 1px solid #f0d8b0; background: #fffaf1; }
     .strategy-brief.stale strong { color: #9a681f; }
     .brief-actions { display: flex; justify-content: flex-end; align-items: center; gap: 9px; flex-wrap: wrap; }
