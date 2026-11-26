@@ -679,8 +679,9 @@
       z-index: 1;
       pointer-events: none;
       background-image:
-        /* 中间柔光收小并减薄：文字区仍然够亮，四周把照片让出来 */
-        radial-gradient(46% 40% at 50% 47%, rgba(255,251,245,.44) 0%, rgba(255,251,245,.32) 42%, rgba(255,251,245,.12) 72%, rgba(255,251,245,0) 100%),
+        /* 小范围亮池：只把文字所在区域提亮，四周照片保持通透 */
+        radial-gradient(34% 27% at 50% 50%, rgba(255,251,245,.56) 0%, rgba(255,251,245,.34) 56%, rgba(255,251,245,0) 100%),
+        radial-gradient(46% 40% at 50% 47%, rgba(255,251,245,.30) 0%, rgba(255,251,245,.20) 42%, rgba(255,251,245,.08) 72%, rgba(255,251,245,0) 100%),
         linear-gradient(180deg, rgba(14,20,26,.12) 0%, rgba(14,20,26,.01) 20%, rgba(14,20,26,0) 62%, rgba(10,15,20,.30) 100%),
         radial-gradient(125% 95% at 50% 46%, rgba(255,208,148,.08) 0%, rgba(255,208,148,0) 52%, rgba(8,13,18,.16) 100%);
     }
@@ -708,7 +709,7 @@
       text-transform: uppercase;
       font-weight: 700;
       margin: 0 auto 26px;
-      text-shadow: 0 0 8px rgba(255,251,245,.5), 0 0 20px rgba(255,251,245,.45);
+      text-shadow: 0 1px 2px rgba(255, 251, 245, .95), 0 0 14px rgba(255, 251, 245, .80);
     }
     .home-kicker::before, .home-kicker::after { content: ""; width: clamp(18px, 4vw, 44px); height: 1px; background: currentColor; opacity: .38; }
     /* 主标题 */
@@ -726,12 +727,12 @@
     .home-brand span { font-style: italic; letter-spacing: -.02em; }
     .home-tagline {
       margin: clamp(20px, 3vh, 30px) auto 0;
-      color: #2b3238;
+      color: #1b232b;
       font-size: clamp(14px, 1.3vw, 16px);
       letter-spacing: .1em;
       line-height: 1.8;
       text-wrap: balance;
-      text-shadow: 0 0 8px rgba(255,251,245,.5), 0 0 20px rgba(255,251,245,.45);
+      text-shadow: 0 1px 2px rgba(255, 251, 245, .95), 0 0 14px rgba(255, 251, 245, .85), 0 0 30px rgba(255, 251, 245, .60);
     }
     /* 按钮 */
     .home-actions { display: flex; justify-content: center; gap: 12px; margin-top: clamp(34px, 5.4vh, 58px); }
@@ -756,7 +757,7 @@
     .home-actions .ghost-btn:hover { background: rgba(255,255,255,.82); border-color: rgba(24,33,41,.32); transform: translateY(-2px); }
     .home-actions .ghost-btn:active { transform: translateY(0); }
     .home-actions button:focus-visible { outline: 2px solid #0f4f9e; outline-offset: 3px; }
-    .home-footnote { color: #262d33; font-size: 10.5px; letter-spacing: .12em; margin-top: clamp(22px, 3.4vh, 34px); text-shadow: 0 0 8px rgba(255,251,245,.5), 0 0 20px rgba(255,251,245,.45); }
+    .home-footnote { color: #141b22; font-size: 11px; font-weight: 600; letter-spacing: .12em; margin-top: clamp(22px, 3.4vh, 34px); text-shadow: 0 1px 2px rgba(255, 251, 245, .95), 0 0 14px rgba(255, 251, 245, .85), 0 0 28px rgba(255, 251, 245, .55); }
     /* 左下角地理标识：编辑注脚的感觉，不抢主视觉 */
     .home-geo {
       position: absolute;
@@ -766,15 +767,15 @@
       display: grid;
       gap: 4px;
       pointer-events: none;
-      color: rgba(22, 28, 36, .62);
-      text-shadow: 0 0 10px rgba(255, 251, 245, .55);
+      color: rgba(255, 255, 255, .86);
+      text-shadow: 0 1px 3px rgba(0, 0, 0, .55), 0 0 12px rgba(0, 0, 0, .35);
     }
     .home-geo::before {
       content: "";
       width: 28px;
       height: 1px;
       margin-bottom: 2px;
-      background: rgba(22, 28, 36, .38);
+      background: rgba(255, 255, 255, .45);
     }
     .home-geo em {
       font-style: normal;
@@ -782,7 +783,7 @@
       font-weight: 700;
       letter-spacing: .2em;
       text-transform: uppercase;
-      color: rgba(22, 28, 36, .72);
+      color: #fff;
     }
     .home-geo span { font-size: 10.5px; letter-spacing: .08em; }
     /* 入场：只动 opacity / transform，不影响点击 */
