@@ -36,7 +36,7 @@
     .brand { display: flex; align-items: center; gap: 10px; padding: 0 12px 30px; }
     /* 品牌图标：换成正式图标后不再需要背景色和文字，尺寸保持不变，避免影响侧栏布局 */
     .brand-lockup { display: flex; align-items: center; flex: none; }
-    .brand-lockup img { height: 26px; width: auto; display: block; }
+    .brand-lockup img { height: 28px; width: auto; display: block; }
     .brand-sub { color: var(--muted); font-size: 11px; margin-left: auto; }
     .nav-label { color: #a0a1a8; font-size: 11px; font-weight: 700; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: .08em; }
     .nav { display: grid; gap: 4px; }
@@ -778,8 +778,8 @@
     body.demo-locked { overflow: hidden; }
     .demo-gate-inner { width: min(420px, 100%); text-align: center; }
     /* 新 logo 是蓝色透明底，放在深色背景上对比不足，所以给它一块白色圆角托底 */
-    /* 登录页与侧栏统一用同一套横向字标；深色照片背景上给一块白色圆角托底保证对比 */
-    .demo-gate-logo { display: block; width: 232px; height: auto; margin: 0 auto; padding: 14px 18px; box-sizing: border-box; border-radius: 16px; background: #fff; box-shadow: 0 10px 28px rgba(0, 0, 0, .34); }
+    /* 登录页用浅色字标直接压在照片上：去掉白色托底，靠柔和投影保证深色背景上的可读性 */
+    .demo-gate-logo { display: block; width: 272px; height: auto; margin: 0 auto; filter: drop-shadow(0 2px 14px rgba(0, 0, 0, .55)); }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
     .demo-gate-kicker { margin: 18px 0 6px; font-size: 11px; letter-spacing: .18em; color: rgba(255, 255, 255, .5); }
     .demo-gate-brand { margin: 0; font-size: 30px; letter-spacing: -.04em; }
@@ -802,7 +802,7 @@
 
 <div id="demoGate" class="demo-gate" hidden>
   <div class="demo-gate-inner">
-    <img class="demo-gate-logo" src="./assets/adlab-wordmark.png" srcset="./assets/adlab-wordmark-2x.png 2x" alt="AdLab" />
+    <img class="demo-gate-logo" src="./assets/adlab-wordmark-light.png" srcset="./assets/adlab-wordmark-light-2x.png 2x" alt="AdLab" />
     <p class="demo-gate-kicker">全国人工智能应用创新大赛 · 参赛作品</p>
     <h1 class="sr-only">AdLab 演示环境登录</h1>
     <p class="demo-gate-tagline">把商品，变成更好的广告。</p>
