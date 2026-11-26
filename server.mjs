@@ -125,7 +125,7 @@ const PUBLIC_STATIC = [
   /^\/$/,
   /^\/index\.html$/,
   /^\/favicon\.ico$/,
-  /^\/assets\/[A-Za-z0-9._-]+\.(png|jpe?g|svg|webp|gif|ico)$/,
+  /^\/assets\/[A-Za-z0-9._@-]+\.(png|jpe?g|svg|webp|gif|ico)$/,
   /^\/lib\/[A-Za-z0-9._-]+\.mjs$/,
   /^\/tools\/[A-Za-z0-9._-]+\.html$/
 ];
