@@ -771,12 +771,11 @@
       color: #fff;
       /* 三层：卡片后方柔光 + 上下压暗（中间留出山脊）+ 照片 */
       background-image:
-        radial-gradient(58% 44% at 50% 46%, rgba(255, 255, 255, .10) 0%, rgba(255, 255, 255, 0) 72%),
-        linear-gradient(180deg, rgba(6, 9, 13, .84) 0%, rgba(6, 9, 13, .44) 36%, rgba(6, 9, 13, .56) 62%, rgba(6, 9, 13, .88) 100%),
+        linear-gradient(180deg, rgba(6, 9, 13, .90) 0%, rgba(6, 9, 13, .58) 32%, rgba(6, 9, 13, .62) 62%, rgba(6, 9, 13, .90) 100%),
         url('./assets/home-hero-1.jpg');
-      background-position: center center, center center, center center;
-      background-size: cover, cover, cover;
-      background-repeat: no-repeat, no-repeat, no-repeat;
+      background-position: center center, center center;
+      background-size: cover, cover;
+      background-repeat: no-repeat, no-repeat;
     }
     .demo-gate[hidden] { display: none; }
     body.demo-locked { overflow: hidden; }
@@ -787,10 +786,11 @@
     /* logo 不再有白色药丸和毛玻璃：原色图标 + 白色文字直接压在照片上，
        靠一层极淡的径向柔光保证可读性（渐变，不是模糊），所以边缘依然锐利。 */
     .demo-gate-logo {
-      position: relative;
-      z-index: 0;
-      display: inline-flex;
+      /* 必须是块级 flex：inline-flex 会和下面的 kicker（inline-block）挤到同一行 */
+      display: flex;
+      width: max-content;
       align-items: center;
+      justify-content: center;
       gap: 11px;
       margin: 0 auto;
       padding: 0;
@@ -800,16 +800,7 @@
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
     }
-    /* 柔光衬底：只要一层很淡的暗色径向渐变，把 logo 从照片里"托"出来，不产生任何模糊 */
-    .demo-gate-logo::before {
-      content: "";
-      position: absolute;
-      inset: -38px -54px;
-      z-index: -1;
-      border-radius: 50%;
-      background: radial-gradient(58% 58% at 50% 50%, rgba(6, 10, 16, .52) 0%, rgba(6, 10, 16, .26) 56%, rgba(6, 10, 16, 0) 100%);
-      pointer-events: none;
-    }
+    /* 不再给 logo 单独加椭圆衬底：靠页面整体的上下压暗保证对比，视觉上更干净 */
     .demo-gate-logo img { height: 38px; width: auto; display: block; }
     .demo-gate-logo span { font-size: 31px; font-weight: 800; letter-spacing: -.035em; color: #fff; line-height: 1; text-shadow: 0 1px 3px rgba(0, 0, 0, .38); }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
