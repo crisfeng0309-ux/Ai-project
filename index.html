@@ -215,6 +215,10 @@
     .brief-label { color: #3f4753; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; line-height: 1.75; }
     .brief-value { color: #2b3238; line-height: 1.75; word-break: break-word; }
     .brief-placeholder { margin: 10px 0 0; font-size: 12px; line-height: 1.9; color: var(--muted); }
+    /* 待确认项：一条一行，前面一个小圆点，长列表不再挤成一段 */
+    .pending-list { margin: 7px 0 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+    .pending-list li { position: relative; padding-left: 13px; line-height: 1.72; }
+    .pending-list li::before { content: ""; position: absolute; left: 1px; top: .64em; width: 5px; height: 5px; border-radius: 50%; background: #c9ccd3; }
     @media (max-width: 620px) { .brief-row { grid-template-columns: 1fr; gap: 4px; padding: 11px 12px; line-height: 1.72; } .brief-label { line-height: 1.6; } }
     .strategy-brief.stale { border: 1px solid #f0d8b0; background: #fffaf1; }
     .strategy-brief.stale strong { color: #9a681f; }
@@ -2709,7 +2713,27 @@
       if (scene) scene.textContent = scenes.map(item => stripSourceNote(displayText(item?.scene ?? item))).filter(Boolean).join('、') || '未给出适用场景（点「我想修改」补充，或重新分析一次）';
       renderSellingPoints(data);
       const notice = document.querySelector('#product-view .panel-main .notice');
-      if (notice) { const title = document.createElement('strong'); title.textContent = data.pendingItems?.length ? '待确认项提示' : '信息可信度核查'; const body = document.createTextNode(data.pendingItems?.length ? data.pendingItems.map(translateProductFieldNames).join('；') : '当前卖点均有商品资料依据，请继续核对广告表达。'); notice.replaceChildren(title, body); }
+      if (notice) {
+        const title = document.createElement('strong');
+        title.textContent = data.pendingItems?.length ? '待确认项提示' : '信息可信度核查';
+        // 原来把每条用「；」拼成一整段，长列表会变成一堵墙，所以改成一条一行。
+        // 每条开头自带的「待确认：」和标题重复，显示时去掉（只影响展示，不改数据）。
+        const items = (data.pendingItems || [])
+          .map(item => String(translateProductFieldNames(item) || '').replace(/^待确认[：:]\s*/, '').trim())
+          .filter(Boolean);
+        if (!items.length) {
+          notice.replaceChildren(title, document.createTextNode('当前卖点均有商品资料依据，请继续核对广告表达。'));
+        } else {
+          const list = document.createElement('ul');
+          list.className = 'pending-list';
+          items.forEach(text => {
+            const li = document.createElement('li');
+            li.textContent = text;
+            list.appendChild(li);
+          });
+          notice.replaceChildren(title, list);
+        }
+      }
       document.querySelector('#product-view .review-badge').textContent = '第 1 版理解';
       document.getElementById('confirmProduct').disabled = !data.selectedSellingPoints?.length || data._sourceFingerprint !== productFingerprint(projectState.product);
       setProductStatus('等待确认');
