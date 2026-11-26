@@ -784,21 +784,34 @@
     /* 新 logo 是蓝色透明底，放在深色背景上对比不足，所以给它一块白色圆角托底 */
     /* 登录页 logo：半透明白托底（毛玻璃）而不是实心白块，和照片背景融合；
        图标用图、AdLab 用真实文字，所以放大也不会模糊 */
+    /* logo 不再有白色药丸和毛玻璃：原色图标 + 白色文字直接压在照片上，
+       靠一层极淡的径向柔光保证可读性（渐变，不是模糊），所以边缘依然锐利。 */
     .demo-gate-logo {
+      position: relative;
+      z-index: 0;
       display: inline-flex;
       align-items: center;
-      gap: 9px;
+      gap: 11px;
       margin: 0 auto;
-      padding: 13px 20px;
-      border-radius: 15px;
-      background: rgba(255, 255, 255, .92);
-      -webkit-backdrop-filter: blur(10px) saturate(1.1);
-      backdrop-filter: blur(10px) saturate(1.1);
-      border: 1px solid rgba(255, 255, 255, .55);
-      box-shadow: 0 14px 34px rgba(0, 0, 0, .28);
+      padding: 0;
+      background: none;
+      border: 0;
+      box-shadow: none;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
     }
-    .demo-gate-logo img { height: 34px; width: auto; display: block; }
-    .demo-gate-logo span { font-size: 28px; font-weight: 800; letter-spacing: -.035em; color: #17306b; line-height: 1; }
+    /* 柔光衬底：只要一层很淡的暗色径向渐变，把 logo 从照片里"托"出来，不产生任何模糊 */
+    .demo-gate-logo::before {
+      content: "";
+      position: absolute;
+      inset: -38px -54px;
+      z-index: -1;
+      border-radius: 50%;
+      background: radial-gradient(58% 58% at 50% 50%, rgba(6, 10, 16, .52) 0%, rgba(6, 10, 16, .26) 56%, rgba(6, 10, 16, 0) 100%);
+      pointer-events: none;
+    }
+    .demo-gate-logo img { height: 38px; width: auto; display: block; }
+    .demo-gate-logo span { font-size: 31px; font-weight: 800; letter-spacing: -.035em; color: #fff; line-height: 1; text-shadow: 0 1px 3px rgba(0, 0, 0, .38); }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
     /* kicker 做成描边小胶囊：把「两行灰字」变成一个标签 + 一句话，层次更清楚 */
     .demo-gate-kicker { display: inline-block; margin: 20px 0 10px; padding: 4px 13px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 999px; background: rgba(255, 255, 255, .07); font-size: 11.5px; letter-spacing: .12em; color: rgba(255, 255, 255, .80); }
