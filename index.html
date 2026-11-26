@@ -33,14 +33,15 @@
     button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
     .app-shell { min-height: 100vh; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
     .sidebar { padding: 28px 18px 20px; border-right: 1px solid var(--line); background: rgba(255,255,255,.76); display: flex; flex-direction: column; }
-    .brand { display: flex; align-items: center; gap: 10px; padding: 0 12px 30px; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 12px 18px; }
     /* 品牌图标：换成正式图标后不再需要背景色和文字，尺寸保持不变，避免影响侧栏布局 */
     /* 图标用图（512 源缩到 28px 不会糊），AdLab 用真实文字渲染，任何缩放都清晰 */
     .brand-lockup { display: flex; align-items: center; gap: 7px; flex: none; }
     .brand-lockup img { height: 27px; width: auto; display: block; }
     .brand-lockup span { font-size: 17px; font-weight: 800; letter-spacing: -.035em; color: #17306b; line-height: 1; }
     .brand-sub { color: var(--muted); font-size: 11px; margin-left: auto; }
-    .nav-label { color: #a0a1a8; font-size: 11px; font-weight: 700; padding: 0 12px 10px; text-transform: uppercase; letter-spacing: .08em; }
+    /* 工具区结束、导航开始处加一条发丝线，视觉上把「工具」和「步骤」分开 */
+    .nav-label { color: #a0a1a8; font-size: 11px; font-weight: 700; padding: 14px 12px 10px; text-transform: uppercase; letter-spacing: .08em; border-top: 1px solid var(--line); margin-top: 6px; }
     .nav { display: grid; gap: 4px; }
     .nav-item { border: 0; text-align: left; display: flex; align-items: center; gap: 11px; background: transparent; color: #6f7178; padding: 11px 12px; border-radius: 10px; font-size: 13px; transition: .2s ease; }
     .nav-item:hover { background: #f4f5f7; color: var(--ink); }
@@ -353,7 +354,7 @@
     .app-shell.data-mode .progress-wrap .steps, .app-shell.data-mode .progress-wrap .project-chip { display: none; }
     .app-shell.data-mode .nav-label, .app-shell.data-mode .nav > .nav-item { display: none; }
     .app-shell.data-mode #dataPathNav, .app-shell.data-mode #dataBack { display: grid; }
-    .app-shell.data-mode #dataBack { display: block; }
+    .app-shell.data-mode #dataBack { display: flex; }
     .data-progress { display: none; width: 100%; }
     .app-shell.data-mode .data-progress { display: block; }
     .data-progress-head { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; color: #9da3ad; font-size: 11px; }
@@ -364,7 +365,24 @@
     .data-progress-fill { height: 100%; border-radius: inherit; background: var(--blue); transition: width .25s ease; }
     .data-progress-status { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; color: var(--muted); font-size: 10px; }
     .data-progress-status strong { color: var(--blue); font-size: 11px; }
-    .data-sidebar-back { display: none; width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: #5d6874; padding: 0 12px 16px; margin-bottom: 16px; text-align: left; font-size: 11px; }
+    .data-sidebar-back {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      width: calc(100% - 24px);
+      margin: 0 12px 8px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      color: #454b54;
+      font-size: 12.5px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: background .16s ease, border-color .16s ease, color .16s ease;
+    }
+    .data-sidebar-back:hover { background: #f2f6fd; border-color: #cfdcf7; color: #145fcb; }
     .data-sidebar-back:hover { color: var(--blue); }
     #dataPathNav { display: none; gap: 6px; }
     .data-nav-item { border: 0; border-radius: 9px; background: transparent; color: #69717c; padding: 11px 12px; text-align: left; font-size: 12px; cursor: pointer; }
@@ -464,9 +482,26 @@
     .app-shell.setup-mode #setup-view .panel-side { display: none; }
     .app-shell.creative-mode .nav-label { display: none; }
     .app-shell.creative-mode .nav-item[data-view="overview"], .app-shell.creative-mode .nav-item[data-view="data"] { display: none; }
-    .creative-back { display: none; width: 100%; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: #5d6874; padding: 0 12px 16px; margin-bottom: 16px; text-align: left; font-size: 11px; }
+    .creative-back {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      width: calc(100% - 24px);
+      margin: 0 12px 8px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      color: #454b54;
+      font-size: 12.5px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: background .16s ease, border-color .16s ease, color .16s ease;
+    }
+    .creative-back:hover { background: #f2f6fd; border-color: #cfdcf7; color: #145fcb; }
     .creative-back:hover { color: var(--blue); }
-    .app-shell.creative-mode .creative-back { display: block; }
+    .app-shell.creative-mode .creative-back { display: flex; }
     .creative-progress { display: none; width: 100%; }
     .creative-progress-head { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; color: #9da3ad; font-size: 11px; }
     .creative-progress-head span { position: relative; }
@@ -850,7 +885,26 @@
     .demo-gate-card button:disabled { opacity: .65; cursor: default; }
     .demo-gate-error { min-height: 18px; margin: 10px 0 0; font-size: 12px; color: #d92d20; }
     .demo-gate-hint { margin: 6px 0 0; font-size: 11.5px; color: #9aa1ac; }
-    .demo-logout { margin: 0 12px 14px; }
+    /* 侧栏顶部工具区：返回项目背景 + 退出演示，统一成同尺寸的浅色按钮 */
+    .demo-logout {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      width: calc(100% - 24px);
+      margin: 0 12px 8px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      color: #5b6169;
+      font-size: 12.5px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: background .16s ease, border-color .16s ease, color .16s ease;
+    }
+    .demo-logout:hover { background: #f7f8fa; border-color: #dcdfe5; color: var(--ink); }
+    .demo-logout::before { content: "⏻"; font-size: 12px; line-height: 1; opacity: .55; }
   </style>
 </head>
 <body>
