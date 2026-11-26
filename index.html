@@ -769,12 +769,14 @@
       padding: 28px 20px;
       overflow-y: auto;
       color: #fff;
+      /* 三层：卡片后方柔光 + 上下压暗（中间留出山脊）+ 照片 */
       background-image:
-        linear-gradient(180deg, rgba(8, 12, 18, .58) 0%, rgba(8, 12, 18, .70) 48%, rgba(6, 9, 13, .84) 100%),
+        radial-gradient(58% 44% at 50% 46%, rgba(255, 255, 255, .10) 0%, rgba(255, 255, 255, 0) 72%),
+        linear-gradient(180deg, rgba(6, 9, 13, .84) 0%, rgba(6, 9, 13, .44) 36%, rgba(6, 9, 13, .56) 62%, rgba(6, 9, 13, .88) 100%),
         url('./assets/home-hero-1.jpg');
-      background-position: center center, center center;
-      background-size: cover, cover;
-      background-repeat: no-repeat, no-repeat;
+      background-position: center center, center center, center center;
+      background-size: cover, cover, cover;
+      background-repeat: no-repeat, no-repeat, no-repeat;
     }
     .demo-gate[hidden] { display: none; }
     body.demo-locked { overflow: hidden; }
@@ -798,17 +800,45 @@
     .demo-gate-logo img { height: 34px; width: auto; display: block; }
     .demo-gate-logo span { font-size: 28px; font-weight: 800; letter-spacing: -.035em; color: #17306b; line-height: 1; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-    .demo-gate-kicker { margin: 18px 0 6px; font-size: 11px; letter-spacing: .18em; color: rgba(255, 255, 255, .5); }
+    /* kicker 做成描边小胶囊：把「两行灰字」变成一个标签 + 一句话，层次更清楚 */
+    .demo-gate-kicker { display: inline-block; margin: 20px 0 10px; padding: 4px 13px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 999px; background: rgba(255, 255, 255, .07); font-size: 11.5px; letter-spacing: .12em; color: rgba(255, 255, 255, .80); }
     .demo-gate-brand { margin: 0; font-size: 30px; letter-spacing: -.04em; }
-    .demo-gate-tagline { margin: 6px 0 26px; font-size: 14px; color: rgba(255, 255, 255, .62); }
-    .demo-gate-card { position: relative; padding: 26px 22px 20px; border-radius: 16px; background: #fff; color: #16181d; text-align: left; box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
-    .demo-gate-badge { position: absolute; top: -11px; left: 22px; padding: 3px 10px; border-radius: 999px; background: #16181d; color: #fff; font-size: 11px; letter-spacing: .06em; }
-    .demo-gate-card label { display: block; margin: 14px 0 6px; font-size: 12px; color: #6b7280; }
-    .demo-gate-card input[type=text], .demo-gate-card input[type=password] { width: 100%; padding: 11px 12px; border: 1px solid #e4e6ea; border-radius: 10px; background: #fff; font: inherit; font-size: 14px; }
-    .demo-gate-card input:focus { outline: none; border-color: #16181d; box-shadow: 0 0 0 3px rgba(22, 24, 29, .08); }
+    .demo-gate-tagline { margin: 0 0 24px; font-size: 14.5px; color: rgba(255, 255, 255, .72); }
+    .demo-gate-card {
+      position: relative;
+      padding: 26px 22px 20px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .96);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, .55);
+      color: #16181d;
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .10), 0 30px 70px rgba(0, 0, 0, .42);
+    }
+    .demo-gate-badge { position: absolute; top: -11px; left: 22px; padding: 3px 11px; border-radius: 999px; background: #1b1e24; color: #fff; font-size: 11px; letter-spacing: .06em; box-shadow: 0 6px 16px rgba(0, 0, 0, .30); }
+    .demo-gate-card label { display: block; margin: 16px 0 8px; font-size: 12px; color: #5b6270; }
+    .demo-gate-card input[type=text], .demo-gate-card input[type=password] { width: 100%; padding: 12px 13px; border: 1px solid #e2e5ea; border-radius: 12px; background: #fff; font: inherit; font-size: 14px; transition: border-color .15s ease, box-shadow .15s ease; }
+    .demo-gate-card input:focus { outline: none; border-color: #2f6bf0; box-shadow: 0 0 0 3px rgba(47, 107, 240, .16); }
     .demo-gate-remember { display: flex !important; align-items: center; gap: 7px; margin: 14px 0 0 !important; font-size: 12px !important; color: #4b5563 !important; cursor: pointer; }
-    .demo-gate-remember input { width: auto; }
-    .demo-gate-card button { width: 100%; margin-top: 16px; padding: 12px; border: 0; border-radius: 10px; background: #16181d; color: #fff; font: inherit; font-weight: 650; cursor: pointer; }
+    .demo-gate-remember input { width: auto; accent-color: #2f6bf0; }
+    .demo-gate-card button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #2f6bf0 0%, #1d4fd8 100%);
+      color: #fff;
+      font: inherit;
+      font-weight: 650;
+      letter-spacing: .01em;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, .32);
+      transition: filter .15s ease, transform .12s ease;
+    }
+    .demo-gate-card button:hover { filter: brightness(1.06); }
+    .demo-gate-card button:active { transform: translateY(1px); }
     .demo-gate-card button:disabled { opacity: .65; cursor: default; }
     .demo-gate-error { min-height: 18px; margin: 10px 0 0; font-size: 12px; color: #d92d20; }
     .demo-gate-hint { margin: 6px 0 0; font-size: 11.5px; color: #9aa1ac; }
