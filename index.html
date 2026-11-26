@@ -32,7 +32,26 @@
     button { cursor: pointer; }
     button:disabled { cursor: not-allowed; opacity: .45; box-shadow: none; }
     .app-shell { min-height: 100vh; display: grid; grid-template-columns: 248px minmax(0, 1fr); }
-    .sidebar { padding: 28px 18px 20px; border-right: 1px solid var(--line); background: rgba(255,255,255,.76); display: flex; flex-direction: column; }
+    .sidebar {
+      padding: 28px 18px 20px;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, .92);
+      display: flex;
+      flex-direction: column;
+      /* 固定侧栏：页面滚动时它不动。
+         align-self:start 很关键——grid 子项默认 stretch，会被拉成整页高度，sticky 就失效了。 */
+      position: sticky;
+      top: 0;
+      align-self: start;
+      height: 100vh;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    /* 侧栏内容比视口高时（小屏笔记本）只让侧栏内部滚动，滚动条做得细一点 */
+    .sidebar::-webkit-scrollbar { width: 6px; }
+    .sidebar::-webkit-scrollbar-thumb { background: #e2e4e9; border-radius: 3px; }
+    .sidebar::-webkit-scrollbar-thumb:hover { background: #d2d5dc; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
     .brand { display: flex; align-items: center; gap: 10px; padding: 0 12px 18px; }
     /* 品牌图标：换成正式图标后不再需要背景色和文字，尺寸保持不变，避免影响侧栏布局 */
     /* 图标用图（512 源缩到 28px 不会糊），AdLab 用真实文字渲染，任何缩放都清晰 */
