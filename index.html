@@ -757,7 +757,7 @@
     .home-actions .ghost-btn:hover { background: rgba(255,255,255,.82); border-color: rgba(24,33,41,.32); transform: translateY(-2px); }
     .home-actions .ghost-btn:active { transform: translateY(0); }
     .home-actions button:focus-visible { outline: 2px solid #0f4f9e; outline-offset: 3px; }
-    .home-footnote { color: #141b22; font-size: 11px; font-weight: 600; letter-spacing: .12em; margin-top: clamp(22px, 3.4vh, 34px); text-shadow: 0 1px 2px rgba(255, 251, 245, .95), 0 0 14px rgba(255, 251, 245, .85), 0 0 28px rgba(255, 251, 245, .55); }
+    .home-footnote { color: #141b22; font-size: 11px; font-weight: 600; letter-spacing: .12em; margin-top: clamp(22px, 3.4vh, 34px); text-shadow: 0 1px 1px rgba(255, 251, 245, .45); }
     /* 左下角地理标识：编辑注脚的感觉，不抢主视觉 */
     .home-geo {
       position: absolute;
@@ -772,20 +772,20 @@
     }
     .home-geo::before {
       content: "";
-      width: 28px;
+      width: 22px;
       height: 1px;
       margin-bottom: 2px;
       background: rgba(255, 255, 255, .45);
     }
     .home-geo em {
       font-style: normal;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 700;
       letter-spacing: .2em;
       text-transform: uppercase;
       color: #fff;
     }
-    .home-geo span { font-size: 10.5px; letter-spacing: .08em; }
+    .home-geo span { font-size: 9.5px; letter-spacing: .06em; }
     /* 入场：只动 opacity / transform，不影响点击 */
     @keyframes homeFade { from { opacity: 0; } to { opacity: 1; } }
     @keyframes homeRise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
